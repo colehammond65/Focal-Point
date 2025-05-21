@@ -19,6 +19,7 @@
       font-weight: 700;
       letter-spacing: -1px;
     }
+    /* Upload form styling */
     form {
       max-width: 400px;
       margin: 2rem auto;
@@ -75,6 +76,7 @@
 </head>
 <body>
   <h1>Upload a Photo</h1>
+  <!-- Navigation buttons -->
   <div style="max-width:400px;margin:0 auto 1.5rem auto;display:flex;gap:1rem;justify-content:center;">
     <a href="/" style="
       background: #eee;
@@ -99,9 +101,10 @@
       display: inline-block;
     ">Logout</a>
   </div>
+  <!-- Upload form -->
   <form action="/upload" method="POST" enctype="multipart/form-data">
-    <label for="image">Choose an image:</label>
-    <input type="file" name="image" id="image" required>
+    <label for="image">Choose image(s):</label>
+    <input type="file" name="images" id="image" multiple required>
 
     <% if (categories.length > 0) { %>
       <label for="category">Select a category:</label>

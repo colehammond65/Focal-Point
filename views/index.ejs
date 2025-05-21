@@ -4,52 +4,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Photo Gallery</title>
+  <title>Anne's Photography</title>
   <style>
+    /* Main layout and background */
     body {
       margin: 0;
+      min-height: 100vh;
       font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
       background: #f7f8fa;
       color: #222;
-    }
-    h1 {
-      text-align: center;
-      padding: 2rem 0 1rem 0;
-      font-size: 2.5rem;
-      font-weight: 700;
-      letter-spacing: -1px;
-    }
-    .categories {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 2rem;
-      padding: 2rem 0;
+      flex-direction: column;
+      align-items: center;
     }
+    /* Header styling */
+    header {
+      width: 100vw;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      padding: 2.5rem 0 1.5rem 0;
+      margin-bottom: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    /* Page title */
+    h1 {
+      font-size: 2.7rem;
+      font-weight: 600;
+      letter-spacing: -1px;
+      margin: 0;
+      text-align: center;
+    }
+    /* Category grid */
+    .categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+      gap: 2rem;
+      width: 100%;
+      max-width: 100vw;
+      margin-bottom: 3rem;
+      padding: 0 1.5vw;
+      box-sizing: border-box;
+    }
+    /* Category card */
     .category {
       text-decoration: none;
       color: inherit;
       background: #fff;
-      border-radius: 1rem;
       box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-      max-width: 260px;
-      flex: 1 1 260px;
-      transition: box-shadow 0.2s, transform 0.2s;
-      overflow: hidden;
+      min-width: 0;
+      min-height: 320px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      transition: box-shadow 0.2s, transform 0.2s;
+      overflow: hidden;
+      position: relative;
     }
     .category:hover {
       box-shadow: 0 6px 24px rgba(0,0,0,0.13);
       transform: translateY(-4px) scale(1.03);
     }
+    /* Category thumbnail image and fallback */
     .category img, .no-image {
       width: 100%;
-      aspect-ratio: 1 / 1;
+      aspect-ratio: 16 / 9;
       object-fit: cover;
       background: #e9ecef;
       display: block;
+      margin-top: 0;
     }
     .no-image {
       display: flex;
@@ -57,40 +81,30 @@
       justify-content: center;
       color: #aaa;
       font-size: 1.2rem;
-      height: 200px;
+      height: 270px;
+      margin-top: 0;
     }
+    /* Category name styling */
     .category div {
       text-align: center;
-      margin: 1rem 0;
+      margin: 0.5rem 0 0.7rem 0;
+      margin-top: 0;
       font-size: 1.1rem;
-      font-weight: 500;
-      letter-spacing: 0.5px;
-    }
-    a.back {
-      display: inline-block;
-      margin: 1rem 2rem;
-      text-decoration: none;
-      color: #555;
       font-weight: 600;
-      border-radius: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: #f0f0f0;
-      transition: background 0.2s;
+      letter-spacing: 0.5px;
+      width: 100%;
     }
-    a.back:hover {
-      background: #e0e0e0;
-    }
+    /* Gallery grid for images in a category */
     .gallery {
       column-count: 3;
-      column-gap: 1.5rem;
-      padding: 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
+      column-gap: 2rem;
+      padding: 2rem 0;
+      max-width: 1400px;
+      margin: 0 auto 3rem auto;
     }
     .gallery img {
       width: 100%;
-      margin-bottom: 1.5rem;
-      border-radius: 0.75rem;
+      margin-bottom: 2rem;
       box-shadow: 0 2px 8px rgba(0,0,0,0.07);
       break-inside: avoid;
       cursor: pointer;
@@ -100,68 +114,74 @@
       transform: scale(1.04);
       box-shadow: 0 6px 24px rgba(0,0,0,0.13);
     }
-    .lightbox {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0,0,0,0.85);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .lightbox img {
-      max-width: 90vw;
-      max-height: 90vh;
-      border-radius: 1rem;
-      box-shadow: 0 2px 24px rgba(0,0,0,0.25);
-    }
-    .close-btn {
-      position: absolute;
-      top: 2rem;
-      right: 2rem;
-      background: #fff;
-      border: none;
-      font-size: 2rem;
-      border-radius: 50%;
-      width: 2.5rem;
-      height: 2.5rem;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+    /* Back button */
+    .back {
+      display: inline-block;
+      margin: 2rem 0 1rem 0;
+      text-decoration: none;
+      color: #555;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      background: #f0f0f0;
       transition: background 0.2s;
     }
-    .close-btn:hover {
-      background: #f0f0f0;
+    .back:hover {
+      background: #e0e0e0;
+    }
+    /* Footer with admin link */
+    footer {
+      width: 100%;
+      text-align: right;
+      padding: 1.5rem 0 2rem 0;
+      background: transparent;
+      z-index: 10;
+      pointer-events: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+    }
+    footer a {
+      background: #222;
+      color: #fff;
+      font-weight: 600;
+      padding: 0.4rem 1rem;
+      text-decoration: none;
+      font-size: 0.95rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      transition: background 0.2s;
+      display: inline-block;
+      pointer-events: auto;
+      margin-right: 2rem;
+    }
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+      .categories, .gallery { max-width: 1000px; }
+      .category { width: 350px; min-height: 220px; }
+      .no-image { height: 197px; }
     }
     @media (max-width: 900px) {
       .gallery { column-count: 2; }
+      .categories { gap: 1rem; }
+      .category { width: 90vw; min-width: 200px; }
     }
     @media (max-width: 600px) {
-      .gallery { column-count: 1; padding: 1rem; }
-      .categories { gap: 1rem; }
-      .category { max-width: 100%; }
+      .gallery { column-count: 1; padding: 1rem 0; }
+      .categories { gap: 0.7rem; }
+      .category { width: 100%; min-width: 0; }
+      h1 { font-size: 2rem; }
+      footer a { margin-right: 1rem; }
     }
   </style>
 </head>
 <body>
-<h1>Photo Gallery</h1>
+  <!-- Header with site title -->
+  <header>
+    <h1>Anne's Photography</h1>
+  </header>
 <% var loggedIn = typeof loggedIn !== 'undefined' ? loggedIn : false; %>
-  <div style="text-align:right;max-width:1200px;margin:0 auto 1rem auto;">
-    <a href="/admin" style="
-      background: #222;
-      color: #fff;
-      font-weight: 600;
-      border-radius: 0.5rem;
-      padding: 0.5rem 1.2rem;
-      text-decoration: none;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-      transition: background 0.2s;
-      display: inline-block;
-    ">Admin</a>
-  </div>
 
 <% if (images && images.length) { %>
+  <!-- Gallery view for a category -->
   <a class="back" href="/">Back to Categories</a>
   <div class="gallery">
     <% images.forEach(img => { %>
@@ -169,6 +189,7 @@
     <% }); %>
   </div>
 <% } else { %>
+  <!-- Category grid on homepage -->
   <div class="categories">
     <% categories.forEach(cat => { %>
       <a class="category" href="/gallery/<%= cat.name %>">
@@ -177,19 +198,22 @@
         <% } else { %>
           <div class="no-image">No image</div>
         <% } %>
-        <div><%= cat.name %></div>
+        <div>
+          <%= cat.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) %>
+        </div>
       </a>
     <% }); %>
   </div>
 <% } %>
 
-
+  <!-- Lightbox for viewing images -->
   <div id="lightbox" class="lightbox" style="display:none;" role="dialog" aria-modal="true">
     <button class="close-btn" id="closeBtn">&times;</button>
     <img id="lightboxImg" src="" alt="">
   </div>
 
   <script>
+    // Lightbox functionality for gallery images
     const images = document.querySelectorAll('.gallery img');
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = document.getElementById('lightboxImg');
@@ -222,5 +246,10 @@
       }
     });
   </script>
+
+  <!-- Footer with admin link -->
+  <footer>
+    <a href="/admin">Admin</a>
+  </footer>
 </body>
 </html>
