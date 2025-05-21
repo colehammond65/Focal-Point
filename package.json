@@ -1,0 +1,29 @@
+{
+  "name": "photo-gallery",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/colehammond65/photo-gallery.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/colehammond65/photo-gallery/issues"
+  },
+  "homepage": "https://github.com/colehammond65/photo-gallery#readme",
+  "description": "",
+  "dependencies": {
+    "basic-auth": "^2.0.1",
+    "dotenv": "^16.5.0",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "fs": "^0.0.1-security",
+    "multer": "^2.0.0"
+  }
+}

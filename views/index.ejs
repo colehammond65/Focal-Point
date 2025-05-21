@@ -1,0 +1,226 @@
+<!-- views/index.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Gallery</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      background: #f7f8fa;
+      color: #222;
+    }
+    h1 {
+      text-align: center;
+      padding: 2rem 0 1rem 0;
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+    .categories {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+      padding: 2rem 0;
+    }
+    .category {
+      text-decoration: none;
+      color: inherit;
+      background: #fff;
+      border-radius: 1rem;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+      max-width: 260px;
+      flex: 1 1 260px;
+      transition: box-shadow 0.2s, transform 0.2s;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .category:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+      transform: translateY(-4px) scale(1.03);
+    }
+    .category img, .no-image {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      background: #e9ecef;
+      display: block;
+    }
+    .no-image {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa;
+      font-size: 1.2rem;
+      height: 200px;
+    }
+    .category div {
+      text-align: center;
+      margin: 1rem 0;
+      font-size: 1.1rem;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    a.back {
+      display: inline-block;
+      margin: 1rem 2rem;
+      text-decoration: none;
+      color: #555;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #f0f0f0;
+      transition: background 0.2s;
+    }
+    a.back:hover {
+      background: #e0e0e0;
+    }
+    .gallery {
+      column-count: 3;
+      column-gap: 1.5rem;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .gallery img {
+      width: 100%;
+      margin-bottom: 1.5rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      break-inside: avoid;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .gallery img:hover {
+      transform: scale(1.04);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+    }
+    .lightbox {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 1rem;
+      box-shadow: 0 2px 24px rgba(0,0,0,0.25);
+    }
+    .close-btn {
+      position: absolute;
+      top: 2rem;
+      right: 2rem;
+      background: #fff;
+      border: none;
+      font-size: 2rem;
+      border-radius: 50%;
+      width: 2.5rem;
+      height: 2.5rem;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+      transition: background 0.2s;
+    }
+    .close-btn:hover {
+      background: #f0f0f0;
+    }
+    @media (max-width: 900px) {
+      .gallery { column-count: 2; }
+    }
+    @media (max-width: 600px) {
+      .gallery { column-count: 1; padding: 1rem; }
+      .categories { gap: 1rem; }
+      .category { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<h1>Photo Gallery</h1>
+<% var loggedIn = typeof loggedIn !== 'undefined' ? loggedIn : false; %>
+  <div style="text-align:right;max-width:1200px;margin:0 auto 1rem auto;">
+    <a href="/admin" style="
+      background: #222;
+      color: #fff;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      padding: 0.5rem 1.2rem;
+      text-decoration: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      transition: background 0.2s;
+      display: inline-block;
+    ">Admin</a>
+  </div>
+
+<% if (images && images.length) { %>
+  <a class="back" href="/">Back to Categories</a>
+  <div class="gallery">
+    <% images.forEach(img => { %>
+      <img src="/images/<%= category %>/<%= img %>" alt="<%= img %>">
+    <% }); %>
+  </div>
+<% } else { %>
+  <div class="categories">
+    <% categories.forEach(cat => { %>
+      <a class="category" href="/gallery/<%= cat.name %>">
+        <% if (cat.preview) { %>
+          <img src="/images/<%= cat.name %>/<%= cat.preview %>" alt="<%= cat.name %>">
+        <% } else { %>
+          <div class="no-image">No image</div>
+        <% } %>
+        <div><%= cat.name %></div>
+      </a>
+    <% }); %>
+  </div>
+<% } %>
+
+
+  <div id="lightbox" class="lightbox" style="display:none;" role="dialog" aria-modal="true">
+    <button class="close-btn" id="closeBtn">&times;</button>
+    <img id="lightboxImg" src="" alt="">
+  </div>
+
+  <script>
+    const images = document.querySelectorAll('.gallery img');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const closeBtn = document.getElementById('closeBtn');
+
+    images.forEach(img => {
+      img.addEventListener('click', () => {
+        lightboxImg.src = img.src;
+        lightbox.style.display = 'flex';
+        closeBtn.focus();
+      });
+    });
+
+    closeBtn.addEventListener('click', () => {
+      lightbox.style.display = 'none';
+      lightboxImg.src = '';
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        lightbox.style.display = 'none';
+        lightboxImg.src = '';
+      }
+    });
+
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) {
+        lightbox.style.display = 'none';
+        lightboxImg.src = '';
+      }
+    });
+  </script>
+</body>
+</html>
