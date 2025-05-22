@@ -1,22 +1,70 @@
 // server.js
 require('dotenv').config();
+
+if (!process.env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET is not set in your environment variables (.env file)');
+}
+
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
+const {
+  getCategoriesWithPreviews,
+  getCategoriesWithImages, // <-- add this
+  isSafeCategory,
+  getOrderedImages,
+  categoryExists,
+  createCategory,
+  deleteCategory,
+  deleteImage,
+  saveImageOrder,
+  setCategoryThumbnail,
+  adminExists,
+  createAdmin,
+  getAdmin,
+  verifyAdmin,
+  updateAltText,
+  addImage
+} = require('./utils');
 const app = express();
 const PORT = 3000;
+
+let categoryCache = null;
+let categoryCacheTime = 0;
+const CATEGORY_CACHE_TTL = 10000; // 10 seconds
+
+async function getCachedCategories() {
+  const now = Date.now();
+  if (!categoryCache || now - categoryCacheTime > CATEGORY_CACHE_TTL) {
+    categoryCache = await getCategoriesWithPreviews();
+    categoryCacheTime = now;
+  }
+  return categoryCache;
+}
+
+function invalidateCategoryCache() {
+  categoryCache = null;
+  categoryCacheTime = 0;
+}
 
 // Set up EJS templating engine and views directory
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Serve static files from /public
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Serve static images from /public/images at /images URL
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
+
 // Parse URL-encoded bodies (for login form, etc.)
 app.use(express.urlencoded({ extended: true }));
+
+// Parse JSON bodies (for AJAX, API, etc.)
+app.use(express.json());
 
 // Session middleware for login state
 app.use(session({
@@ -38,6 +86,21 @@ function requireLogin(req, res, next) {
     res.redirect('/login');
   }
 }
+
+// Redirect to /setup if admin account doesn't exist and not already on /setup
+app.use((req, res, next) => {
+  if (
+    !adminExists() &&
+    req.path !== '/setup' &&
+    req.path !== '/setup/' &&
+    !req.path.startsWith('/public') &&
+    !req.path.startsWith('/styles') &&
+    !req.path.startsWith('/images')
+  ) {
+    return res.redirect('/setup');
+  }
+  next();
+});
 
 // Ensure the temporary upload directory exists
 const tmpDir = path.join(__dirname, 'public/images/tmp');
@@ -66,48 +129,49 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
-// Helper: Get all categories (folders) and a preview image for each
-function getCategoriesWithPreviews() {
-  const basePath = path.join(__dirname, 'public/images');
-  if (!fs.existsSync(basePath)) return [];
-
-  return fs.readdirSync(basePath)
-    .filter(dir => {
-      const fullPath = path.join(basePath, dir);
-      // Exclude 'tmp' and any non-directory
-      return dir !== 'tmp' && fs.statSync(fullPath).isDirectory();
-    })
-    .map(cat => {
-      const catPath = path.join(basePath, cat);
-      const images = fs.readdirSync(catPath).filter(f => /\.(jpg|jpeg|png|gif)$/i.test(f));
-      return {
-        name: cat,
-        preview: images[0] || null,
-      };
+// Clean up tmp folder: delete files older than 1 hour
+function cleanTmpFolder() {
+  const tmpDir = path.join(__dirname, 'public/images/tmp');
+  const cutoff = Date.now() - 60 * 60 * 1000; // 1 hour ago
+  fs.readdir(tmpDir, (err, files) => {
+    if (err) return;
+    files.forEach(file => {
+      const filePath = path.join(tmpDir, file);
+      fs.stat(filePath, (err, stats) => {
+        if (err) return;
+        if (stats.isFile() && stats.mtimeMs < cutoff) {
+          fs.unlink(filePath, () => { });
+        }
+      });
     });
+  });
 }
 
-// Helper: Validate category name
-function isSafeCategory(category) {
-  return typeof category === 'string' && /^[\w-]+$/.test(category);
+// Run cleanup every hour
+setInterval(cleanTmpFolder, 60 * 60 * 1000);
+// Also run at startup
+cleanTmpFolder();
+
+// Helper to get file type
+async function getFileType(filePath) {
+  const { fileTypeFromFile } = await import('file-type');
+  return fileTypeFromFile(filePath);
 }
 
 // Homepage: Show all categories with previews
-app.get('/', (req, res) => {
-  const categories = getCategoriesWithPreviews();
+app.get('/', async (req, res) => {
+  const categories = await getCachedCategories();
   res.render('index', { categories, images: null, category: null, loggedIn: req.session && req.session.loggedIn });
 });
 
 // Gallery page: Show all images in a category
-app.get('/gallery/:category', (req, res) => {
+app.get('/gallery/:category', async (req, res) => {
   const category = req.params.category;
-  const basePath = path.join(__dirname, 'public/images');
-  const categories = getCategoriesWithPreviews();
+  const categories = await getCachedCategories();
 
   let images = [];
   try {
-    const categoryPath = path.join(basePath, category);
-    images = fs.readdirSync(categoryPath).filter(f => /\.(jpg|jpeg|png|gif)$/i.test(f));
+    images = getOrderedImages(category);
   } catch (err) {
     console.error(err);
   }
@@ -121,17 +185,13 @@ app.get('/login', (req, res) => {
 });
 
 // Handle login form (POST)
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  // Check credentials from environment variables
-  if (
-    username === process.env.ADMIN_USERNAME &&
-    password === process.env.ADMIN_PASSWORD
-  ) {
+  if (await verifyAdmin(username, password)) {
     req.session.loggedIn = true;
-    res.redirect('/admin');
+    return res.redirect('/admin');
   } else {
-    res.render('login', { error: 'Invalid credentials' });
+    return res.render('login', { error: 'Invalid credentials' });
   }
 });
 
@@ -142,33 +202,186 @@ app.get('/logout', (req, res) => {
   });
 });
 
+// Setup page (GET)
+app.get('/setup', (req, res) => {
+  if (adminExists()) return res.redirect('/login');
+  res.render('setup', { error: null });
+});
+
+// Setup page (POST)
+app.post('/setup', async (req, res) => {
+  if (adminExists()) return res.redirect('/login');
+  const { username, password } = req.body;
+  if (!username || !password || username.length < 3 || password.length < 4) {
+    return res.render('setup', { error: 'Username and password are required (min 3/4 chars).' });
+  }
+  await createAdmin(username, password);
+  res.redirect('/login');
+});
+
 // Admin page: show upload form and category list (protected)
-app.get('/admin', requireLogin, (req, res) => {
-  const categories = fs.readdirSync(path.join(__dirname, 'public/images')).filter(dir => {
-    const fullPath = path.join(__dirname, 'public/images', dir);
-    // Exclude 'tmp' and any non-directory, and only allow safe names
-    return dir !== 'tmp' && fs.statSync(fullPath).isDirectory() && isSafeCategory(dir);
-  });
-  res.render('admin', { categories });
+app.get('/admin', requireLogin, async (req, res) => {
+  const categories = getCategoriesWithImages();
+  res.render('admin', { categories, req });
 });
 
 // Handle image upload (multiple files, protected)
-app.post('/upload', requireLogin, upload.array('images', 20), (req, res) => {
-  const category = req.body.category;
-  if (!isSafeCategory(category)) {
-    return res.status(400).send('Invalid category');
+app.post('/upload', requireLogin, upload.array('images', 20), async (req, res, next) => {
+  try {
+    const category = req.body.category;
+    if (!isSafeCategory(category)) {
+      return res.status(400).send('Invalid category');
+    }
+    const destDir = path.join(__dirname, 'public/images', category);
+    fs.mkdirSync(destDir, { recursive: true });
+
+    // Get category id
+    const cat = require('./db').prepare('SELECT id FROM categories WHERE name = ?').get(category);
+    if (!cat) return res.status(400).send('Category not found');
+
+    // Find the next position
+    let maxPos = require('./db').prepare('SELECT MAX(position) as max FROM images WHERE category_id = ?').get(cat.id).max || 0;
+
+    for (const file of req.files) {
+      const tmpPath = file.path;
+      const fileType = await getFileType(tmpPath);
+      if (!fileType || !fileType.mime.startsWith('image/')) {
+        fs.unlinkSync(tmpPath);
+        continue; // skip invalid files
+      }
+      const destPath = path.join(destDir, file.filename);
+      fs.renameSync(tmpPath, destPath);
+
+      // Add to DB
+      addImage(category, file.filename, ++maxPos, '');
+    }
+
+    invalidateCategoryCache();
+    return res.redirect('/admin?msg=Upload successful!');
+  } catch (err) {
+    next(err);
   }
-  const destDir = path.join(__dirname, 'public/images', category);
-  fs.mkdirSync(destDir, { recursive: true });
+});
 
-  // Move each uploaded file from tmp to the category folder
-  req.files.forEach(file => {
-    const tmpPath = file.path;
-    const destPath = path.join(destDir, file.filename);
-    fs.renameSync(tmpPath, destPath);
-  });
+// Delete image route (protected)
+app.post('/delete-image', requireLogin, async (req, res) => {
+  const { category, filename } = req.body;
+  if (!isSafeCategory(category) || !filename || filename.includes('/') || filename.includes('\\')) {
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+  // Remove file from filesystem
+  const filePath = path.join(__dirname, 'public/images', category, filename);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  deleteImage(category, filename);
+  invalidateCategoryCache();
+  return res.sendStatus(200);
+});
 
-  res.redirect('/admin');
+// Bulk delete images route (protected)
+app.post('/bulk-delete-images', requireLogin, async (req, res) => {
+  const { category, filenames } = req.body;
+  if (!isSafeCategory(category) || !Array.isArray(filenames)) {
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+  for (const filename of filenames) {
+    const filePath = path.join(__dirname, 'public/images', category, filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    deleteImage(category, filename);
+  }
+  invalidateCategoryCache();
+  return res.json({ deleted: filenames });
+});
+
+// Create category
+app.post('/create-category', requireLogin, async (req, res) => {
+  let newCategory = req.body.newCategory || '';
+  newCategory = newCategory
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  if (!isSafeCategory(newCategory) || !newCategory) {
+    return res.redirect('/admin?msg=Invalid category name!');
+  }
+  if (!categoryExists(newCategory)) {
+    createCategory(newCategory);
+    invalidateCategoryCache();
+  }
+  return res.redirect('/admin?msg=Category created!');
+});
+
+// Delete category
+app.post('/delete-category', requireLogin, async (req, res) => {
+  const category = req.body.category;
+  if (!isSafeCategory(category)) return res.redirect('/admin?msg=Invalid category!');
+  if (categoryExists(category)) {
+    deleteCategory(category);
+    // Remove folder from filesystem
+    const catDir = path.join(__dirname, 'public/images', category);
+    if (fs.existsSync(catDir)) fs.rmSync(catDir, { recursive: true, force: true });
+    invalidateCategoryCache();
+    return res.redirect('/admin?msg=Category deleted!');
+  } else {
+    return res.redirect('/admin?msg=Category not found!');
+  }
+});
+
+// Reorder images
+app.post('/reorder-images', requireLogin, async (req, res) => {
+  const { category, order } = req.body;
+  if (!isSafeCategory(category)) return res.redirect('/admin?msg=Invalid category!');
+  let orderArr;
+  try {
+    orderArr = JSON.parse(order);
+    if (!Array.isArray(orderArr)) throw new Error();
+  } catch {
+    return res.redirect('/admin?msg=Invalid order data!');
+  }
+  saveImageOrder(category, orderArr);
+  invalidateCategoryCache();
+  return res.redirect('/admin?msg=Order saved!');
+});
+
+// Set category thumbnail
+app.post('/set-thumbnail', requireLogin, async (req, res) => {
+  const { category, filename } = req.body;
+  if (!isSafeCategory(category) || !filename || filename.includes('/') || filename.includes('\\')) {
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+  const filePath = path.join(__dirname, 'public/images', category, filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(400).json({ error: 'Image not found' });
+  }
+  setCategoryThumbnail(category, filename);
+  invalidateCategoryCache();
+  return res.json({ success: true });
+});
+
+// Update alt text for an image
+app.post('/update-alt-text', requireLogin, (req, res) => {
+  const { imageId, altText } = req.body;
+  if (!imageId) return res.status(400).json({ error: 'Missing image ID' });
+  updateAltText(imageId, altText);
+  res.json({ success: true });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+
+  // If AJAX or JSON request, send JSON error
+  if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  } else {
+    // Otherwise, render a friendly error page or message
+    res.status(500).send(`
+      <h1>Server Error</h1>
+      <p>Something broke! Please try again later.</p>
+      <a href="/">Back to Home</a>
+    `);
+  }
 });
 
 // Start the server
