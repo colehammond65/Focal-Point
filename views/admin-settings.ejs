@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= settings.siteTitle || "Anne's Photography" %>
+    </title>
+    <% if (settings.favicon) { %>
+        <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
+        <% } %>
+            <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <%- include('partials/header', { showAdminNav: true }) %>
+        <div class="container">
+            <h1>Site Settings</h1>
+            <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
+                <div class="admin-msg" aria-live="polite">
+                    <%= req.query.msg %>
+                </div>
+                <% } %>
+                    <section class="admin-card">
+                        <form action="/admin/settings" method="POST" enctype="multipart/form-data" class="admin-form">
+                            <label for="siteTitle">Site Name (browser tab):</label>
+                            <input type="text" id="siteTitle" name="siteTitle" value="<%= settings.siteTitle %>"
+                                required>
+
+                            <label for="headerTitle">Header Title:</label>
+                            <input type="text" id="headerTitle" name="headerTitle" value="<%= settings.headerTitle %>"
+                                required>
+
+                            <label for="favicon" style="margin-bottom:0;">Favicon (image, optional):</label>
+                            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                                <input type="file" id="favicon" name="favicon" accept="image/*" style="flex: 1 1 auto;">
+                                <% if (settings.favicon) { %>
+                                    <div
+                                        style="display: flex; flex-direction: column; align-items: center; min-width: 70px;">
+                                        <span
+                                            style="font-weight: 600; font-size: 1rem; color: #555; margin-bottom: 0.2rem;">Preview</span>
+                                        <img src="/uploads/<%= settings.favicon %>" alt="Current favicon"
+                                            class="favicon-preview">
+                                    </div>
+                                    <% } %>
+                            </div>
+                            <button type="submit">Save Settings</button>
+                        </form>
+                    </section>
+        </div>
+        <%- include('partials/dark-mode-toggle') %>
+</body>
+
+</html>

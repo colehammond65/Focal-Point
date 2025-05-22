@@ -21,13 +21,13 @@ async function verifyAdmin(username, password) {
 
 // CATEGORIES
 function getCategoriesWithPreviews() {
-    const cats = db.prepare('SELECT * FROM categories').all();
+    const cats = db.prepare('SELECT * FROM categories ORDER BY position ASC').all();
     return cats.map(cat => {
         // Try to get the manually set thumbnail
         let thumb = db.prepare('SELECT filename FROM images WHERE category_id = ? AND is_thumbnail = 1').get(cat.id);
-        // If not set, pick a random image as fallback
+        // If not set, pick the first image by position as fallback
         if (!thumb) {
-            thumb = db.prepare('SELECT filename FROM images WHERE category_id = ? ORDER BY RANDOM() LIMIT 1').get(cat.id);
+            thumb = db.prepare('SELECT filename FROM images WHERE category_id = ? ORDER BY position ASC LIMIT 1').get(cat.id);
         }
         return {
             name: cat.name,
@@ -46,7 +46,8 @@ function categoryExists(name) {
     return !!db.prepare('SELECT 1 FROM categories WHERE name = ?').get(name);
 }
 function createCategory(name) {
-    db.prepare('INSERT INTO categories (name) VALUES (?)').run(name);
+    const maxPos = db.prepare('SELECT MAX(position) as max FROM categories').get().max || 0;
+    db.prepare('INSERT INTO categories (name, position) VALUES (?, ?)').run(name, maxPos + 1);
 }
 function deleteCategory(name) {
     const cat = db.prepare('SELECT id FROM categories WHERE name = ?').get(name);
@@ -105,6 +106,21 @@ function getCategoriesWithImages() {
     }));
 }
 
+// SETTINGS
+function getSetting(key) {
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+    return row ? row.value : null;
+}
+function setSetting(key, value) {
+    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+}
+function getAllSettings() {
+    const rows = db.prepare('SELECT key, value FROM settings').all();
+    const settings = {};
+    rows.forEach(row => settings[row.key] = row.value);
+    return settings;
+}
+
 module.exports = {
     getCategoriesWithPreviews,
     isSafeCategory,
@@ -122,5 +138,8 @@ module.exports = {
     updateAltText,
     addImage,
     getCategoriesWithImages,
-    getCategoryIdAndMaxPosition
+    getCategoryIdAndMaxPosition,
+    getSetting,
+    setSetting,
+    getAllSettings
 };

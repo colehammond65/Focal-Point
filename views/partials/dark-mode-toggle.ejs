@@ -1,0 +1,20 @@
+<script>
+    (function () {
+        const toggle = document.getElementById('darkModeToggle');
+        const icon = document.getElementById('darkModeIcon');
+        // Check localStorage for preference
+        function setDarkMode(on) {
+            document.body.classList.toggle('dark-mode', on);
+            if (icon) icon.textContent = on ? '☀️' : '🌙';
+            localStorage.setItem('darkMode', on ? '1' : '0');
+        }
+        // Initial state
+        const darkPref = localStorage.getItem('darkMode');
+        setDarkMode(darkPref === '1' || (darkPref === null && window.matchMedia('(prefers-color-scheme: dark)').matches));
+        if (toggle) {
+            toggle.onclick = function () {
+                setDarkMode(!document.body.classList.contains('dark-mode'));
+            };
+        }
+    })();
+</script>

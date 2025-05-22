@@ -7,3 +7,4 @@ Dockerfile
 images/
 data/
 umzug.json
+.env.test

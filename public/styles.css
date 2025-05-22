@@ -7,6 +7,173 @@ body {
     min-height: 100vh;
 }
 
+/* Dark mode styles */
+body.dark-mode {
+    background: #181a1b;
+    color: #e0e0e0;
+}
+
+/* Grouped dark mode backgrounds and borders */
+body.dark-mode .admin-card,
+body.dark-mode .category-card,
+body.dark-mode .login-box,
+body.dark-mode .category,
+body.dark-mode .category-grid,
+body.dark-mode .modal-content,
+body.dark-mode .category-options-box,
+body.dark-mode .image-options-box {
+    background: #232527 !important;
+    color: #e0e0e0;
+    border-color: #333;
+}
+
+body.dark-mode .admin-msg {
+    background: #223322;
+    color: #e0ffe0;
+    border-color: #3a5;
+}
+
+body.dark-mode .admin-error {
+    color: #ffb3b3;
+}
+
+body.dark-mode .dropzone {
+    background: #232527;
+    border-color: #444;
+    color: #e0e0e0;
+}
+
+body.dark-mode .category-toggle {
+    background: #232527;
+    color: #e0e0e0;
+    border-bottom: 1px solid #333;
+}
+
+body.dark-mode .category-toggle:focus,
+body.dark-mode .category-toggle:hover {
+    background: #2a2d2f;
+}
+
+body.dark-mode .img-item {
+    background: #232527;
+    border-color: #333;
+}
+
+body.dark-mode .img-item img {
+    background: #222;
+}
+
+body.dark-mode .alt-text-input {
+    background: #232527;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+body.dark-mode .admin-nav a {
+    background: #232527;
+    color: #e0e0e0;
+    border-color: #333;
+}
+
+body.dark-mode .admin-nav a:hover {
+    background: #2a2d2f;
+}
+
+body.dark-mode .modal {
+    background: rgba(20, 20, 20, 0.85);
+}
+
+body.dark-mode .category img,
+body.dark-mode .no-image {
+    background: #222;
+    border-bottom: 1px solid #333;
+}
+
+body.dark-mode .gallery img {
+    border-color: #333;
+}
+
+body.dark-mode .back {
+    background: #232527;
+    color: #e0e0e0;
+    border-color: #333;
+}
+
+body.dark-mode .back:hover {
+    background: #2a2d2f;
+}
+
+body.dark-mode footer a {
+    background: #232527;
+    color: #e0e0e0;
+    border-color: #333;
+}
+
+body.dark-mode .favicon-preview {
+    background: #232527;
+}
+
+body.dark-mode header {
+    background: #232527;
+    color: #e0e0e0;
+    border-bottom: 1px solid #333;
+}
+
+body.dark-mode header nav a:hover,
+body.dark-mode header nav a:focus {
+    background: #2a2d2f !important;
+    color: #e0e0e0 !important;
+    border-bottom: 2px solid #aad7ff !important;
+}
+
+/* Grouped color overrides for headings, labels, etc. */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6,
+body.dark-mode label,
+body.dark-mode .category-title,
+body.dark-mode .category-options-title,
+body.dark-mode .image-options-title,
+body.dark-mode .admin-form label,
+body.dark-mode .admin-msg,
+body.dark-mode .admin-error,
+body.dark-mode .alt-text-input,
+body.dark-mode .category div,
+body.dark-mode .options-row,
+body.dark-mode .category-toggle .category-title,
+body.dark-mode .category-toggle .accordion-arrow {
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode a,
+body.dark-mode a:visited {
+    color: #aad7ff !important;
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+    color: #e0e0e0 !important;
+    background: #232527 !important;
+    border-color: #444 !important;
+}
+
+body.dark-mode ::placeholder {
+    color: #aaa !important;
+    opacity: 1;
+}
+
+/* Dark mode for admin action buttons */
+body.dark-mode .admin-action-btn:hover,
+body.dark-mode .set-thumb-btn:hover,
+body.dark-mode .delete-cat-btn:hover {
+    background: #333 !important;
+    color: #aad7ff !important;
+}
+
 /* Headings */
 h1 {
     text-align: center;
@@ -33,6 +200,25 @@ h1 {
 .admin-card,
 .category-accordion {
     overflow: visible;
+}
+
+/* Ensure the categories card and its contents don't overflow */
+.admin-card>#category-list {
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    padding-right: 0;
+}
+
+#category-list .category-accordion {
+    width: 100%;
+    box-sizing: border-box;
+    margin-right: 0;
+    padding: 0;
+    margin-bottom: 1.1rem;
+    border: none;
+    background: none;
+    max-width: 100%;
 }
 
 .admin-msg {
@@ -151,7 +337,6 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 0;
-    /* Remove horizontal margins so it fits inside the card */
     margin: 0 0 1.2rem 0;
     min-height: 90px;
     background: transparent;
@@ -159,6 +344,9 @@ h1 {
     border-radius: 0.3rem;
     width: 100%;
     box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .img-item {
@@ -169,8 +357,8 @@ h1 {
     border-radius: 0;
     box-shadow: none;
     padding: 0.3rem 0.2rem;
-    width: 100%;         /* Ensure it fills the grid but doesn't overflow */
-    max-width: 100%;     /* Prevent overflow */
+    width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
@@ -474,22 +662,10 @@ header nav a:focus {
 .category img,
 .no-image {
     width: 100%;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 1 / 1;
     object-fit: cover;
     background: #e9ecef;
     display: block;
-    margin-top: 0;
-    border-radius: 0;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.no-image {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #aaa;
-    font-size: 1.2rem;
-    height: 270px;
     margin-top: 0;
 }
 
@@ -508,11 +684,13 @@ header nav a:focus {
     padding: 2rem 0;
     max-width: 1400px;
     margin: 0 auto 3rem auto;
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
 .gallery img {
+    max-width: 100%;
     width: 100%;
+    display: block;
     margin-bottom: 2rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
     break-inside: avoid;
@@ -608,7 +786,7 @@ footer a {
 
 .lightbox-alt {
     color: #eee;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.6);
     padding: 0.5em 1em;
     margin: 0.5em auto 0 auto;
     border-radius: 0.3em;
@@ -620,14 +798,17 @@ footer a {
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
+
     .categories,
     .gallery {
         max-width: 1000px;
     }
+
     .category {
         width: 350px;
         min-height: 220px;
     }
+
     .no-image {
         height: 197px;
     }
@@ -637,38 +818,48 @@ footer a {
     .gallery {
         column-count: 2;
     }
+
     .categories {
         gap: 1rem;
     }
+
     .category {
         width: 90vw;
         min-width: 200px;
     }
+
     .admin-card {
         padding: 1.2rem;
     }
+
     .category-grid {
         gap: 1rem;
     }
+
     .category-card {
         min-width: 180px;
         max-width: 100vw;
     }
+
     .img-item {
         min-width: 80px;
         max-width: 100px;
     }
+
     .img-item img {
         width: 80px;
         height: 60px;
     }
+
     .img-dropzone {
         height: 60px;
     }
+
     .admin-flex-row {
         flex-direction: column;
         gap: 1.2rem;
     }
+
     .admin-flex-row .admin-card {
         min-width: 0;
     }
@@ -679,46 +870,57 @@ footer a {
         column-count: 1;
         padding: 1rem 0;
     }
+
     .categories {
         grid-template-columns: 1fr;
         gap: 1rem;
         padding: 0 0.5rem;
     }
+
     .category {
         min-width: 0;
         width: 100%;
     }
+
     h1 {
         font-size: 2rem;
     }
+
     footer a {
         margin-right: 1rem;
     }
+
     .admin-card {
         padding: 0.7rem;
     }
+
     .category-grid {
         flex-direction: column;
         gap: 0.7rem;
     }
+
     .category-card {
         min-width: 0;
         max-width: 100vw;
     }
+
     .admin-form input,
     .admin-form select,
     .admin-form button {
         width: 100%;
         font-size: 1.1rem;
     }
+
     .admin-flex-row {
         flex-direction: column;
         gap: 1.2rem;
     }
+
     .img-item {
         padding: 0.2rem 0.1rem;
         gap: 0.3rem;
     }
+
     .alt-text-input {
         font-size: 0.95rem;
         padding: 0.2rem 0.3rem;
@@ -732,6 +934,9 @@ footer a {
     margin: 0 auto;
     box-sizing: border-box;
     width: 100%;
+    min-width: 0;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 /* Visually hidden */
@@ -806,8 +1011,14 @@ footer a {
     background: none;
 }
 
+.category-accordion.dragging {
+    opacity: 0.5;
+    border: 2px dashed #0078d4;
+}
+
 .category-toggle {
     width: 100%;
+    box-sizing: border-box;
     background: #f7f8fa;
     border: none;
     border-bottom: 1px solid #e0e0e0;
@@ -831,6 +1042,10 @@ footer a {
 .category-toggle .category-title,
 .category-toggle .accordion-arrow {
     color: #111;
+}
+
+.category-toggle[draggable="true"] {
+    cursor: move;
 }
 
 .accordion-arrow {
@@ -874,7 +1089,7 @@ footer a {
     gap: 1.2rem;
     margin-bottom: 1.2rem;
     flex-wrap: wrap;
-    align-items: stretch; /* Ensures children match height */
+    align-items: stretch;
     padding: 0.5rem;
 }
 
@@ -889,6 +1104,8 @@ footer a {
     min-width: 0;
     min-height: 0;
     height: auto;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .category-grid {
@@ -901,6 +1118,8 @@ footer a {
     background: transparent;
     flex: unset !important;
     height: auto !important;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .close-btn {
@@ -914,4 +1133,42 @@ footer a {
     cursor: pointer;
     z-index: 1001;
     border-radius: 0;
+}
+
+#saving-indicator {
+    transition: opacity 0.5s;
+    opacity: 1;
+}
+
+#saving-indicator.fade-out {
+    opacity: 0;
+}
+
+.favicon-preview {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.dark-mode-toggle {
+    position: absolute;
+    top: 1.2rem;
+    right: 1.5rem;
+    z-index: 2001;
+    font-size: 1.7rem;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0.2em 0.4em;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.dark-mode-toggle:hover,
+.dark-mode-toggle:focus {
+    background: rgba(120, 120, 120, 0.08);
+    outline: none;
 }

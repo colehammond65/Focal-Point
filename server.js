@@ -9,9 +9,12 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
-const rateLimit = require('express-rate-limit'); // <-- ADDED
+const rateLimit = require('express-rate-limit');
+const sharp = require('sharp');
+const db = require('./db');
 
 const {
   getCategoriesWithPreviews,
@@ -30,7 +33,9 @@ const {
   verifyAdmin,
   updateAltText,
   addImage,
-  getCategoryIdAndMaxPosition
+  getCategoryIdAndMaxPosition,
+  getAllSettings,
+  setSetting
 } = require('./utils');
 const app = express();
 const PORT = 3000;
@@ -150,6 +155,15 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
+// Ensure the uploads directory exists
+const uploadsDir = path.join(__dirname, 'public/uploads');
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+const settingsUpload = multer({
+  dest: uploadsDir,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});
+
 // Clean up tmp folder: delete files older than 1 hour
 function cleanTmpFolder() {
   const tmpDir = path.join(__dirname, 'public/images/tmp');
@@ -169,7 +183,8 @@ function cleanTmpFolder() {
 }
 
 // Run cleanup every hour
-setInterval(cleanTmpFolder, 60 * 60 * 1000);
+const cleanupInterval = setInterval(cleanTmpFolder, 60 * 60 * 1000);
+cleanupInterval.unref(); // Prevents Jest from hanging due to open handles
 // Also run at startup
 cleanTmpFolder();
 
@@ -179,10 +194,35 @@ async function getFileType(filePath) {
   return fileTypeFromFile(filePath);
 }
 
+// --- AUTO-CREATE ADMIN FOR TESTS ---
+function randomString(len = 12) {
+  return crypto.randomBytes(len).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, len);
+}
+
+const envTestPath = path.join(__dirname, '.env.test');
+
+let testAdminReady = Promise.resolve();
+
+if (process.env.NODE_ENV === 'test') {
+  if (!adminExists()) {
+    const testUser = randomString(8);
+    const testPass = randomString(16);
+    testAdminReady = createAdmin(testUser, testPass)
+      .then(() => {
+        const envContent = `TEST_ADMIN_USER=${testUser}\nTEST_ADMIN_PASS=${testPass}\n`;
+        fs.writeFileSync(envTestPath, envContent, { encoding: 'utf8' });
+      })
+      .catch(err => {
+        console.error('Failed to create test admin:', err);
+      });
+  }
+}
+
 // Homepage: Show all categories with previews
 app.get('/', async (req, res) => {
   const categories = await getCachedCategories();
-  res.render('index', { categories, images: null, category: null, loggedIn: req.session && req.session.loggedIn });
+  const settings = getAllSettings();
+  res.render('index', { categories, images: null, category: null, loggedIn: req.session && req.session.loggedIn, settings });
 });
 
 // Gallery page: Show all images in a category
@@ -197,7 +237,8 @@ app.get('/gallery/:category', async (req, res) => {
     console.error(err);
   }
 
-  res.render('index', { categories, category, images, loggedIn: req.session && req.session.loggedIn });
+  const settings = getAllSettings();
+  res.render('index', { categories, category, images, loggedIn: req.session && req.session.loggedIn, settings });
 });
 
 // Login page (GET)
@@ -240,10 +281,22 @@ app.post('/setup', async (req, res) => {
   res.redirect('/login');
 });
 
-// Admin page: show upload form and category list (protected)
-app.get('/admin', requireLogin, async (req, res) => {
+// Site Settings page
+app.get('/admin/settings', requireLogin, (req, res) => {
+  const settings = getAllSettings();
+  res.render('admin-settings', { req, settings });
+});
+
+// Image & Category Management page
+app.get('/admin/manage', requireLogin, (req, res) => {
   const categories = getCategoriesWithImages();
-  res.render('admin', { categories, req });
+  const settings = getAllSettings();
+  res.render('admin-manage', { categories, req, settings });
+});
+
+// Redirect /admin to /admin/manage for backward compatibility
+app.get('/admin', requireLogin, (req, res) => {
+  res.redirect('/admin/manage');
 });
 
 // Handle image upload (multiple files, protected) -- RATE LIMITED
@@ -280,6 +333,38 @@ app.post('/upload', requireLogin, adminLimiter, upload.array('images', 20), asyn
   } catch (err) {
     next(err);
   }
+});
+
+// Update settings (protected)
+app.post('/admin/settings', requireLogin, settingsUpload.single('favicon'), async (req, res) => {
+  setSetting('siteTitle', req.body.siteTitle || "Anne's Photography");
+  setSetting('headerTitle', req.body.headerTitle || "Anne's Photography");
+
+  if (req.file) {
+    // Convert and resize favicon to 32x32 PNG
+    const inputPath = req.file.path;
+    const outputFilename = `favicon-${Date.now()}.png`;
+    const outputPath = path.join(uploadsDir, outputFilename);
+
+    try {
+      await sharp(inputPath)
+        .resize(32, 32)
+        .png()
+        .toFile(outputPath);
+
+      fs.unlinkSync(inputPath); // Remove the original upload
+
+      setSetting('favicon', outputFilename);
+
+      // Optionally: remove old favicon files if you want to keep only the latest
+      // (You can implement cleanup logic here if desired)
+    } catch (err) {
+      console.error('Favicon processing failed:', err);
+      // Optionally set a flash message or error
+    }
+  }
+
+  res.redirect('/admin?msg=Settings updated!');
 });
 
 // Delete image route (protected) -- RATE LIMITED
@@ -363,6 +448,17 @@ app.post('/reorder-images', requireLogin, adminLimiter, async (req, res) => {
   return res.redirect('/admin?msg=Order saved!');
 });
 
+// Reorder categories -- RATE LIMITED
+app.post('/reorder-categories', requireLogin, adminLimiter, async (req, res) => {
+  const { order } = req.body; // order is an array of category names
+  if (!Array.isArray(order)) return res.status(400).json({ error: 'Invalid order' });
+  order.forEach((catName, idx) => {
+    db.prepare('UPDATE categories SET position = ? WHERE name = ?').run(idx, catName);
+  });
+  invalidateCategoryCache();
+  res.json({ success: true });
+});
+
 // Set category thumbnail -- RATE LIMITED
 app.post('/set-thumbnail', requireLogin, adminLimiter, async (req, res) => {
   const { category, filename } = req.body;
@@ -386,6 +482,13 @@ app.post('/update-alt-text', requireLogin, adminLimiter, (req, res) => {
   res.json({ success: true });
 });
 
+// Place this after all other routes, but before error handling middleware
+const notFoundPage = require('./views/partials/notfound'); // Import the 404 HTML generator
+
+app.use((req, res) => {
+  res.status(404).send(notFoundPage());
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -403,7 +506,13 @@ app.use((err, req, res, next) => {
   }
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
-});
+// Only start the server if this file is run directly, not when required for tests
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server is running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
+module.exports.testAdminReady = testAdminReady;
