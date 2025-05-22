@@ -1,4 +1,4 @@
-FROM node:slim
+FROM node:24-slim
 
 RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
 
@@ -14,4 +14,4 @@ COPY --chown=node:node . .
 
 EXPOSE 3000
 
-CMD [ "node", "app.js" ]
+CMD [ "node", "server.js" ]

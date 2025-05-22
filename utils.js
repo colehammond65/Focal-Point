@@ -23,7 +23,12 @@ async function verifyAdmin(username, password) {
 function getCategoriesWithPreviews() {
     const cats = db.prepare('SELECT * FROM categories').all();
     return cats.map(cat => {
-        const thumb = db.prepare('SELECT filename FROM images WHERE category_id = ? AND is_thumbnail = 1').get(cat.id);
+        // Try to get the manually set thumbnail
+        let thumb = db.prepare('SELECT filename FROM images WHERE category_id = ? AND is_thumbnail = 1').get(cat.id);
+        // If not set, pick a random image as fallback
+        if (!thumb) {
+            thumb = db.prepare('SELECT filename FROM images WHERE category_id = ? ORDER BY RANDOM() LIMIT 1').get(cat.id);
+        }
         return {
             name: cat.name,
             preview: thumb ? thumb.filename : null
@@ -85,6 +90,13 @@ function deleteImage(category, filename) {
     db.prepare('DELETE FROM images WHERE category_id = ? AND filename = ?').run(cat.id, filename);
 }
 
+function getCategoryIdAndMaxPosition(categoryName) {
+    const cat = db.prepare('SELECT id FROM categories WHERE name = ?').get(categoryName);
+    if (!cat) return null;
+    const maxPos = db.prepare('SELECT MAX(position) as max FROM images WHERE category_id = ?').get(cat.id).max || 0;
+    return { id: cat.id, maxPos };
+}
+
 function getCategoriesWithImages() {
     const cats = getCategoriesWithPreviews();
     return cats.map(cat => ({
@@ -109,5 +121,6 @@ module.exports = {
     verifyAdmin,
     updateAltText,
     addImage,
-    getCategoriesWithImages
+    getCategoriesWithImages,
+    getCategoryIdAndMaxPosition
 };

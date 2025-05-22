@@ -11,9 +11,11 @@ const path = require('path');
 const fs = require('fs');
 const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
+const rateLimit = require('express-rate-limit'); // <-- ADDED
+
 const {
   getCategoriesWithPreviews,
-  getCategoriesWithImages, // <-- add this
+  getCategoriesWithImages,
   isSafeCategory,
   getOrderedImages,
   categoryExists,
@@ -27,7 +29,8 @@ const {
   getAdmin,
   verifyAdmin,
   updateAltText,
-  addImage
+  addImage,
+  getCategoryIdAndMaxPosition
 } = require('./utils');
 const app = express();
 const PORT = 3000;
@@ -49,6 +52,24 @@ function invalidateCategoryCache() {
   categoryCache = null;
   categoryCacheTime = 0;
 }
+
+// --- RATE LIMITERS --- //
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: 'Too many login attempts from this IP, please try again after 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: 'Too many requests from this IP, please try again after 15 minutes.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+// --- END RATE LIMITERS --- //
 
 // Set up EJS templating engine and views directory
 app.set('view engine', 'ejs');
@@ -184,8 +205,8 @@ app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
 
-// Handle login form (POST)
-app.post('/login', async (req, res) => {
+// Handle login form (POST) -- RATE LIMITED
+app.post('/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
   if (await verifyAdmin(username, password)) {
     req.session.loggedIn = true;
@@ -225,8 +246,8 @@ app.get('/admin', requireLogin, async (req, res) => {
   res.render('admin', { categories, req });
 });
 
-// Handle image upload (multiple files, protected)
-app.post('/upload', requireLogin, upload.array('images', 20), async (req, res, next) => {
+// Handle image upload (multiple files, protected) -- RATE LIMITED
+app.post('/upload', requireLogin, adminLimiter, upload.array('images', 20), async (req, res, next) => {
   try {
     const category = req.body.category;
     if (!isSafeCategory(category)) {
@@ -235,12 +256,10 @@ app.post('/upload', requireLogin, upload.array('images', 20), async (req, res, n
     const destDir = path.join(__dirname, 'public/images', category);
     fs.mkdirSync(destDir, { recursive: true });
 
-    // Get category id
-    const cat = require('./db').prepare('SELECT id FROM categories WHERE name = ?').get(category);
-    if (!cat) return res.status(400).send('Category not found');
-
-    // Find the next position
-    let maxPos = require('./db').prepare('SELECT MAX(position) as max FROM images WHERE category_id = ?').get(cat.id).max || 0;
+    // Get category id and max position
+    const catInfo = getCategoryIdAndMaxPosition(category);
+    if (!catInfo) return res.status(400).send('Category not found');
+    let maxPos = catInfo.maxPos;
 
     for (const file of req.files) {
       const tmpPath = file.path;
@@ -263,8 +282,8 @@ app.post('/upload', requireLogin, upload.array('images', 20), async (req, res, n
   }
 });
 
-// Delete image route (protected)
-app.post('/delete-image', requireLogin, async (req, res) => {
+// Delete image route (protected) -- RATE LIMITED
+app.post('/delete-image', requireLogin, adminLimiter, async (req, res) => {
   const { category, filename } = req.body;
   if (!isSafeCategory(category) || !filename || filename.includes('/') || filename.includes('\\')) {
     return res.status(400).json({ error: 'Invalid request' });
@@ -277,8 +296,8 @@ app.post('/delete-image', requireLogin, async (req, res) => {
   return res.sendStatus(200);
 });
 
-// Bulk delete images route (protected)
-app.post('/bulk-delete-images', requireLogin, async (req, res) => {
+// Bulk delete images route (protected) -- RATE LIMITED
+app.post('/bulk-delete-images', requireLogin, adminLimiter, async (req, res) => {
   const { category, filenames } = req.body;
   if (!isSafeCategory(category) || !Array.isArray(filenames)) {
     return res.status(400).json({ error: 'Invalid request' });
@@ -292,8 +311,8 @@ app.post('/bulk-delete-images', requireLogin, async (req, res) => {
   return res.json({ deleted: filenames });
 });
 
-// Create category
-app.post('/create-category', requireLogin, async (req, res) => {
+// Create category -- RATE LIMITED
+app.post('/create-category', requireLogin, adminLimiter, async (req, res) => {
   let newCategory = req.body.newCategory || '';
   newCategory = newCategory
     .toLowerCase()
@@ -312,8 +331,8 @@ app.post('/create-category', requireLogin, async (req, res) => {
   return res.redirect('/admin?msg=Category created!');
 });
 
-// Delete category
-app.post('/delete-category', requireLogin, async (req, res) => {
+// Delete category -- RATE LIMITED
+app.post('/delete-category', requireLogin, adminLimiter, async (req, res) => {
   const category = req.body.category;
   if (!isSafeCategory(category)) return res.redirect('/admin?msg=Invalid category!');
   if (categoryExists(category)) {
@@ -328,8 +347,8 @@ app.post('/delete-category', requireLogin, async (req, res) => {
   }
 });
 
-// Reorder images
-app.post('/reorder-images', requireLogin, async (req, res) => {
+// Reorder images -- RATE LIMITED
+app.post('/reorder-images', requireLogin, adminLimiter, async (req, res) => {
   const { category, order } = req.body;
   if (!isSafeCategory(category)) return res.redirect('/admin?msg=Invalid category!');
   let orderArr;
@@ -344,8 +363,8 @@ app.post('/reorder-images', requireLogin, async (req, res) => {
   return res.redirect('/admin?msg=Order saved!');
 });
 
-// Set category thumbnail
-app.post('/set-thumbnail', requireLogin, async (req, res) => {
+// Set category thumbnail -- RATE LIMITED
+app.post('/set-thumbnail', requireLogin, adminLimiter, async (req, res) => {
   const { category, filename } = req.body;
   if (!isSafeCategory(category) || !filename || filename.includes('/') || filename.includes('\\')) {
     return res.status(400).json({ error: 'Invalid request' });
@@ -359,8 +378,8 @@ app.post('/set-thumbnail', requireLogin, async (req, res) => {
   return res.json({ success: true });
 });
 
-// Update alt text for an image
-app.post('/update-alt-text', requireLogin, (req, res) => {
+// Update alt text for an image -- RATE LIMITED
+app.post('/update-alt-text', requireLogin, adminLimiter, (req, res) => {
   const { imageId, altText } = req.body;
   if (!imageId) return res.status(400).json({ error: 'Missing image ID' });
   updateAltText(imageId, altText);

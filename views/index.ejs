@@ -43,7 +43,10 @@
               <!-- Lightbox for viewing images -->
               <div id="lightbox" class="lightbox" role="dialog" aria-modal="true">
                 <button class="close-btn" id="closeBtn" aria-label="Close">&times;</button>
-                <img id="lightboxImg" src="" alt="">
+                <div class="lightbox-inner">
+                  <img id="lightboxImg" src="" alt="">
+                  <div id="lightboxAlt" class="lightbox-alt"></div>
+                </div>
               </div>
 
               <script>
@@ -57,8 +60,17 @@
                   img.addEventListener('click', (e) => {
                     e.preventDefault();
                     lightboxImg.src = img.src;
+                    lightboxImg.alt = img.alt;
                     lightbox.style.display = 'flex';
                     closeBtn.focus();
+                    const altBox = document.getElementById('lightboxAlt');
+                    if (img.alt && img.alt.trim() !== '') {
+                      altBox.textContent = img.alt;
+                      altBox.style.display = '';
+                    } else {
+                      altBox.textContent = '';
+                      altBox.style.display = 'none';
+                    }
                   });
                 });
 

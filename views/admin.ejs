@@ -69,41 +69,53 @@
           <% if (categories.length> 0) { %>
             <% categories.forEach(cat=> { %>
               <% const images=cat.images; %>
-                <section class="admin-card">
-                  <h2>Manage Categories & Images</h2>
-                  <div class="category-grid">
-                    <div class="category-card">
-                      <div class="category-header"
-                        style="display: flex; align-items: center; justify-content: space-between;">
-                        <span class="category-title">
-                          <%= cat.name.replace(/-/g, ' ' ).replace(/\b\w/g, c=> c.toUpperCase()) %>
-                        </span>
-                        <form action="/delete-category" method="POST" style="margin:0;">
-                          <input type="hidden" name="category" value="<%= cat.name %>">
-                          <button type="submit" class="delete-cat-btn" aria-label="Delete category"
-                            onclick="return confirm('Delete this category and all its images?');">Delete</button>
-                        </form>
-                      </div>
-                      <form class="bulk-delete-form" onsubmit="return handleBulkDelete(event, '<%= cat.name %>')">
-                        <button type="submit" id="bulkDeleteBtn-<%= cat.name %>" disabled>Delete Selected</button>
-                        <button type="button" id="setThumbBtn-<%= cat.name %>" class="set-thumb-btn" disabled
-                          onclick="handleSetThumbnail('<%= cat.name %>')" style="margin-left: 0.7rem;">
-                          Set as Thumbnail
-                        </button>
-                      </form>
-                      <div class="image-grid" data-cat="<%= cat.name %>">
-                        <% images.forEach((img, i)=> { %>
-                          <div class="img-dropzone" data-index="<%= i %>"></div>
-                          <div class="img-item <%= cat.preview === img.filename ? 'is-thumb' : '' %>"
-                            data-img="<%= img.filename %>">
-                            <input type="checkbox" class="bulk-delete-checkbox"
-                              onchange="toggleBulkDeleteBtn('<%= cat.name %>')">
-                            <img src="/images/<%= cat.name %>/<%= img.filename %>" alt="<%= img.alt_text %>">
-                            <input type="text" class="alt-text-input" value="<%= img.alt_text %>" placeholder="Alt text"
-                              onchange="updateAltText('<%= img.id %>', this.value)">
+                <section class="admin-card category-accordion">
+                  <button class="category-toggle" type="button" aria-expanded="false"
+                    aria-controls="cat-<%= cat.name %>-panel" onclick="toggleCategoryPanel('<%= cat.name %>')">
+                    <span class="category-title">
+                      <%= cat.name.replace(/-/g, ' ' ).replace(/\b\w/g, c=> c.toUpperCase()) %>
+                    </span>
+                    <span class="accordion-arrow" aria-hidden="true">&#9654;</span>
+                  </button>
+                  <div class="category-panel" id="cat-<%= cat.name %>-panel" style="display: none;">
+                    <div class="category-grid">
+                      <div class="category-card">
+                        <div class="options-row">
+                          <div class="category-options-box">
+                            <div class="category-options-title">Category Options</div>
+                            <form action="/delete-category" method="POST" style="margin:0;">
+                              <input type="hidden" name="category" value="<%= cat.name %>">
+                              <button type="submit" class="delete-cat-btn" aria-label="Delete category"
+                                onclick="return confirm('Delete this category and all its images?');">Delete</button>
+                            </form>
                           </div>
-                          <% }); %>
-                            <div class="img-dropzone" data-index="<%= images.length %>"></div>
+                          <div class="image-options-box">
+                            <div class="image-options-title">Image Options</div>
+                            <form class="bulk-delete-form" onsubmit="return handleBulkDelete(event, '<%= cat.name %>')">
+                              <button type="submit" id="bulkDeleteBtn-<%= cat.name %>" class="admin-action-btn"
+                                disabled>Delete Selected</button>
+                              <button type="button" id="setThumbBtn-<%= cat.name %>"
+                                class="admin-action-btn set-thumb-btn" disabled
+                                onclick="handleSetThumbnail('<%= cat.name %>')">
+                                Set as Thumbnail
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                        <div class="image-grid" data-cat="<%= cat.name %>">
+                          <% images.forEach((img, i)=> { %>
+                            <div class="img-dropzone" data-index="<%= i %>"></div>
+                            <div class="img-item <%= cat.preview === img.filename ? 'is-thumb' : '' %>"
+                              data-img="<%= img.filename %>">
+                              <input type="checkbox" class="bulk-delete-checkbox"
+                                onchange="toggleBulkDeleteBtn('<%= cat.name %>')">
+                              <img src="/images/<%= cat.name %>/<%= img.filename %>" alt="<%= img.alt_text %>">
+                              <input type="text" class="alt-text-input" value="<%= img.alt_text %>"
+                                placeholder="Alt text" onchange="updateAltText('<%= img.id %>', this.value)">
+                            </div>
+                            <% }); %>
+                              <div class="img-dropzone" data-index="<%= images.length %>"></div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -403,12 +415,35 @@
                     </script>
 
                     <script>
+                      // Prevent alt text input from toggling the image selection
+                      document.querySelectorAll('.image-grid').forEach(grid => {
+                        grid.querySelectorAll('.alt-text-input').forEach(input => {
+                          input.addEventListener('click', e => e.stopPropagation());
+                          input.addEventListener('focus', e => e.stopPropagation());
+                        });
+                      });
+                    </script>
+
+                    <script>
                       function updateAltText(imageId, altText) {
                         fetch('/update-alt-text', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ imageId, altText })
                         });
+                      }
+                    </script>
+
+                    <script>
+                      function toggleCategoryPanel(catName) {
+                        const panel = document.getElementById('cat-' + catName + '-panel');
+                        const btn = document.querySelector(`button.category-toggle[onclick*="'${catName}'"]`);
+                        const expanded = btn.getAttribute('aria-expanded') === 'true';
+                        btn.setAttribute('aria-expanded', !expanded);
+                        panel.style.display = expanded ? 'none' : 'block';
+                        // Rotate arrow
+                        const arrow = btn.querySelector('.accordion-arrow');
+                        if (arrow) arrow.style.transform = expanded ? 'rotate(0deg)' : 'rotate(90deg)';
                       }
                     </script>
     </div>
