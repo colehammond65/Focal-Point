@@ -132,3 +132,4 @@ dist
 # Ignore images and database
 images/
 data/
+umzug.json
