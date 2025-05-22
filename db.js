@@ -3,7 +3,7 @@ const { Umzug } = require('umzug');
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(__dirname, 'gallery.db');
+const dbPath = path.join(__dirname, 'data', 'gallery.db');
 const db = new Database(dbPath);
 
 // Load all migration modules from the migrations folder

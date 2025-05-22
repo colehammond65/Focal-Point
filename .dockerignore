@@ -4,5 +4,5 @@ Dockerfile
 .dockerignore
 
 # Ignore images and database
-images
-gallery.db
+images/
+data/

@@ -131,4 +131,4 @@ dist
 
 # Ignore images and database
 images/
-gallery.db
+data/

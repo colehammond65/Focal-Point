@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  photo-gallery:
+    image: encrypt65/photo-gallery:latest
+    container_name: photo-gallery
+    ports:
+      - "3000:3000"
+    environment:
+      - SESSION_SECRET=your_secret_here
+    volumes:
+      - ./images:/home/node/app/public/images
+      - ./data:/home/node/app/data
+    restart: unless-stopped
