@@ -600,6 +600,30 @@ app.post('/delete-category', requireLogin, adminLimiter, async (req, res) => {
   }
 });
 
+// Rename category -- RATE LIMITED
+app.post('/rename-category', requireLogin, adminLimiter, async (req, res) => {
+  const { oldName, newName } = req.body;
+  if (!isSafeCategory(oldName) || !isSafeCategory(newName)) {
+    return res.redirect('/admin?msg=Invalid category name!');
+  }
+  if (!categoryExists(oldName)) {
+    return res.redirect('/admin?msg=Original category not found!');
+  }
+  if (categoryExists(newName)) {
+    return res.redirect('/admin?msg=Category name already exists!');
+  }
+  // Update category name in DB
+  db.prepare('UPDATE categories SET name = ? WHERE name = ?').run(newName, oldName);
+  // Rename folder on disk if exists
+  const oldDir = path.join(__dirname, 'public/images', oldName);
+  const newDir = path.join(__dirname, 'public/images', newName);
+  if (fs.existsSync(oldDir)) {
+    fs.renameSync(oldDir, newDir);
+  }
+  invalidateCategoryCache();
+  return res.redirect('/admin?msg=Category renamed!');
+});
+
 // Reorder images -- RATE LIMITED
 app.post('/reorder-images', requireLogin, adminLimiter, async (req, res) => {
   const { category, order } = req.body;

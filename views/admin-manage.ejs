@@ -95,6 +95,16 @@
                                                                     aria-label="Delete category"
                                                                     onclick="return confirm('Delete this category and all its images?');">Delete</button>
                                                             </form>
+                                                            <form action="/rename-category" method="POST"
+                                                                class="no-margin row-gap" style="margin-top:0.7rem;"
+                                                                onsubmit="return confirm('Are you sure you want to rename this category?');">
+                                                                <input type="hidden" name="oldName"
+                                                                    value="<%= cat.name %>">
+                                                                <input type="text" name="newName"
+                                                                    placeholder="New category name" required
+                                                                    minlength="2" maxlength="50" style="flex:1;">
+                                                                <button type="submit">Rename</button>
+                                                            </form>
                                                         </div>
                                                         <div class="image-options-box">
                                                             <div class="image-options-title">Image Options</div>
@@ -359,3 +369,4 @@
 </body>
 
 </html>
+````
