@@ -297,6 +297,56 @@
             function deselectAllInGrid(grid) {
                 grid.querySelectorAll('.bulk-delete-checkbox').forEach(cb => cb.checked = false);
             }
+
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('image');
+            const preview = document.getElementById('preview');
+
+            // Show image previews
+            function showPreviews(files) {
+                preview.innerHTML = '';
+                Array.from(files).forEach(file => {
+                    if (!file.type.startsWith('image/')) return;
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.maxWidth = '120px';
+                        img.style.maxHeight = '120px';
+                        img.style.margin = '0.5rem';
+                        img.alt = file.name;
+                        preview.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Handle file input change
+            fileInput.addEventListener('change', function () {
+                showPreviews(this.files);
+            });
+
+            // Handle drag & drop
+            dropzone.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+            dropzone.addEventListener('dragleave', function (e) {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+            });
+            dropzone.addEventListener('drop', function (e) {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    showPreviews(e.dataTransfer.files);
+                }
+            });
+            dropzone.addEventListener('click', function () {
+                fileInput.value = ""; // Always allow re-select
+                fileInput.click();
+            });
         </script>
         <div id="saving-indicator"
             style="display:none;position:fixed;top:1.5rem;right:1.5rem;z-index:3000;background:#fffbe0;color:#222;padding:0.7rem 1.2rem;border:1px solid #e6b2b2;border-radius:0.3rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.07);">
@@ -306,4 +356,3 @@
 </body>
 
 </html>
-```
