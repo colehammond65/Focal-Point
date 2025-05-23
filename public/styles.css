@@ -981,10 +981,41 @@ footer a {
 }
 
 .image-options-box form {
-    width: 100%;
     display: flex;
     flex-direction: row;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0;
+}
+
+.image-options-box select {
+    min-width: 170px;
+    max-width: 220px;
+    padding: 0.6rem 2.2rem 0.6rem 1rem;
+    font-size: 1rem;
+    border: 1.5px solid #bbb;
+    border-radius: 0.3rem;
+    background: #f7f8fa url("data:image/svg+xml;utf8,<svg fill='gray' height='18' viewBox='0 0 20 20' width='18' xmlns='http://www.w3.org/2000/svg'><path d='M5.516 7.548a1 1 0 0 1 1.415 0L10 10.617l3.07-3.07a1 1 0 1 1 1.415 1.415l-3.777 3.778a1 1 0 0 1-1.415 0L5.516 8.963a1 1 0 0 1 0-1.415z'/></svg>") no-repeat right 0.8em center/1em;
+    appearance: none;
+    transition: border 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    color: #222;
+}
+
+.image-options-box select:focus {
+    border-color: #0078d4;
+    outline: none;
+    background-color: #eef6ff;
+}
+
+.image-options-box select:disabled {
+    background: #eee;
+    color: #aaa;
+}
+
+.image-options-box button {
+    min-width: 90px;
+    margin-left: 0;
 }
 
 .image-options-box form button {

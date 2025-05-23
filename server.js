@@ -482,6 +482,41 @@ app.post('/update-alt-text', requireLogin, adminLimiter, (req, res) => {
   res.json({ success: true });
 });
 
+// Move image to another category -- RATE LIMITED
+app.post('/move-image', requireLogin, adminLimiter, async (req, res) => {
+  const { filenames, fromCategory, toCategory } = req.body;
+  if (
+    !isSafeCategory(fromCategory) ||
+    !isSafeCategory(toCategory) ||
+    !Array.isArray(filenames) ||
+    filenames.some(f => !f || f.includes('/') || f.includes('\\'))
+  ) {
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+
+  if (!categoryExists(toCategory)) {
+    return res.status(400).json({ error: 'Destination category does not exist' });
+  }
+
+  const destDir = path.join(__dirname, 'public/images', toCategory);
+  fs.mkdirSync(destDir, { recursive: true });
+
+  let moved = 0;
+  for (const filename of filenames) {
+    const srcPath = path.join(__dirname, 'public/images', fromCategory, filename);
+    const destPath = path.join(destDir, filename);
+    if (!fs.existsSync(srcPath)) continue;
+    fs.renameSync(srcPath, destPath);
+    deleteImage(fromCategory, filename);
+    const { maxPos } = require('./utils').getCategoryIdAndMaxPosition(toCategory);
+    addImage(toCategory, filename, maxPos + 1, '');
+    moved++;
+  }
+
+  invalidateCategoryCache();
+  return res.json({ success: true, moved });
+});
+
 // Place this after all other routes, but before error handling middleware
 const notFoundPage = require('./views/partials/notfound'); // Import the 404 HTML generator
 
