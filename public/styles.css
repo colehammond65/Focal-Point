@@ -905,6 +905,12 @@ footer a {
     word-break: break-word;
 }
 
+.lightbox-open .dark-mode-toggle {
+    pointer-events: none;
+    opacity: 0.5;
+    /* Optional: visually indicate it's disabled */
+}
+
 /* 404 Not Found page styles */
 .notfound-body {
     display: flex;
@@ -1408,7 +1414,8 @@ footer a {
     position: absolute;
     top: 1.2rem;
     right: 1.5rem;
-    z-index: 2001;
+    z-index: 10;
+    /* Lower than .lightbox (1000) */
     font-size: 1.7rem;
     background: none;
     border: none;

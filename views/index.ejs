@@ -69,6 +69,7 @@
                     lightboxImg.src = img.src;
                     lightboxImg.alt = img.alt;
                     lightbox.style.display = 'flex';
+                    document.body.classList.add('lightbox-open');
                     closeBtn.focus();
                     const altBox = document.getElementById('lightboxAlt');
                     if (img.alt && img.alt.trim() !== '') {
@@ -81,22 +82,23 @@
                   });
                 });
 
-                closeBtn.addEventListener('click', () => {
+                function closeLightbox() {
                   lightbox.style.display = 'none';
                   lightboxImg.src = '';
-                });
+                  document.body.classList.remove('lightbox-open');
+                }
+
+                closeBtn.addEventListener('click', closeLightbox);
 
                 document.addEventListener('keydown', (e) => {
                   if (e.key === 'Escape') {
-                    lightbox.style.display = 'none';
-                    lightboxImg.src = '';
+                    closeLightbox();
                   }
                 });
 
                 lightbox.addEventListener('click', (e) => {
                   if (e.target === lightbox) {
-                    lightbox.style.display = 'none';
-                    lightboxImg.src = '';
+                    closeLightbox();
                   }
                 });
 
