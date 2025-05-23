@@ -322,7 +322,8 @@ app.get('/admin', requireLogin, (req, res) => {
 app.get('/admin/users', requireLogin, (req, res) => {
   const admins = db.prepare('SELECT id, username FROM admin').all();
   const currentAdmin = req.session.adminId;
-  res.render('admin-users', { admins, currentAdmin, req });
+  const settings = getAllSettings();
+  res.render('admin-users', { admins, currentAdmin, req, settings });
 });
 
 // Create new admin
