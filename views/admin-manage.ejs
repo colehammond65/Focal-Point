@@ -11,6 +11,7 @@
         <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
         <% } %>
             <link rel="stylesheet" href="/styles.css">
+            <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 
 <body>
@@ -157,6 +158,7 @@
                                 <% } %>
                     </section>
         </div>
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
         <script>
             // Enable/disable Move button based on selection
             document.querySelectorAll('.image-options-box').forEach(box => {
@@ -242,7 +244,7 @@
                 }
             }
 
-            // DRY dropzone setup function
+            // DRY dropzone setup function (only for upload area)
             function setupDropzone(dropzone, input, fileNameSpan, onFiles) {
                 if (!dropzone || !input) return;
                 dropzone.addEventListener('click', () => {
@@ -302,7 +304,7 @@
                 });
             }
 
-            // Use DRY dropzone for image upload
+            // Use DRY dropzone for image upload (only for upload area)
             setupDropzone(
                 document.getElementById('dropzone'),
                 document.getElementById('image'),
@@ -314,6 +316,44 @@
             function deselectAllInGrid(grid) {
                 grid.querySelectorAll('.bulk-delete-checkbox').forEach(cb => cb.checked = false);
             }
+
+            // --- SortableJS for reordering categories and images ---
+            // Categories
+            new Sortable(document.getElementById('category-list'), {
+                animation: 150,
+                handle: '.category-toggle',
+                onEnd: function (evt) {
+                    const order = Array.from(document.querySelectorAll('#category-list .category-accordion'))
+                        .map(el => el.getAttribute('data-cat'));
+                    fetch('/reorder-categories', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ order })
+                    }).then(res => res.json()).then(data => {
+                        if (!data.success) alert('Failed to save category order.');
+                    });
+                }
+            });
+
+            // Images in each category
+            document.querySelectorAll('.image-grid').forEach(grid => {
+                new Sortable(grid, {
+                    animation: 150,
+                    draggable: '.img-item',
+                    onEnd: function (evt) {
+                        const cat = grid.getAttribute('data-cat');
+                        const order = Array.from(grid.querySelectorAll('.img-item'))
+                            .map(el => el.getAttribute('data-filename'));
+                        fetch('/reorder-images', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ category: cat, order: JSON.stringify(order) })
+                        }).then(res => {
+                            if (!res.ok) alert('Failed to save image order.');
+                        });
+                    }
+                });
+            });
         </script>
         <div id="saving-indicator"
             style="display:none;position:fixed;top:1.5rem;right:1.5rem;z-index:3000;background:#fffbe0;color:#222;padding:0.7rem 1.2rem;border:1px solid #e6b2b2;border-radius:0.3rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.07);">
