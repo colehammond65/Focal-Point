@@ -1,5 +1,5 @@
 const Database = require('better-sqlite3');
-const { Umzug } = require('umzug');
+const { Umzug, JSONStorage } = require('umzug');
 const path = require('path');
 const fs = require('fs');
 
@@ -21,6 +21,7 @@ const umzug = new Umzug({
   migrations,
   context: db,
   logger: null, // silence logs during tests
+  storage: new JSONStorage({ path: path.join(__dirname, 'data', 'umzug.json') }),
 });
 
 const ready = umzug.up();
