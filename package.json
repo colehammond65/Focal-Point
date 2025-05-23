@@ -20,6 +20,7 @@
   "homepage": "https://github.com/colehammond65/photo-gallery#readme",
   "description": "",
   "dependencies": {
+    "archiver": "^7.0.1",
     "basic-auth": "^2.0.1",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^11.10.0",
@@ -32,6 +33,7 @@
     "multer": "^2.0.0",
     "sharp": "^0.34.2",
     "umzug": "^3.8.2",
+    "unzipper": "^0.12.3",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

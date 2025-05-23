@@ -66,7 +66,7 @@
                     </div>
 
                     <!-- Categories Section -->
-                    <section class="admin-card">
+                    <section class="admin-card admin-card-categories">
                         <h2>Categories</h2>
                         <% if (categories.length> 0) { %>
                             <div id="category-list">
@@ -199,6 +199,34 @@
                 return false;
             }
 
+            // Handle bulk delete
+            function handleBulkDelete(event, category) {
+                event.preventDefault();
+                const grid = event.target.closest('.category-card').querySelector('.image-grid');
+                const checked = Array.from(grid.querySelectorAll('.bulk-delete-checkbox:checked'));
+                if (!checked.length) {
+                    alert('Select at least one image to delete.');
+                    return false;
+                }
+                if (!confirm('Are you sure you want to delete the selected images?')) return false;
+                const filenames = checked.map(cb => cb.value);
+                fetch('/bulk-delete-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category, filenames })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.deleted) {
+                            deselectAllInGrid(grid);
+                            location.reload();
+                        } else {
+                            alert('Failed to delete images.');
+                        }
+                    });
+                return false;
+            }
+
             // Toggle category panel
             function toggleCategoryPanel(catName) {
                 const panel = document.getElementById('cat-' + catName + '-panel');
@@ -214,7 +242,61 @@
                 }
             }
 
-            // ... (rest of your existing scripts for drag-and-drop, bulk delete, set thumbnail, alt text, etc.) ...
+            // Handle dropzone click to open file dialog
+            document.getElementById('dropzone').addEventListener('click', function () {
+                const fileInput = document.getElementById('image');
+                fileInput.value = ""; // <-- This line ensures the dialog always opens
+                fileInput.click();
+            });
+
+            // Enable/disable buttons based on selection
+            document.querySelectorAll('.image-options-box').forEach(box => {
+                const grid = box.closest('.category-card').querySelector('.image-grid');
+                const moveBtn = box.querySelector('.move-images-form button[type="submit"]');
+                const deleteBtn = box.querySelector('.bulk-delete-form button[type="submit"]');
+                const setThumbBtn = box.querySelector('.set-thumb-btn');
+                if (!grid) return;
+                grid.querySelectorAll('.bulk-delete-checkbox').forEach(cb => {
+                    cb.addEventListener('change', function () {
+                        const checked = grid.querySelectorAll('.bulk-delete-checkbox:checked');
+                        const anyChecked = checked.length > 0;
+                        if (moveBtn) moveBtn.disabled = !anyChecked;
+                        if (deleteBtn) deleteBtn.disabled = !anyChecked;
+                        if (setThumbBtn) setThumbBtn.disabled = checked.length !== 1;
+                    });
+                });
+            });
+
+            // Handle setting thumbnail
+            function handleSetThumbnail(category) {
+                const grid = document.querySelector(`.category-card .image-grid[data-cat="${category}"]`);
+                if (!grid) return;
+                const checked = grid.querySelectorAll('.bulk-delete-checkbox:checked');
+                if (checked.length !== 1) {
+                    alert('Select exactly one image to set as thumbnail.');
+                    return;
+                }
+                const filename = checked[0].value;
+                fetch('/set-thumbnail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category, filename })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            deselectAllInGrid(grid);
+                            location.reload();
+                        } else {
+                            alert('Failed to set thumbnail.');
+                        }
+                    });
+            }
+
+            // Deselect all checkboxes in a grid
+            function deselectAllInGrid(grid) {
+                grid.querySelectorAll('.bulk-delete-checkbox').forEach(cb => cb.checked = false);
+            }
         </script>
         <div id="saving-indicator"
             style="display:none;position:fixed;top:1.5rem;right:1.5rem;z-index:3000;background:#fffbe0;color:#222;padding:0.7rem 1.2rem;border:1px solid #e6b2b2;border-radius:0.3rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.07);">

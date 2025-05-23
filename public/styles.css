@@ -195,6 +195,11 @@ h1 {
     width: 100%;
     box-sizing: border-box;
     border: 1px solid #e0e0e0;
+    max-width: 900px;
+    /* Increased from 600px */
+    min-width: 0;
+    /* Allow to shrink on small screens */
+    margin: 0 auto 2.5rem auto;
 }
 
 .admin-card,
@@ -319,10 +324,24 @@ h1 {
     background: #fafbfc;
     border-radius: 0;
     transition: background 0.2s;
+    position: relative;
+    font-size: 1.08rem;
+    color: #222;
+    outline: none;
 }
 
 .dropzone:hover {
     background: #f0f0f0;
+}
+
+.dropzone.dragover {
+    background: #e6f2ff;
+    border-color: #0078d4;
+}
+
+.dropzone:focus {
+    border-color: #0078d4;
+    background: #eef6ff;
 }
 
 .preview {
@@ -539,7 +558,8 @@ h1 {
 
 /* Login Page */
 .login-box {
-    max-width: 350px;
+    max-width: 900px;
+    /* Increased from 600px */
     margin: 4rem auto;
     background: #fff;
     border-radius: 0;
@@ -655,8 +675,11 @@ header nav a:focus {
     position: relative;
     border-radius: 0;
     border: 1px solid #e0e0e0;
-    max-width: 600px;
-    margin: 0 auto;
+    max-width: 900px;
+    /* Increased from 600px */
+    min-width: 0;
+    /* Allow to shrink on small screens */
+    margin: 0 auto 2.5rem auto;
 }
 
 .category img,
@@ -812,6 +835,17 @@ footer a {
     .no-image {
         height: 197px;
     }
+
+    .admin-card,
+    .login-box,
+    .category,
+    .settings-flex-row .admin-card {
+        max-width: 100vw;
+    }
+
+    .settings-flex-row {
+        max-width: 100vw;
+    }
 }
 
 @media (max-width: 900px) {
@@ -862,6 +896,19 @@ footer a {
 
     .admin-flex-row .admin-card {
         min-width: 0;
+    }
+
+    .settings-flex-row {
+        flex-direction: column;
+        gap: 1.2rem;
+        align-items: stretch;
+        max-width: 100vw;
+    }
+
+    .settings-flex-row .admin-card {
+        min-width: 0;
+        max-width: 100vw;
+        margin: 0 0 2.5rem 0;
     }
 }
 
@@ -927,6 +974,27 @@ footer a {
     }
 }
 
+/* Side-by-side layout for settings and backup */
+.settings-flex-row {
+    display: flex;
+    gap: 2.5rem;
+    align-items: flex-start;
+    justify-content: center;
+    margin: 0 auto 2.5rem auto;
+    flex-wrap: wrap;
+    max-width: 1900px;
+    /* Increased to allow more width */
+}
+
+.settings-flex-row .admin-card {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 900px;
+    /* Match .admin-card */
+    width: 100%;
+    margin-bottom: 0;
+}
+
 /* Container */
 .container {
     padding: 0 2vw;
@@ -989,17 +1057,19 @@ footer a {
 }
 
 .image-options-box select {
+    padding: 0.7rem;
+    font-size: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 0;
+    background: #f7f8fa;
+    color: #222;
+    margin-bottom: 0;
+    transition: border 0.2s;
+    width: 100%;
+    appearance: none;
     min-width: 170px;
     max-width: 220px;
-    padding: 0.6rem 2.2rem 0.6rem 1rem;
-    font-size: 1rem;
-    border: 1.5px solid #bbb;
-    border-radius: 0.3rem;
-    background: #f7f8fa url("data:image/svg+xml;utf8,<svg fill='gray' height='18' viewBox='0 0 20 20' width='18' xmlns='http://www.w3.org/2000/svg'><path d='M5.516 7.548a1 1 0 0 1 1.415 0L10 10.617l3.07-3.07a1 1 0 1 1 1.415 1.415l-3.777 3.778a1 1 0 0 1-1.415 0L5.516 8.963a1 1 0 0 1 0-1.415z'/></svg>") no-repeat right 0.8em center/1em;
-    appearance: none;
-    transition: border 0.2s;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    color: #222;
+    box-shadow: none;
 }
 
 .image-options-box select:focus {
@@ -1202,4 +1272,14 @@ footer a {
 .dark-mode-toggle:focus {
     background: rgba(120, 120, 120, 0.08);
     outline: none;
+}
+
+.admin-card-categories {
+    max-width: 100vw !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box;
+    padding-left: 2vw;
+    padding-right: 2vw;
 }

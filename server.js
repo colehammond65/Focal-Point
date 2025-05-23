@@ -15,6 +15,8 @@ const { v4: uuidv4 } = require('uuid');
 const rateLimit = require('express-rate-limit');
 const sharp = require('sharp');
 const db = require('./db');
+const archiver = require('archiver');
+const unzipper = require('unzipper');
 
 const {
   getCategoriesWithPreviews,
@@ -515,6 +517,80 @@ app.post('/move-image', requireLogin, adminLimiter, async (req, res) => {
 
   invalidateCategoryCache();
   return res.json({ success: true, moved });
+});
+
+// Download backup (admin only)
+app.get('/admin/backup', requireLogin, (req, res) => {
+  res.setHeader('Content-Disposition', 'attachment; filename="gallery-backup.zip"');
+  res.setHeader('Content-Type', 'application/zip');
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  archive.pipe(res);
+  archive.file(path.join(__dirname, 'data', 'gallery.db'), { name: 'gallery.db' });
+  archive.directory(path.join(__dirname, 'public', 'images'), 'images');
+  archive.finalize();
+});
+
+// Restore backup (admin only)
+const restoreUpload = multer({ dest: path.join(__dirname, 'public', 'uploads') });
+app.post('/admin/restore', requireLogin, restoreUpload.single('backup'), async (req, res) => {
+  if (!req.file) return res.status(400).send('No file uploaded');
+  const zipPath = req.file.path;
+  try {
+    // Extract zip to a temp dir
+    const extractDir = path.join(__dirname, 'public', 'uploads', 'restore-tmp-' + Date.now());
+    fs.mkdirSync(extractDir, { recursive: true });
+    await fs.createReadStream(zipPath)
+      .pipe(unzipper.Extract({ path: extractDir }))
+      .promise();
+
+    // Move/extract DB
+    const dbSrc = path.join(extractDir, 'gallery.db');
+    const dbDest = path.join(__dirname, 'data', 'gallery.db');
+    if (fs.existsSync(dbSrc)) {
+      fs.copyFileSync(dbSrc, dbDest);
+    }
+
+    // Move/extract images
+    const imagesSrc = path.join(extractDir, 'images');
+    const imagesDest = path.join(__dirname, 'public', 'images');
+    if (fs.existsSync(imagesSrc)) {
+      if (fs.existsSync(imagesDest)) {
+        fs.rmSync(imagesDest, { recursive: true, force: true });
+      }
+      try {
+        fs.renameSync(imagesSrc, imagesDest);
+      } catch (err) {
+        if (err.code === 'EPERM' || err.code === 'EACCES' || err.code === 'ENOTEMPTY') {
+          // Fallback: copy files manually
+          const copyDir = (src, dest) => {
+            fs.mkdirSync(dest, { recursive: true });
+            for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+              const srcPath = path.join(src, entry.name);
+              const destPath = path.join(dest, entry.name);
+              if (entry.isDirectory()) {
+                copyDir(srcPath, destPath);
+              } else {
+                fs.copyFileSync(srcPath, destPath);
+              }
+            }
+          };
+          copyDir(imagesSrc, imagesDest);
+          fs.rmSync(imagesSrc, { recursive: true, force: true });
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    // Cleanup
+    fs.unlinkSync(zipPath);
+    fs.rmSync(extractDir, { recursive: true, force: true });
+
+    res.redirect('/admin/settings?msg=Backup restored!');
+  } catch (err) {
+    console.error('Restore failed:', err);
+    res.status(500).send('Restore failed: ' + err.message);
+  }
 });
 
 // Place this after all other routes, but before error handling middleware
