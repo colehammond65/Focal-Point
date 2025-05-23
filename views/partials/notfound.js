@@ -1,8 +1,8 @@
-module.exports = function notFoundPage() {
-    return `
+module.exports = function notFoundPage(siteTitle = "Photo Gallery") {
+  return `
     <html>
       <head>
-        <title>404 Not Found | Anne's Photography</title>
+        <title>404 Not Found | ${siteTitle}</title>
         <link rel="stylesheet" href="/styles.css">
         <style>
           body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #f7f8fa; }

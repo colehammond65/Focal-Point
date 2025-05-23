@@ -24,19 +24,57 @@
                 <% } %>
                     <div class="settings-flex-row">
                         <section class="admin-card">
+                            <h2>Branding</h2>
                             <form action="/admin/settings" method="POST" enctype="multipart/form-data"
                                 class="admin-form">
                                 <label for="siteTitle">Site Name (browser tab):</label>
                                 <input type="text" id="siteTitle" name="siteTitle" value="<%= settings.siteTitle %>"
                                     required>
 
-                                <label for="headerTitle">Header Title:</label>
-                                <input type="text" id="headerTitle" name="headerTitle"
-                                    value="<%= settings.headerTitle %>" required>
+                                <label>Header Type:</label>
+                                <div class="header-type-radio-group">
+                                    <label>
+                                        <input type="radio" name="headerType" value="text" <%=settings.headerType
+                                            !=='image' ? 'checked' : '' %>>
+                                        Text
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="headerType" value="image"
+                                            <%=settings.headerType==='image' ? 'checked' : '' %>>
+                                        Image
+                                    </label>
+                                </div>
+
+                                <div id="headerTextInput"
+                                    style="<%= settings.headerType === 'image' ? 'display:none;' : '' %>">
+                                    <label for="headerTitle" style="margin-bottom:0.5rem;">Header Title:</label>
+                                    <input type="text" id="headerTitle" name="headerTitle"
+                                        value="<%= settings.headerTitle %>">
+                                </div>
+
+                                <div id="headerImageInput"
+                                    style="<%= settings.headerType === 'image' ? '' : 'display:none;' %>">
+                                    <label for="headerImage">Header Image (optional):</label>
+                                    <div id="headerImageDropzone" class="dropzone" tabindex="0" style="flex: 1 1 auto;">
+                                        <span id="headerImageDropzoneText">Drag & drop header image here or click to
+                                            select</span>
+                                        <input type="file" id="headerImage" name="headerImage" accept="image/*"
+                                            style="display:none;">
+                                        <span id="headerImageFileName"
+                                            style="margin-left:1rem;color:#0078d4;font-weight:600;"></span>
+                                        <% if (settings.headerImage) { %>
+                                            <div style="margin-top:0.5rem;">
+                                                <img src="/uploads/<%= settings.headerImage %>" alt="Header Image"
+                                                    style="max-width:300px;max-height:80px;">
+                                            </div>
+                                            <% } %>
+                                    </div>
+                                </div>
 
                                 <label for="favicon" style="margin-bottom:0;">Favicon (image, optional):</label>
                                 <div id="faviconDropzone" class="dropzone" tabindex="0" style="flex: 1 1 auto;">
-                                    <span id="faviconDropzoneText">Drag & drop favicon here or click to select</span>
+                                    <span id="faviconDropzoneText">Drag & drop favicon here or click to
+                                        select</span>
                                     <input type="file" id="favicon" name="favicon" accept="image/*"
                                         style="display:none;">
                                     <span id="faviconFileName"
@@ -53,6 +91,12 @@
                                 </div>
                                 <button type="submit">Save Settings</button>
                             </form>
+                            <% if (settings.headerImage) { %>
+                                <form action="/admin/settings/remove-header-image" method="POST"
+                                    style="margin-top:0.5rem;">
+                                    <button type="submit" class="danger-btn">Remove Header Image</button>
+                                </form>
+                                <% } %>
                         </section>
                         <section class="admin-card">
                             <h2>Backup & Restore</h2>
@@ -158,6 +202,54 @@
                         }
                     }
                 }
+            </script>
+            <script>
+                const headerImageDropzone = document.getElementById('headerImageDropzone');
+                const headerImageInput = document.getElementById('headerImage');
+                const headerImageFileName = document.getElementById('headerImageFileName');
+
+                if (headerImageDropzone && headerImageInput && headerImageFileName) {
+                    headerImageDropzone.addEventListener('click', () => headerImageInput.click());
+                    headerImageDropzone.addEventListener('keydown', e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            headerImageInput.click();
+                        }
+                    });
+                    headerImageDropzone.addEventListener('dragover', e => {
+                        e.preventDefault();
+                        headerImageDropzone.classList.add('dragover');
+                    });
+                    headerImageDropzone.addEventListener('dragleave', e => {
+                        e.preventDefault();
+                        headerImageDropzone.classList.remove('dragover');
+                    });
+                    headerImageDropzone.addEventListener('drop', e => {
+                        e.preventDefault();
+                        headerImageDropzone.classList.remove('dragover');
+                        if (e.dataTransfer.files.length) {
+                            headerImageInput.files = e.dataTransfer.files;
+                            updateHeaderImageFileName();
+                        }
+                    });
+                    headerImageInput.addEventListener('change', updateHeaderImageFileName);
+
+                    function updateHeaderImageFileName() {
+                        if (headerImageInput.files.length) {
+                            headerImageFileName.textContent = headerImageInput.files[0].name;
+                        } else {
+                            headerImageFileName.textContent = '';
+                        }
+                    }
+                }
+            </script>
+            <script>
+                document.querySelectorAll('input[name="headerType"]').forEach(radio => {
+                    radio.addEventListener('change', function () {
+                        document.getElementById('headerTextInput').style.display = this.value === 'text' ? '' : 'none';
+                        document.getElementById('headerImageInput').style.display = this.value === 'image' ? '' : 'none';
+                    });
+                });
             </script>
 </body>
 

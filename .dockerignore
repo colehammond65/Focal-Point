@@ -6,5 +6,6 @@ Dockerfile
 # Ignore images and database
 images/
 data/
+uploads/
 umzug.json
 .env.test

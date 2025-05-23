@@ -8,8 +8,8 @@ module.exports = {
     `);
         // Set defaults if not present
         const defaults = [
-            { key: 'siteTitle', value: "Anne's Photography" },
-            { key: 'headerTitle', value: "Anne's Photography" },
+            { key: 'siteTitle', value: "Photo Gallery" },
+            { key: 'headerTitle', value: "Photo Gallery" },
             { key: 'favicon', value: "" }
         ];
         defaults.forEach(({ key, value }) => {

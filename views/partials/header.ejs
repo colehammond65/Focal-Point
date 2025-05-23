@@ -1,17 +1,21 @@
-<header style="position: relative;">
-    <h1><a href="/" style="color:inherit;text-decoration:none;">
-            <%= settings.headerTitle || "Anne's Photography" %>
-        </a></h1>
-    <% if (typeof showAdminNav !=='undefined' && showAdminNav) { %>
-        <nav>
-            <a href="/">Home</a>
-            <a href="/admin/manage">Manage Images</a>
-            <a href="/admin/settings">Site Settings</a>
-            <a href="/logout">Logout</a>
-        </nav>
-        <% } %>
-            <!-- Dark mode toggle button absolutely positioned in header -->
-            <button id="darkModeToggle" aria-label="Toggle dark mode" class="dark-mode-toggle">
-                <span id="darkModeIcon" aria-hidden="true">🌙</span>
-            </button>
+<header>
+    <% if (settings.headerType==='image' && settings.headerImage) { %>
+        <img src="/uploads/<%= settings.headerImage %>" alt="Site Header" style="max-height:80px;">
+        <% } else { %>
+            <span class="site-title">
+                <%= settings.headerTitle || "Photo Gallery" %>
+            </span>
+            <% } %>
+                <% if (typeof showAdminNav !=='undefined' && showAdminNav) { %>
+                    <nav>
+                        <a href="/">Home</a>
+                        <a href="/admin/manage">Manage Images</a>
+                        <a href="/admin/settings">Site Settings</a>
+                        <a href="/logout">Logout</a>
+                    </nav>
+                    <% } %>
+                        <!-- Dark mode toggle button absolutely positioned in header -->
+                        <button id="darkModeToggle" aria-label="Toggle dark mode" class="dark-mode-toggle">
+                            <span id="darkModeIcon" aria-hidden="true">🌙</span>
+                        </button>
 </header>

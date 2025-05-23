@@ -40,7 +40,6 @@ const {
   setSetting
 } = require('./utils');
 const app = express();
-const PORT = 3000;
 
 let categoryCache = null;
 let categoryCacheTime = 0;
@@ -163,7 +162,7 @@ fs.mkdirSync(uploadsDir, { recursive: true });
 
 const settingsUpload = multer({
   dest: uploadsDir,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 // Clean up tmp folder: delete files older than 1 hour
@@ -338,35 +337,66 @@ app.post('/upload', requireLogin, adminLimiter, upload.array('images', 20), asyn
 });
 
 // Update settings (protected)
-app.post('/admin/settings', requireLogin, settingsUpload.single('favicon'), async (req, res) => {
-  setSetting('siteTitle', req.body.siteTitle || "Anne's Photography");
-  setSetting('headerTitle', req.body.headerTitle || "Anne's Photography");
+app.post('/admin/settings', requireLogin, settingsUpload.fields([
+  { name: 'favicon', maxCount: 1 },
+  { name: 'headerImage', maxCount: 1 }
+]), async (req, res) => {
+  setSetting('siteTitle', req.body.siteTitle || "Photo Gallery");
+  setSetting('headerType', req.body.headerType === 'image' ? 'image' : 'text');
+  setSetting('headerTitle', req.body.headerTitle || "Photo Gallery");
 
-  if (req.file) {
-    // Convert and resize favicon to 32x32 PNG
-    const inputPath = req.file.path;
+  // Handle header image upload
+  if (req.files && req.files.headerImage && req.files.headerImage[0]) {
+    const inputPath = req.files.headerImage[0].path;
+    const outputFilename = `header-${Date.now()}-${req.files.headerImage[0].originalname}`;
+    const outputPath = path.join(uploadsDir, outputFilename);
+
+    // Optionally resize or process image here
+    fs.renameSync(inputPath, outputPath);
+    setSetting('headerImage', outputFilename);
+
+    // Optionally: remove old header images if you want to keep only the latest
+  }
+
+  // Handle favicon upload (existing logic)
+  if (req.files && req.files.favicon && req.files.favicon[0]) {
+    const inputPath = req.files.favicon[0].path;
     const outputFilename = `favicon-${Date.now()}.png`;
     const outputPath = path.join(uploadsDir, outputFilename);
 
-    try {
-      await sharp(inputPath)
-        .resize(32, 32)
-        .png()
-        .toFile(outputPath);
+    await sharp(inputPath)
+      .resize(32, 32)
+      .png()
+      .toFile(outputPath);
 
-      fs.unlinkSync(inputPath); // Remove the original upload
+    fs.unlinkSync(inputPath);
+    setSetting('favicon', outputFilename);
+  }
 
-      setSetting('favicon', outputFilename);
+  res.redirect('/admin/settings?msg=Settings updated!');
+});
 
-      // Optionally: remove old favicon files if you want to keep only the latest
-      // (You can implement cleanup logic here if desired)
-    } catch (err) {
-      console.error('Favicon processing failed:', err);
-      // Optionally set a flash message or error
+app.post('/admin/settings/remove-header-image', requireLogin, (req, res) => {
+  // Always clear the setting
+  const settings = getAllSettings();
+  const headerImage = settings.headerImage;
+  console.log('Removing header image:', headerImage);
+  setSetting('headerImage', '');
+
+  // Try to delete the file if it exists
+  if (headerImage) {
+    const imgPath = path.join(uploadsDir, headerImage);
+    if (fs.existsSync(imgPath)) {
+      try {
+        fs.unlinkSync(imgPath);
+      } catch (e) {
+        // Log but don't block
+        console.error('Failed to delete header image:', e);
+      }
     }
   }
 
-  res.redirect('/admin?msg=Settings updated!');
+  res.redirect('/admin/settings?msg=Header image removed');
 });
 
 // Delete image route (protected) -- RATE LIMITED
@@ -535,9 +565,10 @@ const restoreUpload = multer({ dest: path.join(__dirname, 'public', 'uploads') }
 app.post('/admin/restore', requireLogin, restoreUpload.single('backup'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded');
   const zipPath = req.file.path;
+  const extractDir = path.join(__dirname, 'public', 'uploads', 'restore-tmp-' + Date.now());
+  let errorOccurred = false;
   try {
     // Extract zip to a temp dir
-    const extractDir = path.join(__dirname, 'public', 'uploads', 'restore-tmp-' + Date.now());
     fs.mkdirSync(extractDir, { recursive: true });
     await fs.createReadStream(zipPath)
       .pipe(unzipper.Extract({ path: extractDir }))
@@ -582,14 +613,15 @@ app.post('/admin/restore', requireLogin, restoreUpload.single('backup'), async (
       }
     }
 
-    // Cleanup
-    fs.unlinkSync(zipPath);
-    fs.rmSync(extractDir, { recursive: true, force: true });
-
     res.redirect('/admin/settings?msg=Backup restored!');
   } catch (err) {
+    errorOccurred = true;
     console.error('Restore failed:', err);
     res.status(500).send('Restore failed: ' + err.message);
+  } finally {
+    // Always cleanup temp files/folders
+    try { if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath); } catch { }
+    try { if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true }); } catch { }
   }
 });
 
@@ -597,7 +629,8 @@ app.post('/admin/restore', requireLogin, restoreUpload.single('backup'), async (
 const notFoundPage = require('./views/partials/notfound'); // Import the 404 HTML generator
 
 app.use((req, res) => {
-  res.status(404).send(notFoundPage());
+  const settings = getAllSettings();
+  res.status(404).send(notFoundPage(settings.siteTitle || "Photo Gallery"));
 });
 
 // Error handling middleware
