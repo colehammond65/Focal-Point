@@ -123,125 +123,66 @@
         </div>
         <%- include('partials/dark-mode-toggle') %>
             <script>
-                const restoreDropzone = document.getElementById('restoreDropzone');
-                const restoreFileInput = document.getElementById('restoreFileInput');
-                const restoreFileName = document.getElementById('restoreFileName');
-                const restoreBtn = document.getElementById('restoreBtn');
-
-                restoreDropzone.addEventListener('click', () => restoreFileInput.click());
-                restoreDropzone.addEventListener('keydown', e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        restoreFileInput.click();
-                    }
-                });
-                restoreDropzone.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    restoreDropzone.classList.add('dragover');
-                });
-                restoreDropzone.addEventListener('dragleave', e => {
-                    e.preventDefault();
-                    restoreDropzone.classList.remove('dragover');
-                });
-                restoreDropzone.addEventListener('drop', e => {
-                    e.preventDefault();
-                    restoreDropzone.classList.remove('dragover');
-                    if (e.dataTransfer.files.length) {
-                        restoreFileInput.files = e.dataTransfer.files;
-                        updateRestoreFileName();
-                    }
-                });
-                restoreFileInput.addEventListener('change', updateRestoreFileName);
-
-                function updateRestoreFileName() {
-                    if (restoreFileInput.files.length) {
-                        restoreFileName.textContent = restoreFileInput.files[0].name;
-                        restoreBtn.disabled = false;
-                    } else {
-                        restoreFileName.textContent = '';
-                        restoreBtn.disabled = true;
-                    }
-                }
-            </script>
-            <script>
-                const faviconDropzone = document.getElementById('faviconDropzone');
-                const faviconInput = document.getElementById('favicon');
-                const faviconFileName = document.getElementById('faviconFileName');
-
-                if (faviconDropzone && faviconInput && faviconFileName) {
-                    faviconDropzone.addEventListener('click', () => faviconInput.click());
-                    faviconDropzone.addEventListener('keydown', e => {
+                // DRY dropzone setup function
+                function setupDropzone(dropzone, input, fileNameSpan, onFiles) {
+                    if (!dropzone || !input) return;
+                    dropzone.addEventListener('click', () => input.click());
+                    dropzone.addEventListener('keydown', e => {
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            faviconInput.click();
+                            input.click();
                         }
                     });
-                    faviconDropzone.addEventListener('dragover', e => {
+                    dropzone.addEventListener('dragover', e => {
                         e.preventDefault();
-                        faviconDropzone.classList.add('dragover');
+                        e.stopPropagation();
+                        dropzone.classList.add('dragover');
                     });
-                    faviconDropzone.addEventListener('dragleave', e => {
+                    dropzone.addEventListener('dragleave', e => {
                         e.preventDefault();
-                        faviconDropzone.classList.remove('dragover');
+                        e.stopPropagation();
+                        dropzone.classList.remove('dragover');
                     });
-                    faviconDropzone.addEventListener('drop', e => {
+                    dropzone.addEventListener('drop', e => {
                         e.preventDefault();
-                        faviconDropzone.classList.remove('dragover');
+                        e.stopPropagation();
+                        dropzone.classList.remove('dragover');
                         if (e.dataTransfer.files.length) {
-                            faviconInput.files = e.dataTransfer.files;
-                            updateFaviconFileName();
+                            input.files = e.dataTransfer.files;
+                            if (onFiles) onFiles(e.dataTransfer.files);
+                            if (fileNameSpan) fileNameSpan.textContent = e.dataTransfer.files[0].name;
                         }
                     });
-                    faviconInput.addEventListener('change', updateFaviconFileName);
-
-                    function updateFaviconFileName() {
-                        if (faviconInput.files.length) {
-                            faviconFileName.textContent = faviconInput.files[0].name;
-                        } else {
-                            faviconFileName.textContent = '';
-                        }
-                    }
+                    input.addEventListener('change', function () {
+                        if (onFiles) onFiles(this.files);
+                        if (fileNameSpan) fileNameSpan.textContent = this.files.length ? this.files[0].name : '';
+                    });
                 }
-            </script>
-            <script>
-                const headerImageDropzone = document.getElementById('headerImageDropzone');
-                const headerImageInput = document.getElementById('headerImage');
-                const headerImageFileName = document.getElementById('headerImageFileName');
 
-                if (headerImageDropzone && headerImageInput && headerImageFileName) {
-                    headerImageDropzone.addEventListener('click', () => headerImageInput.click());
-                    headerImageDropzone.addEventListener('keydown', e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            headerImageInput.click();
-                        }
-                    });
-                    headerImageDropzone.addEventListener('dragover', e => {
-                        e.preventDefault();
-                        headerImageDropzone.classList.add('dragover');
-                    });
-                    headerImageDropzone.addEventListener('dragleave', e => {
-                        e.preventDefault();
-                        headerImageDropzone.classList.remove('dragover');
-                    });
-                    headerImageDropzone.addEventListener('drop', e => {
-                        e.preventDefault();
-                        headerImageDropzone.classList.remove('dragover');
-                        if (e.dataTransfer.files.length) {
-                            headerImageInput.files = e.dataTransfer.files;
-                            updateHeaderImageFileName();
-                        }
-                    });
-                    headerImageInput.addEventListener('change', updateHeaderImageFileName);
-
-                    function updateHeaderImageFileName() {
-                        if (headerImageInput.files.length) {
-                            headerImageFileName.textContent = headerImageInput.files[0].name;
-                        } else {
-                            headerImageFileName.textContent = '';
-                        }
+                // Restore backup dropzone
+                setupDropzone(
+                    document.getElementById('restoreDropzone'),
+                    document.getElementById('restoreFileInput'),
+                    document.getElementById('restoreFileName'),
+                    function (files) {
+                        const btn = document.getElementById('restoreBtn');
+                        if (btn) btn.disabled = !files.length;
                     }
-                }
+                );
+
+                // Favicon dropzone
+                setupDropzone(
+                    document.getElementById('faviconDropzone'),
+                    document.getElementById('favicon'),
+                    document.getElementById('faviconFileName')
+                );
+
+                // Header image dropzone
+                setupDropzone(
+                    document.getElementById('headerImageDropzone'),
+                    document.getElementById('headerImage'),
+                    document.getElementById('headerImageFileName')
+                );
             </script>
             <script>
                 document.querySelectorAll('input[name="headerType"]').forEach(radio => {
@@ -254,3 +195,4 @@
 </body>
 
 </html>
+```
