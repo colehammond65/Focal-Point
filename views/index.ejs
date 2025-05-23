@@ -32,14 +32,16 @@
             <div class="categories">
               <% categories.forEach(cat=> { %>
                 <a class="category" href="/gallery/<%= cat.name %>">
-                  <% if (cat.preview) { %>
-                    <img src="/images/<%= cat.name %>/<%= cat.preview %>" alt="<%= cat.preview %>">
-                    <% } else { %>
-                      <div class="no-image">No image</div>
-                      <% } %>
-                        <div>
-                          <%= cat.name.replace(/-/g, ' ' ).replace(/\b\w/g, c=> c.toUpperCase()) %>
-                        </div>
+                  <div class="category-image-wrapper">
+                    <% if (cat.preview) { %>
+                      <img src="/images/<%= cat.name %>/<%= cat.preview %>" alt="<%= cat.preview %>">
+                      <% } else { %>
+                        <div class="no-image">No image</div>
+                        <% } %>
+                  </div>
+                  <div class="category-name">
+                    <%= cat.name.replace(/-/g, ' ' ).replace(/\b\w/g, c=> c.toUpperCase()) %>
+                  </div>
                 </a>
                 <% }); %>
             </div>
