@@ -8,6 +8,7 @@ services:
       - "3000:3000"
     environment:
       - SESSION_SECRET=your_secret_here
+      - TRUST_PROXY=1
     volumes:
       - ./images:/home/node/app/public/images
       - ./data:/home/node/app/data

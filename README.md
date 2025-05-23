@@ -57,7 +57,7 @@ docker run -p 3000:3000 -v $(pwd)/images:/home/node/app/public/images -v $(pwd)/
 1. Edit `docker-compose.yml` and set your `SESSION_SECRET`.
 2. Run:
     ```sh
-    docker-compose up
+    docker-compose up -d
     ```
 
 ### Docker Volumes

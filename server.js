@@ -41,6 +41,21 @@ const {
 } = require('./utils');
 const app = express();
 
+// Set trust proxy from environment variable (default: 0/false)
+const trustProxy = process.env.TRUST_PROXY;
+if (trustProxy !== undefined) {
+  // If it's a number, use as number; if "true", use true; if "false", use false
+  if (trustProxy === "true") {
+    app.set('trust proxy', true);
+  } else if (trustProxy === "false" || trustProxy === "0") {
+    app.set('trust proxy', false);
+  } else if (!isNaN(Number(trustProxy))) {
+    app.set('trust proxy', Number(trustProxy));
+  } else {
+    app.set('trust proxy', trustProxy); // fallback for advanced trust proxy settings
+  }
+}
+
 let categoryCache = null;
 let categoryCacheTime = 0;
 const CATEGORY_CACHE_TTL = 10000; // 10 seconds
