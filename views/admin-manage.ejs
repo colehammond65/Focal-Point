@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <%= settings.siteTitle || "Anne's Photography" %>
+        <%= settings.siteTitle || "Photo Gallery" %>
     </title>
     <% if (settings.favicon) { %>
         <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
@@ -56,11 +56,10 @@
                         <!-- Create Category Form -->
                         <section class="admin-card">
                             <h2>Create Category</h2>
-                            <form action="/create-category" method="POST" class="admin-form"
-                                style="flex-direction:row;gap:0.5rem;">
+                            <form action="/create-category" method="POST" class="admin-form row-gap">
                                 <label for="newCategory" class="visually-hidden">New Category Name</label>
                                 <input type="text" id="newCategory" name="newCategory" placeholder="New category name"
-                                    required style="flex:1;">
+                                    required class="flex-1">
                                 <button type="submit">Create</button>
                             </form>
                         </section>
@@ -82,15 +81,14 @@
                                             </span>
                                             <span class="accordion-arrow" aria-hidden="true">&#9654;</span>
                                         </div>
-                                        <div class="category-panel" id="cat-<%= cat.name %>-panel"
-                                            style="display: none;">
+                                        <div class="category-panel hidden" id="cat-<%= cat.name %>-panel">
                                             <div class="category-grid">
                                                 <div class="category-card">
                                                     <div class="options-row">
                                                         <div class="category-options-box">
                                                             <div class="category-options-title">Category Options</div>
                                                             <form action="/delete-category" method="POST"
-                                                                style="margin:0;">
+                                                                class="no-margin">
                                                                 <input type="hidden" name="category"
                                                                     value="<%= cat.name %>">
                                                                 <button type="submit" class="delete-cat-btn"
@@ -139,10 +137,9 @@
                                                                     aria-label="Select image for bulk actions">
                                                                 <img src="/images/<%= cat.name %>/<%= img.filename %>"
                                                                     alt="<%= img.alt_text %>">
-                                                                <input type="text" class="alt-text-input"
+                                                                <input type="text" class="alt-text-input ml-05"
                                                                     value="<%= img.alt_text %>" placeholder="Alt text"
                                                                     data-image-id="<%= img.id %>"
-                                                                    style="margin-left:0.5rem;"
                                                                     aria-label="Edit alt text">
                                                             </div>
                                                             <% }); %>
@@ -234,8 +231,8 @@
                 const panel = document.getElementById('cat-' + catName + '-panel');
                 const toggle = panel && panel.parentElement.querySelector('.category-toggle');
                 if (!panel) return;
-                const isOpen = panel.style.display !== 'none';
-                panel.style.display = isOpen ? 'none' : '';
+                const isOpen = !panel.classList.contains('hidden');
+                panel.classList.toggle('hidden', isOpen);
                 if (toggle) {
                     toggle.setAttribute('aria-expanded', !isOpen);
                     // Optionally rotate the arrow
@@ -355,8 +352,7 @@
                 });
             });
         </script>
-        <div id="saving-indicator"
-            style="display:none;position:fixed;top:1.5rem;right:1.5rem;z-index:3000;background:#fffbe0;color:#222;padding:0.7rem 1.2rem;border:1px solid #e6b2b2;border-radius:0.3rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.07);">
+        <div id="saving-indicator" class="saving-indicator">
             Saving...
         </div>
         <%- include('partials/dark-mode-toggle') %>

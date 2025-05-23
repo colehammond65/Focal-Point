@@ -1,5 +1,5 @@
 const path = require('path');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const db = require('./db');
 
 // ADMIN
@@ -13,10 +13,10 @@ async function createAdmin(username, password) {
 function getAdmin() {
     return db.prepare('SELECT * FROM admin LIMIT 1').get();
 }
-async function verifyAdmin(username, password) {
-    const admin = getAdmin();
-    if (!admin || admin.username !== username) return false;
-    return await bcrypt.compare(password, admin.hash);
+function verifyAdmin(username, password) {
+    const admin = db.prepare('SELECT * FROM admin WHERE username = ?').get(username);
+    if (!admin) return false;
+    return bcrypt.compare(password, admin.hash).then(match => match ? admin : false);
 }
 
 // CATEGORIES

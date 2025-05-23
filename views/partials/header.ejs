@@ -1,6 +1,6 @@
 <header>
     <% if (settings.headerType==='image' && settings.headerImage) { %>
-        <img src="/uploads/<%= settings.headerImage %>" alt="Site Header" style="max-height:80px;">
+        <img src="/uploads/<%= settings.headerImage %>" alt="Site Header" class="header-image-preview">
         <% } else { %>
             <span class="site-title">
                 <%= settings.headerTitle || "Photo Gallery" %>
@@ -11,6 +11,7 @@
                         <a href="/">Home</a>
                         <a href="/admin/manage">Manage Images</a>
                         <a href="/admin/settings">Site Settings</a>
+                        <a href="/admin/users">Admin Users</a>
                         <a href="/logout">Logout</a>
                     </nav>
                     <% } %>

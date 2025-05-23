@@ -126,7 +126,6 @@ body.dark-mode header nav a:focus {
     border-bottom: 2px solid #aad7ff !important;
 }
 
-/* Grouped color overrides for headings, labels, etc. */
 body.dark-mode h1,
 body.dark-mode h2,
 body.dark-mode h3,
@@ -166,7 +165,6 @@ body.dark-mode ::placeholder {
     opacity: 1;
 }
 
-/* Dark mode for admin action buttons */
 body.dark-mode .admin-action-btn:hover,
 body.dark-mode .set-thumb-btn:hover,
 body.dark-mode .delete-cat-btn:hover {
@@ -196,10 +194,13 @@ h1 {
     box-sizing: border-box;
     border: 1px solid #e0e0e0;
     max-width: 900px;
-    /* Increased from 600px */
     min-width: 0;
-    /* Allow to shrink on small screens */
     margin: 0 auto 2.5rem auto;
+}
+
+.admin-card {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .category {
@@ -212,7 +213,6 @@ h1 {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    /* ...existing styles... */
 }
 
 .admin-card,
@@ -220,7 +220,6 @@ h1 {
     overflow: visible;
 }
 
-/* Ensure the categories card and its contents don't overflow */
 .admin-card>#category-list {
     width: 100%;
     box-sizing: border-box;
@@ -483,7 +482,6 @@ h1 {
     background: #a00;
 }
 
-/* Overlay delete button on image */
 .delete-img-btn-overlay {
     position: absolute;
     top: 6px;
@@ -580,7 +578,6 @@ h1 {
 /* Login Page */
 .login-box {
     max-width: 900px;
-    /* Increased from 600px */
     margin: 4rem auto;
     background: #fff;
     border-radius: 0;
@@ -697,9 +694,7 @@ header nav a:focus {
     border-radius: 0;
     border: 1px solid #e0e0e0;
     max-width: 900px;
-    /* Increased from 600px */
     min-width: 0;
-    /* Allow to shrink on small screens */
     margin: 0 auto 2.5rem auto;
 }
 
@@ -757,6 +752,15 @@ header nav a:focus {
 .gallery img:hover {
     transform: scale(1.04);
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.13);
+}
+
+.gallery img[loading="lazy"] {
+    opacity: 0;
+    transition: opacity 0.6s;
+}
+
+.gallery img[loading="lazy"][data-loaded="true"] {
+    opacity: 1;
 }
 
 .back {
@@ -848,6 +852,47 @@ footer a {
     max-width: 90vw;
     text-align: center;
     word-break: break-word;
+}
+
+/* 404 Not Found page styles */
+.notfound-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #f7f8fa;
+}
+
+.notfound-container {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
+}
+
+.notfound-container h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.notfound-container p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.notfound-container a {
+    background: #222;
+    color: #fff;
+    padding: 0.7rem 1.5rem;
+    border-radius: 0.3rem;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.notfound-container a:hover {
+    background: #444;
 }
 
 /* Responsive adjustments */
@@ -1014,14 +1059,12 @@ footer a {
     margin: 0 auto 2.5rem auto;
     flex-wrap: wrap;
     max-width: 1900px;
-    /* Increased to allow more width */
 }
 
 .settings-flex-row .admin-card {
     flex: 1 1 0;
     min-width: 0;
     max-width: 900px;
-    /* Match .admin-card */
     width: 100%;
     margin-bottom: 0;
 }
@@ -1284,6 +1327,32 @@ footer a {
     vertical-align: middle;
 }
 
+.favicon-preview-container,
+.header-image-preview-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 70px;
+    margin-top: 0.5rem;
+}
+
+.favicon-preview-label {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 0.2rem;
+}
+
+.header-image-preview {
+    max-width: 300px;
+    max-height: 80px;
+}
+
+#headerTextInput,
+#headerImageInput {
+    margin-bottom: 1.2rem;
+}
+
 .dark-mode-toggle {
     position: absolute;
     top: 1.2rem;
@@ -1337,4 +1406,130 @@ footer a {
     width: 1.2em;
     height: 1.2em;
     margin-right: 0.4em;
+}
+
+/* New styles */
+.hidden {
+    display: none !important;
+}
+
+.label-bottom-gap {
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.file-name-label {
+    margin-left: 1rem;
+    color: #0078d4;
+    font-weight: 600;
+}
+
+.dropzone-flex {
+    flex: 1 1 auto;
+}
+
+.form-margin-top {
+    margin-top: 0.5rem;
+}
+
+.form-margin-bottom {
+    margin-bottom: 1rem;
+}
+
+.backup-note {
+    font-size: 0.95em;
+    color: #888;
+}
+
+.row-gap {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.no-margin {
+    margin: 0 !important;
+}
+
+.ml-05 {
+    margin-left: 0.5rem;
+}
+
+.saving-indicator {
+    display: none;
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 3000;
+    background: #fffbe0;
+    color: #222;
+    padding: 0.7rem 1.2rem;
+    border: 1px solid #e6b2b2;
+    border-radius: 0.3rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+/* Admin user list styles */
+.admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+}
+
+.admin-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f7f8fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 0;
+    padding: 0.7rem 1.2rem;
+    font-size: 1.08rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+    gap: 1rem;
+    min-height: 48px;
+    height: 48px;
+}
+
+.admin-list-item>span,
+.admin-list-item>form {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.admin-list-item form {
+    margin: 0;
+}
+
+.admin-current-user {
+    color: #888;
+    font-size: 0.98em;
+    margin-left: 0.7em;
+}
+
+/* Dark mode for admin list */
+body.dark-mode .admin-list-item {
+    background: #232527 !important;
+    border-color: #333 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode .admin-list {
+    background: transparent;
+}
+
+body.dark-mode .admin-current-user {
+    color: #aaa;
 }

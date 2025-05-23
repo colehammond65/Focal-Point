@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin User Management</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <%- include('partials/header', { showAdminNav: true }) %>
+        <div class="container">
+            <h1>Admin User Management</h1>
+            <% if (req.query && req.query.msg) { %>
+                <div class="admin-msg">
+                    <%= req.query.msg %>
+                </div>
+                <% } %>
+                    <div class="admin-flex-row">
+                        <div class="flex-1" style="min-width:300px;">
+                            <section class="admin-card">
+                                <h2>Create New Admin</h2>
+                                <form action="/admin/users/create" method="POST" class="admin-form">
+                                    <label for="username">Username:</label>
+                                    <input type="text" name="username" required minlength="3" maxlength="32">
+                                    <label for="password">Password:</label>
+                                    <input type="password" name="password" required minlength="4">
+                                    <button type="submit">Create Admin</button>
+                                </form>
+                            </section>
+                            <section class="admin-card">
+                                <h2>All Admins</h2>
+                                <div class="admin-list">
+                                    <% admins.forEach(a=> { %>
+                                        <div class="admin-list-item">
+                                            <span>
+                                                <%= a.username %>
+                                            </span>
+                                            <% if (a.id !==currentAdmin) { %>
+                                                <form action="/admin/users/delete" method="POST" class="inline-form">
+                                                    <input type="hidden" name="id" value="<%= a.id %>">
+                                                    <button type="submit"
+                                                        onclick="return confirm('Delete this admin?')">Delete</button>
+                                                </form>
+                                                <% } else { %>
+                                                    <span class="admin-current-user">(Current User)</span>
+                                                    <% } %>
+                                        </div>
+                                        <% }) %>
+                                </div>
+                            </section>
+                        </div>
+                        <div class="flex-1" style="min-width:300px;">
+                            <section class="admin-card">
+                                <h2>Change Your Username</h2>
+                                <form action="/admin/users/change-username" method="POST" class="admin-form">
+                                    <label for="newUsername">New Username:</label>
+                                    <input type="text" id="newUsername" name="newUsername" required minlength="3"
+                                        maxlength="32" autocomplete="username">
+                                    <label for="currentPasswordUsername">Current Password:</label>
+                                    <input type="password" id="currentPasswordUsername" name="currentPassword" required
+                                        autocomplete="current-password">
+                                    <button type="submit">Change Username</button>
+                                </form>
+                            </section>
+                            <section class="admin-card">
+                                <h2>Change Your Password</h2>
+                                <form action="/admin/users/change-password" method="POST" class="admin-form">
+                                    <label for="currentPasswordPassword">Current Password:</label>
+                                    <input type="password" id="currentPasswordPassword" name="currentPassword" required
+                                        autocomplete="current-password">
+                                    <label for="newPassword">New Password:</label>
+                                    <input type="password" id="newPassword" name="newPassword" required minlength="4"
+                                        autocomplete="new-password">
+                                    <button type="submit">Change Password</button>
+                                </form>
+                            </section>
+                        </div>
+                    </div>
+        </div>
+        <%- include('partials/dark-mode-toggle') %>
+</body>
+
+</html>

@@ -17,6 +17,7 @@ const sharp = require('sharp');
 const db = require('./db');
 const archiver = require('archiver');
 const unzipper = require('unzipper');
+const bcrypt = require('bcryptjs');
 
 const {
   getCategoriesWithPreviews,
@@ -265,8 +266,10 @@ app.get('/login', (req, res) => {
 // Handle login form (POST) -- RATE LIMITED
 app.post('/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
-  if (await verifyAdmin(username, password)) {
+  const admin = await verifyAdmin(username, password);
+  if (admin) {
     req.session.loggedIn = true;
+    req.session.adminId = admin.id;
     return res.redirect('/admin');
   } else {
     return res.render('login', { error: 'Invalid credentials' });
@@ -313,6 +316,121 @@ app.get('/admin/manage', requireLogin, (req, res) => {
 // Redirect /admin to /admin/manage for backward compatibility
 app.get('/admin', requireLogin, (req, res) => {
   res.redirect('/admin/manage');
+});
+
+// List all admins
+app.get('/admin/users', requireLogin, (req, res) => {
+  const admins = db.prepare('SELECT id, username FROM admin').all();
+  const currentAdmin = req.session.adminId;
+  res.render('admin-users', { admins, currentAdmin, req });
+});
+
+// Create new admin
+app.post('/admin/users/create', requireLogin, async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password || username.length < 3 || password.length < 4) {
+    return res.redirect('/admin/users?msg=Username and password required (min 3/4 chars)');
+  }
+  try {
+    db.prepare('INSERT INTO admin (username, hash) VALUES (?, ?)').run(
+      username,
+      await bcrypt.hash(password, 10)
+    );
+    res.redirect('/admin/users?msg=Admin account created!');
+  } catch (e) {
+    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.redirect('/admin/users?msg=Username already taken');
+    }
+    res.redirect('/admin/users?msg=Failed to create admin');
+  }
+});
+
+// Change own credentials
+app.post('/admin/users/change-credentials', requireLogin, async (req, res) => {
+  const { newUsername, currentPassword, newPassword } = req.body;
+  if (!newUsername || !currentPassword || !newPassword) {
+    return res.redirect('/admin/users?msg=All fields are required');
+  }
+  if (newUsername.length < 3 || newPassword.length < 4) {
+    return res.redirect('/admin/users?msg=Username or password too short');
+  }
+  const admin = db.prepare('SELECT * FROM admin WHERE id = ?').get(req.session.adminId);
+  if (!(await bcrypt.compare(currentPassword, admin.hash))) {
+    return res.redirect('/admin/users?msg=Current password incorrect');
+  }
+  try {
+    db.prepare('UPDATE admin SET username = ?, hash = ? WHERE id = ?')
+      .run(newUsername, await bcrypt.hash(newPassword, 10), admin.id);
+    req.session.destroy(() => {
+      res.redirect('/login?msg=Credentials updated. Please log in again.');
+    });
+  } catch (e) {
+    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.redirect('/admin/users?msg=Username already taken');
+    }
+    res.redirect('/admin/users?msg=Failed to update credentials');
+  }
+});
+
+// Change own username
+app.post('/admin/users/change-username', requireLogin, async (req, res) => {
+  const { newUsername, currentPassword } = req.body;
+  if (!newUsername || !currentPassword) {
+    return res.redirect('/admin/users?msg=All fields are required');
+  }
+  if (newUsername.length < 3) {
+    return res.redirect('/admin/users?msg=Username too short');
+  }
+  const admin = db.prepare('SELECT * FROM admin WHERE id = ?').get(req.session.adminId);
+  if (!(await bcrypt.compare(currentPassword, admin.hash))) {
+    return res.redirect('/admin/users?msg=Current password incorrect');
+  }
+  try {
+    db.prepare('UPDATE admin SET username = ? WHERE id = ?')
+      .run(newUsername, admin.id);
+    req.session.destroy(() => {
+      res.redirect('/login?msg=Username updated. Please log in again.');
+    });
+  } catch (e) {
+    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.redirect('/admin/users?msg=Username already taken');
+    }
+    res.redirect('/admin/users?msg=Failed to update username');
+  }
+});
+
+// Change own password
+app.post('/admin/users/change-password', requireLogin, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res.redirect('/admin/users?msg=All fields are required');
+  }
+  if (newPassword.length < 4) {
+    return res.redirect('/admin/users?msg=Password too short');
+  }
+  const admin = db.prepare('SELECT * FROM admin WHERE id = ?').get(req.session.adminId);
+  if (!(await bcrypt.compare(currentPassword, admin.hash))) {
+    return res.redirect('/admin/users?msg=Current password incorrect');
+  }
+  try {
+    db.prepare('UPDATE admin SET hash = ? WHERE id = ?')
+      .run(await bcrypt.hash(newPassword, 10), admin.id);
+    req.session.destroy(() => {
+      res.redirect('/login?msg=Password updated. Please log in again.');
+    });
+  } catch (e) {
+    res.redirect('/admin/users?msg=Failed to update password');
+  }
+});
+
+// Optional: Delete another admin (prevent deleting self)
+app.post('/admin/users/delete', requireLogin, (req, res) => {
+  const { id } = req.body;
+  if (!id || Number(id) === req.session.adminId) {
+    return res.redirect('/admin/users?msg=Cannot delete your own account');
+  }
+  db.prepare('DELETE FROM admin WHERE id = ?').run(id);
+  res.redirect('/admin/users?msg=Admin deleted');
 });
 
 // Handle image upload (multiple files, protected) -- RATE LIMITED
@@ -562,6 +680,38 @@ app.post('/move-image', requireLogin, adminLimiter, async (req, res) => {
 
   invalidateCategoryCache();
   return res.json({ success: true, moved });
+});
+
+// Change admin credentials (protected)
+app.post('/admin/change-credentials', requireLogin, async (req, res) => {
+  const { newUsername, currentPassword, newPassword } = req.body;
+  if (!newUsername || !currentPassword || !newPassword) {
+    return res.redirect('/admin/settings?msg=All fields are required');
+  }
+  if (newUsername.length < 3 || newPassword.length < 4) {
+    return res.redirect('/admin/settings?msg=Username or password too short');
+  }
+  const settings = getAllSettings();
+  const admin = getAdmin();
+  // Verify current password
+  if (!(await verifyAdmin(admin.username, currentPassword))) {
+    return res.redirect('/admin/settings?msg=Current password incorrect');
+  }
+  // Update admin credentials
+  try {
+    db.prepare('UPDATE admin SET username = ?, hash = ? WHERE id = ?')
+      .run(newUsername, await require('bcryptjs').hash(newPassword, 10), admin.id);
+    // Log out the session so the user must log in again
+    req.session.destroy(() => {
+      res.redirect('/login?msg=Credentials updated. Please log in again.');
+    });
+  } catch (e) {
+    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.redirect('/admin/settings?msg=Username already taken');
+    }
+    console.error(e);
+    return res.redirect('/admin/settings?msg=Failed to update credentials');
+  }
 });
 
 // Download backup (admin only)

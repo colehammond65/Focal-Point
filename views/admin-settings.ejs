@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <%= settings.siteTitle || "Anne's Photography" %>
+        <%= settings.siteTitle || "Photo Gallery" %>
     </title>
     <% if (settings.favicon) { %>
         <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
@@ -46,44 +46,39 @@
                                 </div>
 
                                 <div id="headerTextInput"
-                                    style="<%= settings.headerType === 'image' ? 'display:none;' : '' %>">
-                                    <label for="headerTitle" style="margin-bottom:0.5rem;">Header Title:</label>
+                                    class="<%= settings.headerType === 'image' ? 'hidden' : '' %>">
+                                    <label for="headerTitle" class="label-bottom-gap">Header Title:</label>
                                     <input type="text" id="headerTitle" name="headerTitle"
                                         value="<%= settings.headerTitle %>">
                                 </div>
 
                                 <div id="headerImageInput"
-                                    style="<%= settings.headerType === 'image' ? '' : 'display:none;' %>">
+                                    class="<%= settings.headerType === 'image' ? '' : 'hidden' %>">
                                     <label for="headerImage">Header Image (optional):</label>
-                                    <div id="headerImageDropzone" class="dropzone" tabindex="0" style="flex: 1 1 auto;">
+                                    <div id="headerImageDropzone" class="dropzone dropzone-flex" tabindex="0">
                                         <span id="headerImageDropzoneText">Drag & drop header image here or click to
                                             select</span>
                                         <input type="file" id="headerImage" name="headerImage" accept="image/*"
                                             style="display:none;">
-                                        <span id="headerImageFileName"
-                                            style="margin-left:1rem;color:#0078d4;font-weight:600;"></span>
+                                        <span id="headerImageFileName" class="file-name-label"></span>
                                         <% if (settings.headerImage) { %>
-                                            <div style="margin-top:0.5rem;">
+                                            <div class="header-image-preview-container">
                                                 <img src="/uploads/<%= settings.headerImage %>" alt="Header Image"
-                                                    style="max-width:300px;max-height:80px;">
+                                                    class="header-image-preview">
                                             </div>
                                             <% } %>
                                     </div>
                                 </div>
 
-                                <label for="favicon" style="margin-bottom:0;">Favicon (image, optional):</label>
-                                <div id="faviconDropzone" class="dropzone" tabindex="0" style="flex: 1 1 auto;">
-                                    <span id="faviconDropzoneText">Drag & drop favicon here or click to
-                                        select</span>
+                                <label for="favicon">Favicon (image, optional):</label>
+                                <div id="faviconDropzone" class="dropzone dropzone-flex" tabindex="0">
+                                    <span id="faviconDropzoneText">Drag & drop favicon here or click to select</span>
                                     <input type="file" id="favicon" name="favicon" accept="image/*"
                                         style="display:none;">
-                                    <span id="faviconFileName"
-                                        style="margin-left:1rem;color:#0078d4;font-weight:600;"></span>
+                                    <span id="faviconFileName" class="file-name-label"></span>
                                     <% if (settings.favicon) { %>
-                                        <div
-                                            style="display: flex; flex-direction: column; align-items: center; min-width: 70px;">
-                                            <span
-                                                style="font-weight: 600; font-size: 1rem; color: #555; margin-bottom: 0.2rem;">Preview</span>
+                                        <div class="favicon-preview-container">
+                                            <span class="favicon-preview-label">Preview</span>
                                             <img src="/uploads/<%= settings.favicon %>" alt="Current favicon"
                                                 class="favicon-preview">
                                         </div>
@@ -93,14 +88,14 @@
                             </form>
                             <% if (settings.headerImage) { %>
                                 <form action="/admin/settings/remove-header-image" method="POST"
-                                    style="margin-top:0.5rem;">
+                                    class="form-margin-top">
                                     <button type="submit" class="danger-btn">Remove Header Image</button>
                                 </form>
                                 <% } %>
                         </section>
                         <section class="admin-card">
                             <h2>Backup & Restore</h2>
-                            <form action="/admin/backup" method="GET" style="margin-bottom:1rem;">
+                            <form action="/admin/backup" method="GET" class="form-margin-bottom">
                                 <button type="submit">Download Backup</button>
                             </form>
                             <form action="/admin/restore" method="POST" enctype="multipart/form-data"
@@ -110,14 +105,11 @@
                                     <span id="restoreDropzoneText">Drag & drop backup ZIP here or click to select</span>
                                     <input type="file" name="backup" id="restoreFileInput" accept=".zip" required
                                         style="display:none;">
-                                    <span id="restoreFileName"
-                                        style="margin-left:1rem;color:#0078d4;font-weight:600;"></span>
+                                    <span id="restoreFileName" class="file-name-label"></span>
                                 </div>
                                 <button type="submit" id="restoreBtn" disabled>Restore Backup</button>
                             </form>
-                            <p style="font-size:0.95em;color:#888;">Backups are ZIP files containing your database and
-                                all
-                                images.</p>
+                            <p class="backup-note">Backups are ZIP files containing your database and all images.</p>
                         </section>
                     </div>
         </div>
@@ -187,12 +179,11 @@
             <script>
                 document.querySelectorAll('input[name="headerType"]').forEach(radio => {
                     radio.addEventListener('change', function () {
-                        document.getElementById('headerTextInput').style.display = this.value === 'text' ? '' : 'none';
-                        document.getElementById('headerImageInput').style.display = this.value === 'image' ? '' : 'none';
+                        document.getElementById('headerTextInput').classList.toggle('hidden', this.value !== 'text');
+                        document.getElementById('headerImageInput').classList.toggle('hidden', this.value !== 'image');
                     });
                 });
             </script>
 </body>
 
 </html>
-```
