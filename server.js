@@ -260,7 +260,8 @@ app.get('/gallery/:category', async (req, res) => {
 
 // Login page (GET)
 app.get('/login', (req, res) => {
-  res.render('login', { error: null });
+  const settings = getAllSettings();
+  res.render('login', { error: null, settings });
 });
 
 // Handle login form (POST) -- RATE LIMITED
@@ -272,7 +273,8 @@ app.post('/login', loginLimiter, async (req, res) => {
     req.session.adminId = admin.id;
     return res.redirect('/admin');
   } else {
-    return res.render('login', { error: 'Invalid credentials' });
+    const settings = getAllSettings();
+    return res.render('login', { error: 'Invalid credentials', settings });
   }
 });
 
