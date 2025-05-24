@@ -18,6 +18,8 @@ const db = require('./db');
 const archiver = require('archiver');
 const unzipper = require('unzipper');
 const bcrypt = require('bcryptjs');
+const backupUtils = require('./utils/backup');
+const Database = require('better-sqlite3');
 
 const {
   getCategoriesWithPreviews,
@@ -37,8 +39,9 @@ const {
   updateAltText,
   addImage,
   getCategoryIdAndMaxPosition,
-  getAllSettings,
-  setSetting
+  getSetting,
+  setSetting,
+  getAllSettings
 } = require('./utils');
 const app = express();
 
@@ -305,7 +308,8 @@ app.post('/setup', async (req, res) => {
 // Site Settings page
 app.get('/admin/settings', requireLogin, (req, res) => {
   const settings = getAllSettings();
-  res.render('admin-settings', { req, settings });
+  const serverBackups = backupUtils.listBackups();
+  res.render('admin-settings', { req, settings, serverBackups, backupLimit: backupUtils.BACKUP_LIMIT_BYTES });
 });
 
 // Image & Category Management page
@@ -538,6 +542,9 @@ app.post('/admin/settings/remove-header-image', requireLogin, (req, res) => {
 // Delete image route (protected) -- RATE LIMITED
 app.post('/delete-image', requireLogin, adminLimiter, async (req, res) => {
   const { category, filename } = req.body;
+  if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+    return res.status(400).send('Invalid filename');
+  }
   if (!isSafeCategory(category) || !filename || filename.includes('/') || filename.includes('\\')) {
     return res.status(400).json({ error: 'Invalid request' });
   }
@@ -742,14 +749,139 @@ app.post('/admin/change-credentials', requireLogin, async (req, res) => {
 });
 
 // Download backup (admin only)
-app.get('/admin/backup', requireLogin, (req, res) => {
-  res.setHeader('Content-Disposition', 'attachment; filename="gallery-backup.zip"');
-  res.setHeader('Content-Type', 'application/zip');
-  const archive = archiver('zip', { zlib: { level: 9 } });
-  archive.pipe(res);
-  archive.file(path.join(__dirname, 'data', 'gallery.db'), { name: 'gallery.db' });
-  archive.directory(path.join(__dirname, 'public', 'images'), 'images');
-  archive.finalize();
+app.get('/admin/backup', requireLogin, async (req, res) => {
+  try {
+    // Create an in-memory zip archive
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    const chunks = [];
+    archive.on('data', chunk => chunks.push(chunk));
+    archive.on('warning', err => { if (err.code !== 'ENOENT') throw err; });
+    archive.on('error', err => { throw err; });
+
+    // Add the SQLite database file
+    const dbPath = path.join(__dirname, 'data', 'gallery.db');
+    if (fs.existsSync(dbPath)) {
+      archive.file(dbPath, { name: 'gallery.db' });
+    }
+
+    // Add the images directory
+    const imagesDir = path.join(__dirname, 'public', 'images');
+    if (fs.existsSync(imagesDir)) {
+      archive.directory(imagesDir, 'images');
+    }
+
+    // Wait for the archive to finish and get the buffer
+    const backupBuffer = await new Promise((resolve, reject) => {
+      archive.on('end', () => resolve(Buffer.concat(chunks)));
+      archive.on('error', reject);
+      archive.finalize();
+    });
+
+    const backupFilename = `backup-${Date.now()}.zip`;
+    backupUtils.saveBackup(backupBuffer, backupFilename);
+
+    res.setHeader('Content-Disposition', `attachment; filename="${backupFilename}"`);
+    res.setHeader('Content-Type', 'application/zip');
+    res.send(backupBuffer);
+  } catch (err) {
+    console.error('Backup failed:', err);
+    res.status(500).send('Backup failed');
+  }
+});
+
+app.post('/admin/backup', requireLogin, async (req, res) => {
+  try {
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    const chunks = [];
+    archive.on('data', chunk => chunks.push(chunk));
+    archive.on('warning', err => { if (err.code !== 'ENOENT') throw err; });
+    archive.on('error', err => { throw err; });
+
+    // Add the SQLite database file
+    const dbPath = path.join(__dirname, 'data', 'gallery.db');
+    if (fs.existsSync(dbPath)) {
+      archive.file(dbPath, { name: 'gallery.db' });
+    }
+
+    // Add the images directory
+    const imagesDir = path.join(__dirname, 'public', 'images');
+    if (fs.existsSync(imagesDir)) {
+      archive.directory(imagesDir, 'images');
+    }
+
+    // Wait for the archive to finish and get the buffer
+    const backupBuffer = await new Promise((resolve, reject) => {
+      archive.on('end', () => resolve(Buffer.concat(chunks)));
+      archive.on('error', reject);
+      archive.finalize();
+    });
+
+    const backupFilename = `backup-${Date.now()}.zip`;
+    backupUtils.saveBackup(backupBuffer, backupFilename);
+
+    // Redirect back to settings with a message
+    res.redirect('/admin/settings?msg=Backup created and saved on server!');
+  } catch (err) {
+    console.error('Backup failed:', err);
+    res.redirect('/admin/settings?msg=Backup failed');
+  }
+});
+
+app.get('/admin/backup/download/:filename', requireLogin, (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(backupUtils.BACKUP_DIR, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).send('Not found');
+  res.download(filePath);
+});
+
+app.post('/admin/backup/delete/:filename', requireLogin, (req, res) => {
+  const { filename } = req.params;
+  // Prevent path traversal
+  if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+    return res.redirect('/admin/settings?msg=Invalid filename');
+  }
+  const filePath = path.join(backupUtils.BACKUP_DIR, filename);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    return res.redirect('/admin/settings?msg=Backup deleted!');
+  }
+  return res.redirect('/admin/settings?msg=Backup not found');
+});
+
+app.post('/admin/backup/bulk-action', requireLogin, async (req, res) => {
+  let backups = req.body.backups;
+  if (!backups) return res.redirect('/admin/settings?msg=No backups selected');
+  if (!Array.isArray(backups)) backups = [backups];
+
+  if (req.body.action === 'delete') {
+    let deleted = 0;
+    for (const filename of backups) {
+      if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) continue;
+      const filePath = path.join(backupUtils.BACKUP_DIR, filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        deleted++;
+      }
+    }
+    return res.redirect(`/admin/settings?msg=Deleted ${deleted} backup(s)!`);
+  } else if (req.body.action === 'download') {
+    // Create a zip of selected backups
+    const archiver = require('archiver');
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    res.setHeader('Content-Disposition', `attachment; filename="selected-backups.zip"`);
+    res.setHeader('Content-Type', 'application/zip');
+    for (const filename of backups) {
+      if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) continue;
+      const filePath = path.join(backupUtils.BACKUP_DIR, filename);
+      if (fs.existsSync(filePath)) {
+        archive.file(filePath, { name: filename });
+      }
+    }
+    archive.pipe(res);
+    archive.finalize();
+    return;
+  }
+  res.redirect('/admin/settings?msg=Unknown action');
 });
 
 // Restore backup (admin only)
@@ -766,12 +898,23 @@ app.post('/admin/restore', requireLogin, restoreUpload.single('backup'), async (
       .pipe(unzipper.Extract({ path: extractDir }))
       .promise();
 
-    // Move/extract DB
+    // Validate gallery.db
     const dbSrc = path.join(extractDir, 'gallery.db');
-    const dbDest = path.join(__dirname, 'data', 'gallery.db');
-    if (fs.existsSync(dbSrc)) {
-      fs.copyFileSync(dbSrc, dbDest);
+    if (!fs.existsSync(dbSrc)) {
+      throw new Error('Backup ZIP does not contain gallery.db');
     }
+    try {
+      const testDb = new Database(dbSrc, { readonly: true });
+      const tables = testDb.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='admin'").get();
+      testDb.close();
+      if (!tables) throw new Error('Missing required table(s)');
+    } catch (err) {
+      throw new Error('Invalid or corrupt backup database file.');
+    }
+
+    // Move/extract DB
+    const dbDest = path.join(__dirname, 'data', 'gallery.db');
+    fs.copyFileSync(dbSrc, dbDest);
 
     // Move/extract images
     const imagesSrc = path.join(extractDir, 'images');
@@ -809,10 +952,85 @@ app.post('/admin/restore', requireLogin, restoreUpload.single('backup'), async (
   } catch (err) {
     errorOccurred = true;
     console.error('Restore failed:', err);
-    res.status(500).send('Restore failed: ' + err.message);
+    res.redirect('/admin/settings?msg=Restore failed: ' + encodeURIComponent(err.message));
   } finally {
     // Always cleanup temp files/folders
     try { if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath); } catch { }
+    try { if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true }); } catch { }
+  }
+});
+
+app.post('/admin/restore-selected', requireLogin, async (req, res) => {
+  const filename = req.body.backup;
+  if (!filename || filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+    return res.redirect('/admin/settings?msg=Invalid backup file');
+  }
+  const filePath = path.join(backupUtils.BACKUP_DIR, filename);
+  if (!fs.existsSync(filePath)) {
+    return res.redirect('/admin/settings?msg=Backup file not found');
+  }
+  const unzipper = require('unzipper');
+  const extractDir = path.join(__dirname, 'public', 'uploads', 'restore-tmp-' + Date.now());
+  try {
+    fs.mkdirSync(extractDir, { recursive: true });
+    await fs.createReadStream(filePath)
+      .pipe(unzipper.Extract({ path: extractDir }))
+      .promise();
+
+    // Validate gallery.db
+    const dbSrc = path.join(extractDir, 'gallery.db');
+    if (!fs.existsSync(dbSrc)) {
+      throw new Error('Backup ZIP does not contain gallery.db');
+    }
+    try {
+      const testDb = new Database(dbSrc, { readonly: true });
+      const tables = testDb.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='admin'").get();
+      testDb.close();
+      if (!tables) throw new Error('Missing required table(s)');
+    } catch (err) {
+      throw new Error('Invalid or corrupt backup database file.');
+    }
+
+    // Move/extract DB
+    const dbDest = path.join(__dirname, 'data', 'gallery.db');
+    fs.copyFileSync(dbSrc, dbDest);
+
+    // Move/extract images
+    const imagesSrc = path.join(extractDir, 'images');
+    const imagesDest = path.join(__dirname, 'public', 'images');
+    if (fs.existsSync(imagesSrc)) {
+      if (fs.existsSync(imagesDest)) {
+        fs.rmSync(imagesDest, { recursive: true, force: true });
+      }
+      try {
+        fs.renameSync(imagesSrc, imagesDest);
+      } catch (err) {
+        if (err.code === 'EPERM' || err.code === 'EACCES' || err.code === 'ENOTEMPTY') {
+          // Fallback: copy files manually
+          const copyDir = (src, dest) => {
+            fs.mkdirSync(dest, { recursive: true });
+            for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+              const srcPath = path.join(src, entry.name);
+              const destPath = path.join(dest, entry.name);
+              if (entry.isDirectory()) {
+                copyDir(srcPath, destPath);
+              } else {
+                fs.copyFileSync(srcPath, destPath);
+              }
+            }
+          };
+          copyDir(imagesSrc, imagesDest);
+          fs.rmSync(imagesSrc, { recursive: true, force: true });
+        } else {
+          throw err;
+        }
+      }
+    }
+    res.redirect('/admin/settings?msg=Backup restored!');
+  } catch (err) {
+    console.error('Restore failed:', err);
+    res.redirect('/admin/settings?msg=Restore failed: ' + encodeURIComponent(err.message));
+  } finally {
     try { if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true }); } catch { }
   }
 });

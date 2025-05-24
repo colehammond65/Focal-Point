@@ -17,102 +17,130 @@
     <%- include('partials/header', { showAdminNav: true }) %>
         <div class="container">
             <h1>Site Settings</h1>
-            <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
-                <div class="admin-msg" aria-live="polite">
-                    <%= req.query.msg %>
-                </div>
-                <% } %>
-                    <div class="settings-flex-row">
-                        <section class="admin-card">
-                            <h2>Branding</h2>
-                            <form action="/admin/settings" method="POST" enctype="multipart/form-data"
-                                class="admin-form">
-                                <label for="siteTitle">Site Name (browser tab):</label>
-                                <input type="text" id="siteTitle" name="siteTitle" value="<%= settings.siteTitle %>"
-                                    required>
+            <div class="settings-flex-row">
+                <section class="admin-card">
+                    <h2>Branding</h2>
+                    <form action="/admin/settings" method="POST" enctype="multipart/form-data" class="admin-form">
+                        <label for="siteTitle">Site Name (browser tab):</label>
+                        <input type="text" id="siteTitle" name="siteTitle" value="<%= settings.siteTitle %>" required>
 
-                                <label>Header Type:</label>
-                                <div class="header-type-radio-group">
-                                    <label>
-                                        <input type="radio" name="headerType" value="text" <%=settings.headerType
-                                            !=='image' ? 'checked' : '' %>>
-                                        Text
-                                    </label>
-                                    <label>
-                                        <input type="radio" name="headerType" value="image"
-                                            <%=settings.headerType==='image' ? 'checked' : '' %>>
-                                        Image
-                                    </label>
-                                </div>
+                        <label>Header Type:</label>
+                        <div class="header-type-radio-group">
+                            <label>
+                                <input type="radio" name="headerType" value="text" <%=settings.headerType !=='image'
+                                    ? 'checked' : '' %>>
+                                Text
+                            </label>
+                            <label>
+                                <input type="radio" name="headerType" value="image" <%=settings.headerType==='image'
+                                    ? 'checked' : '' %>>
+                                Image
+                            </label>
+                        </div>
 
-                                <div id="headerTextInput"
-                                    class="<%= settings.headerType === 'image' ? 'hidden' : '' %>">
-                                    <label for="headerTitle" class="label-bottom-gap">Header Title:</label>
-                                    <input type="text" id="headerTitle" name="headerTitle"
-                                        value="<%= settings.headerTitle %>">
-                                </div>
+                        <div id="headerTextInput" class="<%= settings.headerType === 'image' ? 'hidden' : '' %>">
+                            <label for="headerTitle" class="label-bottom-gap">Header Title:</label>
+                            <input type="text" id="headerTitle" name="headerTitle" value="<%= settings.headerTitle %>">
+                        </div>
 
-                                <div id="headerImageInput"
-                                    class="<%= settings.headerType === 'image' ? '' : 'hidden' %>">
-                                    <label for="headerImage">Header Image (optional):</label>
-                                    <div id="headerImageDropzone" class="dropzone dropzone-flex" tabindex="0">
-                                        <span id="headerImageDropzoneText">Drag & drop header image here or click to
-                                            select</span>
-                                        <input type="file" id="headerImage" name="headerImage" accept="image/*"
-                                            style="display:none;">
-                                        <span id="headerImageFileName" class="file-name-label"></span>
-                                        <% if (settings.headerImage) { %>
-                                            <div class="header-image-preview-container">
-                                                <img src="/uploads/<%= settings.headerImage %>" alt="Header Image"
-                                                    class="header-image-preview">
-                                            </div>
-                                            <% } %>
+                        <div id="headerImageInput" class="<%= settings.headerType === 'image' ? '' : 'hidden' %>">
+                            <label for="headerImage">Header Image (optional):</label>
+                            <div id="headerImageDropzone" class="dropzone dropzone-flex" tabindex="0">
+                                <span id="headerImageDropzoneText">Drag & drop header image here or click to
+                                    select</span>
+                                <input type="file" id="headerImage" name="headerImage" accept="image/*"
+                                    style="display:none;">
+                                <span id="headerImageFileName" class="file-name-label"></span>
+                                <% if (settings.headerImage) { %>
+                                    <div class="header-image-preview-container">
+                                        <img src="/uploads/<%= settings.headerImage %>" alt="Header Image"
+                                            class="header-image-preview">
                                     </div>
-                                </div>
+                                    <% } %>
+                            </div>
+                        </div>
 
-                                <label for="favicon">Favicon (image, optional):</label>
-                                <div id="faviconDropzone" class="dropzone dropzone-flex" tabindex="0">
-                                    <span id="faviconDropzoneText">Drag & drop favicon here or click to select</span>
-                                    <input type="file" id="favicon" name="favicon" accept="image/*"
-                                        style="display:none;">
-                                    <span id="faviconFileName" class="file-name-label"></span>
-                                    <% if (settings.favicon) { %>
-                                        <div class="favicon-preview-container">
-                                            <span class="favicon-preview-label">Preview</span>
-                                            <img src="/uploads/<%= settings.favicon %>" alt="Current favicon"
-                                                class="favicon-preview">
-                                        </div>
-                                        <% } %>
+                        <label for="favicon">Favicon (image, optional):</label>
+                        <div id="faviconDropzone" class="dropzone dropzone-flex" tabindex="0">
+                            <span id="faviconDropzoneText">Drag & drop favicon here or click to select</span>
+                            <input type="file" id="favicon" name="favicon" accept="image/*" style="display:none;">
+                            <span id="faviconFileName" class="file-name-label"></span>
+                            <% if (settings.favicon) { %>
+                                <div class="favicon-preview-container">
+                                    <span class="favicon-preview-label">Preview</span>
+                                    <img src="/uploads/<%= settings.favicon %>" alt="Current favicon"
+                                        class="favicon-preview">
                                 </div>
-                                <button type="submit">Save Settings</button>
-                            </form>
-                            <% if (settings.headerImage) { %>
-                                <form action="/admin/settings/remove-header-image" method="POST"
-                                    class="form-margin-top">
-                                    <button type="submit" class="danger-btn">Remove Header Image</button>
-                                </form>
                                 <% } %>
-                        </section>
-                        <section class="admin-card">
-                            <h2>Backup & Restore</h2>
-                            <form action="/admin/backup" method="GET" class="form-margin-bottom">
-                                <button type="submit">Download Backup</button>
-                            </form>
-                            <form action="/admin/restore" method="POST" enctype="multipart/form-data"
-                                onsubmit="return confirm('This will overwrite your current database and images. Continue?');"
-                                id="restoreForm">
-                                <div id="restoreDropzone" class="dropzone" tabindex="0">
-                                    <span id="restoreDropzoneText">Drag & drop backup ZIP here or click to select</span>
-                                    <input type="file" name="backup" id="restoreFileInput" accept=".zip" required
-                                        style="display:none;">
-                                    <span id="restoreFileName" class="file-name-label"></span>
-                                </div>
-                                <button type="submit" id="restoreBtn" disabled>Restore Backup</button>
-                            </form>
-                            <p class="backup-note">Backups are ZIP files containing your database and all images.</p>
-                        </section>
-                    </div>
+                        </div>
+                        <button type="submit">Save Settings</button>
+                    </form>
+                    <% if (settings.headerImage) { %>
+                        <form action="/admin/settings/remove-header-image" method="POST" class="form-margin-top">
+                            <button type="submit" class="danger-btn">Remove Header Image</button>
+                        </form>
+                        <% } %>
+                </section>
+                <section class="admin-card">
+                    <h2>Backup & Restore</h2>
+                    <form action="/admin/backup" method="POST" class="form-margin-bottom">
+                        <button type="submit">Take Backup</button>
+                    </form>
+                    <form action="/admin/restore" method="POST" enctype="multipart/form-data"
+                        onsubmit="return confirm('This will overwrite your current database and images. Continue?');"
+                        id="restoreForm">
+                        <div id="restoreDropzone" class="dropzone" tabindex="0">
+                            <span id="restoreDropzoneText">Drag & drop backup ZIP here or click to select</span>
+                            <input type="file" name="backup" id="restoreFileInput" accept=".zip" required
+                                style="display:none;">
+                            <span id="restoreFileName" class="file-name-label"></span>
+                        </div>
+                        <button type="submit" id="restoreBtn" disabled>Restore Backup</button>
+                    </form>
+                    <p class="backup-note">Backups are ZIP files containing your database and all images.</p>
+                    <% if (serverBackups.length) { %>
+                        <h3>Server Backups</h3>
+                        <form id="backup-bulk-form" method="POST" action="/admin/backup/bulk-action"
+                            style="margin-bottom:1rem;">
+                            <button type="button" name="action" value="download" id="download-selected-btn" disabled>
+                                Download Selected
+                            </button>
+                            <button type="submit" name="action" value="delete" id="delete-selected-btn"
+                                class="danger-btn ml-05" disabled
+                                onclick="return confirm('Delete all selected backups?');">Delete Selected</button>
+                            <button type="button" id="restore-selected-btn" class="ml-05" disabled>
+                                Restore Selected
+                            </button>
+                        </form>
+
+                        <div class="admin-list">
+                            <% serverBackups.forEach((b, idx)=> { %>
+                                <label class="admin-list-item backup-select-item" for="backup-checkbox-<%= idx %>"
+                                    style="cursor:pointer;">
+                                    <input type="checkbox" class="backup-checkbox visually-hidden" name="backups"
+                                        value="<%= b.name %>" form="backup-bulk-form" id="backup-checkbox-<%= idx %>">
+                                    <div class="backup-info">
+                                        <span class="backup-filename">
+                                            <%= b.name %>
+                                        </span>
+                                        <span class="backup-meta">
+                                            <%= b.mtime.toLocaleString() %> &mdash; <%= (b.size/1024/1024).toFixed(2) %>
+                                                    MB
+                                        </span>
+                                    </div>
+                                </label>
+                                <% }) %>
+                        </div>
+                        <p class="backup-note">
+                            Server backup storage limit: <%= (backupLimit/1024/1024).toFixed(0) %> MB.<br>
+                                Current usage: <%= (serverBackups.reduce((a,b)=>
+                                    a+b.size,0)/1024/1024).toFixed(2) %> MB.
+                        </p>
+                        <% } %>
+                </section>
+            </div>
         </div>
+        <div id="toast-container" class="toast-container"></div>
         <%- include('partials/dark-mode-toggle') %>
             <script>
                 // DRY dropzone setup function
@@ -184,6 +212,113 @@
                     });
                 });
             </script>
+            <script>
+                document.querySelectorAll('.backup-checkbox').forEach(cb => {
+                    cb.addEventListener('change', updateBulkButtons);
+                });
+                function updateBulkButtons() {
+                    const checked = document.querySelectorAll('.backup-checkbox:checked').length;
+                    document.getElementById('download-selected-btn').disabled = checked === 0;
+                    document.getElementById('delete-selected-btn').disabled = checked === 0;
+                    document.getElementById('restore-selected-btn').disabled = checked !== 1;
+                }
+                updateBulkButtons();
+            </script>
+            <script>
+                document.getElementById('download-selected-btn').addEventListener('click', function () {
+                    const checked = document.querySelectorAll('.backup-checkbox:checked');
+                    if (!checked.length) return;
+                    checked.forEach(cb => {
+                        const filename = encodeURIComponent(cb.value);
+                        const url = `/admin/backup/download/${filename}`;
+                        // Create a temporary link and click it to trigger download
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = cb.value;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    });
+                });
+            </script>
+            <script>
+                document.getElementById('restore-selected-btn').addEventListener('click', function () {
+                    const checked = document.querySelectorAll('.backup-checkbox:checked');
+                    if (checked.length !== 1) return;
+                    const filename = checked[0].value;
+                    // Create a form and submit it to /admin/restore
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/admin/restore-selected';
+                    form.style.display = 'none';
+
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'backup';
+                    input.value = filename;
+                    form.appendChild(input);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                });
+            </script>
+            <script>
+                function showToast(msg, timeout = 3500) {
+                    const container = document.getElementById('toast-container');
+                    if (!container) return;
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.textContent = msg;
+                    container.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.animation = 'toast-out 0.4s forwards';
+                        setTimeout(() => toast.remove(), 400);
+                    }, timeout);
+                }
+
+                // Show toast if msg is present in query string
+                (function () {
+                    const params = new URLSearchParams(window.location.search);
+                    const msg = params.get('msg');
+                    if (msg) {
+                        showToast(msg);
+                        // Remove msg from URL without reloading
+                        if (window.history.replaceState) {
+                            params.delete('msg');
+                            const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                            window.history.replaceState({}, document.title, newUrl);
+                        }
+                    }
+                })();
+            </script>
+            <script>
+                window.addEventListener('DOMContentLoaded', function () {
+                    var restoreInput = document.getElementById('restoreFileInput');
+                    var restoreBtn = document.getElementById('restoreBtn');
+                    var restoreFileName = document.getElementById('restoreFileName');
+                    if (restoreInput && restoreBtn) {
+                        // On page load, ensure button is disabled if no file is selected
+                        restoreBtn.disabled = !restoreInput.files.length;
+                        // Also clear the filename label if no file is selected
+                        if (restoreFileName && !restoreInput.files.length) {
+                            restoreFileName.textContent = '';
+                        }
+                    }
+                });
+            </script>
+            <script>
+                window.addEventListener('DOMContentLoaded', function () {
+                    var restoreInput = document.getElementById('restoreFileInput');
+                    var restoreBtn = document.getElementById('restoreBtn');
+                    var restoreFileName = document.getElementById('restoreFileName');
+                    if (restoreBtn) restoreBtn.disabled = true;
+                    if (restoreFileName) restoreFileName.textContent = '';
+                    if (restoreInput) {
+                        restoreInput.value = ""; // Clear any file selection
+                    }
+                });
+            </script>
 </body>
 
 </html>
+`````

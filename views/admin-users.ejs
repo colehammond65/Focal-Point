@@ -22,6 +22,7 @@
                     <%= req.query.msg %>
                 </div>
                 <% } %>
+                    <div id="toast-container" class="toast-container"></div>
                     <div class="admin-flex-row">
                         <div class="flex-1" style="min-width:300px;">
                             <section class="admin-card">
@@ -85,6 +86,35 @@
                     </div>
         </div>
         <%- include('partials/dark-mode-toggle') %>
+            <script>
+                function showToast(msg, timeout = 3500) {
+                    const container = document.getElementById('toast-container');
+                    if (!container) return;
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.textContent = msg;
+                    container.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.animation = 'toast-out 0.4s forwards';
+                        setTimeout(() => toast.remove(), 400);
+                    }, timeout);
+                }
+
+                // Show toast if msg is present in query string
+                (function () {
+                    const params = new URLSearchParams(window.location.search);
+                    const msg = params.get('msg');
+                    if (msg) {
+                        showToast(msg);
+                        // Remove msg from URL without reloading
+                        if (window.history.replaceState) {
+                            params.delete('msg');
+                            const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                            window.history.replaceState({}, document.title, newUrl);
+                        }
+                    }
+                })();
+            </script>
 </body>
 
 </html>
