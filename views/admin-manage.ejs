@@ -167,17 +167,27 @@
                 </div>
                 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
                 <script>
-                    // Enable/disable Move button based on selection
+                    // Enable/disable action buttons based on selection
                     document.querySelectorAll('.image-options-box').forEach(box => {
                         const grid = box.closest('.category-card').querySelector('.image-grid');
                         const moveBtn = box.querySelector('.move-images-form button[type="submit"]');
-                        if (!grid || !moveBtn) return;
+                        const deleteBtn = box.querySelector('.bulk-delete-form button[type="submit"]');
+                        const setThumbBtn = box.querySelector('.set-thumb-btn');
+                        if (!grid) return;
+
+                        function updateButtons() {
+                            const checked = grid.querySelectorAll('.bulk-delete-checkbox:checked');
+                            moveBtn && (moveBtn.disabled = checked.length === 0);
+                            deleteBtn && (deleteBtn.disabled = checked.length === 0);
+                            setThumbBtn && (setThumbBtn.disabled = checked.length !== 1);
+                        }
+
                         grid.querySelectorAll('.bulk-delete-checkbox').forEach(cb => {
-                            cb.addEventListener('change', function () {
-                                const checked = grid.querySelectorAll('.bulk-delete-checkbox:checked');
-                                moveBtn.disabled = checked.length === 0;
-                            });
+                            cb.addEventListener('change', updateButtons);
                         });
+
+                        // Run once on page load
+                        updateButtons();
                     });
 
                     // Handle moving images
@@ -234,6 +244,30 @@
                                 }
                             });
                         return false;
+                    }
+
+                    // Handle setting thumbnail
+                    function handleSetThumbnail(category) {
+                        // Find the checked image in this category's grid
+                        const grid = document.querySelector(`.image-grid[data-cat="${category}"]`);
+                        if (!grid) return;
+                        const checked = grid.querySelector('.bulk-delete-checkbox:checked');
+                        if (!checked) return;
+                        const filename = checked.value;
+
+                        fetch('/set-thumbnail', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ category, filename })
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    location.reload();
+                                } else {
+                                    alert(data.error || 'Failed to set thumbnail.');
+                                }
+                            });
                     }
 
                     // Toggle category panel
@@ -398,3 +432,4 @@
 </body>
 
 </html>
+````
