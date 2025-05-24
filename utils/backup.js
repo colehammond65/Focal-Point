@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BACKUP_DIR = path.join(__dirname, '..', 'backups');
+const BACKUP_DIR = path.join(__dirname, '..', 'data', 'backups');
 const BACKUP_LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
 
 function ensureBackupDir() {

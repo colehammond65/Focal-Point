@@ -133,6 +133,5 @@ dist
 images/
 data/
 uploads/
-backups/
 umzug.json
 .env.test
