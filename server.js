@@ -347,11 +347,6 @@ app.get('/admin/manage', requireLogin, (req, res) => {
   });
 });
 
-// Redirect /admin to /admin/manage for backward compatibility
-app.get('/admin', requireLogin, (req, res) => {
-  res.redirect('/admin/manage');
-});
-
 // List all admins
 app.get('/admin/users', requireLogin, (req, res) => {
   const admins = db.prepare('SELECT id, username FROM admin').all();
