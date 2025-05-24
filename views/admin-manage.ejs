@@ -140,11 +140,10 @@
                                                     </div>
                                                     <div class="image-grid" data-cat="<%= cat.name %>">
                                                         <% (cat.images || []).forEach((img, i)=> { %>
-                                                            <div class="img-item" draggable="true"
-                                                                data-filename="<%= img.filename %>">
-                                                                <input type="checkbox" class="bulk-delete-checkbox"
-                                                                    name="selectedImages" value="<%= img.filename %>"
-                                                                    aria-label="Select image for bulk actions">
+                                                            <div class="img-item bulk-select-img-item" draggable="true"
+                                                                data-filename="<%= img.filename %>" tabindex="0"
+                                                                onclick="toggleImageSelect(this)"
+                                                                onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleImageSelect(this);}">
                                                                 <img src="/images/<%= cat.name %>/<%= img.filename %>"
                                                                     alt="<%= img.alt_text %>">
                                                                 <input type="text" class="alt-text-input ml-05"
@@ -176,17 +175,13 @@
                         if (!grid) return;
 
                         function updateButtons() {
-                            const checked = grid.querySelectorAll('.bulk-delete-checkbox:checked');
+                            const checked = grid.querySelectorAll('.img-item.selected');
                             moveBtn && (moveBtn.disabled = checked.length === 0);
                             deleteBtn && (deleteBtn.disabled = checked.length === 0);
                             setThumbBtn && (setThumbBtn.disabled = checked.length !== 1);
                         }
 
-                        grid.querySelectorAll('.bulk-delete-checkbox').forEach(cb => {
-                            cb.addEventListener('change', updateButtons);
-                        });
-
-                        // Run once on page load
+                        // No checkboxes, so just run once
                         updateButtons();
                     });
 
@@ -196,12 +191,12 @@
                         const form = event.target;
                         const toCategory = form.toCategory.value;
                         const grid = form.closest('.category-card').querySelector('.image-grid');
-                        const checked = Array.from(grid.querySelectorAll('.bulk-delete-checkbox:checked'));
+                        const checked = Array.from(grid.querySelectorAll('.img-item.selected'));
                         if (!checked.length) {
                             alert('Select at least one image to move.');
                             return false;
                         }
-                        const filenames = checked.map(cb => cb.value);
+                        const filenames = checked.map(item => item.getAttribute('data-filename'));
                         fetch('/move-image', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -222,13 +217,13 @@
                     function handleBulkDelete(event, category) {
                         event.preventDefault();
                         const grid = event.target.closest('.category-card').querySelector('.image-grid');
-                        const checked = Array.from(grid.querySelectorAll('.bulk-delete-checkbox:checked'));
+                        const checked = Array.from(grid.querySelectorAll('.img-item.selected'));
                         if (!checked.length) {
                             alert('Select at least one image to delete.');
                             return false;
                         }
                         if (!confirm('Are you sure you want to delete the selected images?')) return false;
-                        const filenames = checked.map(cb => cb.value);
+                        const filenames = checked.map(item => item.getAttribute('data-filename'));
                         fetch('/bulk-delete-images', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -248,12 +243,12 @@
 
                     // Handle setting thumbnail
                     function handleSetThumbnail(category) {
-                        // Find the checked image in this category's grid
+                        // Find the selected image in this category's grid
                         const grid = document.querySelector(`.image-grid[data-cat="${category}"]`);
                         if (!grid) return;
-                        const checked = grid.querySelector('.bulk-delete-checkbox:checked');
+                        const checked = grid.querySelector('.img-item.selected');
                         if (!checked) return;
-                        const filename = checked.value;
+                        const filename = checked.getAttribute('data-filename');
 
                         fetch('/set-thumbnail', {
                             method: 'POST',
@@ -353,9 +348,9 @@
                         showPreviews
                     );
 
-                    // Deselect all checkboxes in a grid
+                    // Deselect all selected images in a grid
                     function deselectAllInGrid(grid) {
-                        grid.querySelectorAll('.bulk-delete-checkbox').forEach(cb => cb.checked = false);
+                        grid.querySelectorAll('.img-item.selected').forEach(item => item.classList.remove('selected'));
                     }
 
                     // --- SortableJS for reordering categories and images ---
@@ -395,6 +390,23 @@
                             }
                         });
                     });
+
+                    function toggleImageSelect(item) {
+                        item.classList.toggle('selected');
+                        updateImageBulkButtons(item.closest('.image-grid'));
+                    }
+
+                    function updateImageBulkButtons(grid) {
+                        const checked = grid.querySelectorAll('.img-item.selected');
+                        const optionsBox = grid.closest('.category-card').querySelector('.image-options-box');
+                        if (!optionsBox) return;
+                        const moveBtn = optionsBox.querySelector('.move-images-form button[type="submit"]');
+                        const deleteBtn = optionsBox.querySelector('.bulk-delete-form button[type="submit"]');
+                        const setThumbBtn = optionsBox.querySelector('.set-thumb-btn');
+                        moveBtn && (moveBtn.disabled = checked.length === 0);
+                        deleteBtn && (deleteBtn.disabled = checked.length === 0);
+                        setThumbBtn && (setThumbBtn.disabled = checked.length !== 1);
+                    }
                 </script>
                 <script>
                     function showToast(msg, timeout = 3500) {

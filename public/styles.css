@@ -1840,6 +1840,55 @@ body.dark-mode .admin-current-user {
     transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
+/* Bulk select image item styles */
+.bulk-select-img-item {
+    border: 2px solid transparent;
+    background: #fff;
+    transition: background 0.2s, border-color 0.2s;
+    position: relative;
+    cursor: pointer;
+}
+
+.bulk-select-img-item.selected {
+    background: #e6f2ff !important;
+    border: 2px solid #0078d4 !important;
+    color: #222 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    z-index: 1;
+}
+
+.bulk-select-img-item.selected:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.bulk-select-img-item:focus {
+    outline: none !important;
+}
+
+body.dark-mode .bulk-select-img-item {
+    background: #232527;
+    border: 2px solid transparent;
+}
+
+body.dark-mode .bulk-select-img-item.selected {
+    background: #223040 !important;
+    border: 2px solid #4bb3fd !important;
+    color: #e0e0e0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+body.dark-mode .bulk-select-img-item.selected:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+body.dark-mode .bulk-select-img-item:focus {
+    outline: 2px solid #4bb3fd;
+}
+
 /* Toast notification styles */
 .toast-container {
     position: fixed;
