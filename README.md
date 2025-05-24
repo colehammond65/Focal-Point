@@ -80,7 +80,7 @@ This ensures your images, database, and migration state persist across container
 
 ## Git & Docker Ignore
 
-- The `images/` and `data/` folders, and `umzug.json` (migration state), are ignored by Git and not included in Docker builds.
+- The `images/` and `data/` folders are ignored by Git and not included in Docker builds.
 
 ## Security Notes
 
