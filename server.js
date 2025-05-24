@@ -500,7 +500,7 @@ app.post('/upload', requireLogin, adminLimiter, upload.array('images', 20), asyn
     }
 
     invalidateCategoryCache();
-    return res.redirect('/admin?msg=Upload successful!');
+    return res.redirect('/admin/manage?msg=Upload successful!');
   } catch (err) {
     next(err);
   }
@@ -612,28 +612,28 @@ app.post('/create-category', requireLogin, adminLimiter, async (req, res) => {
     .replace(/^-+|-+$/g, '');
 
   if (!isSafeCategory(newCategory) || !newCategory) {
-    return res.redirect('/admin?msg=Invalid category name!');
+    return res.redirect('/admin/manage?msg=Invalid category name!');
   }
   if (!categoryExists(newCategory)) {
     createCategory(newCategory);
     invalidateCategoryCache();
   }
-  return res.redirect('/admin?msg=Category created!');
+  return res.redirect('/admin/manage?msg=Category created!');
 });
 
 // Delete category -- RATE LIMITED
 app.post('/delete-category', requireLogin, adminLimiter, async (req, res) => {
   const category = req.body.category;
-  if (!isSafeCategory(category)) return res.redirect('/admin?msg=Invalid category!');
+  if (!isSafeCategory(category)) return res.redirect('/admin/manage?msg=Invalid category!');
   if (categoryExists(category)) {
     deleteCategory(category);
     // Remove folder from filesystem
     const catDir = path.join(__dirname, 'public/images', category);
     if (fs.existsSync(catDir)) fs.rmSync(catDir, { recursive: true, force: true });
     invalidateCategoryCache();
-    return res.redirect('/admin?msg=Category deleted!');
+    return res.redirect('/admin/manage?msg=Category deleted!');
   } else {
-    return res.redirect('/admin?msg=Category not found!');
+    return res.redirect('/admin/manage?msg=Category not found!');
   }
 });
 
@@ -641,13 +641,13 @@ app.post('/delete-category', requireLogin, adminLimiter, async (req, res) => {
 app.post('/rename-category', requireLogin, adminLimiter, async (req, res) => {
   const { oldName, newName } = req.body;
   if (!isSafeCategory(oldName) || !isSafeCategory(newName)) {
-    return res.redirect('/admin?msg=Invalid category name!');
+    return res.redirect('/admin/manage?msg=Invalid category name!');
   }
   if (!categoryExists(oldName)) {
-    return res.redirect('/admin?msg=Original category not found!');
+    return res.redirect('/admin/manage?msg=Original category not found!');
   }
   if (categoryExists(newName)) {
-    return res.redirect('/admin?msg=Category name already exists!');
+    return res.redirect('/admin/manage?msg=Category name already exists!');
   }
   // Update category name in DB
   db.prepare('UPDATE categories SET name = ? WHERE name = ?').run(newName, oldName);
@@ -658,23 +658,23 @@ app.post('/rename-category', requireLogin, adminLimiter, async (req, res) => {
     fs.renameSync(oldDir, newDir);
   }
   invalidateCategoryCache();
-  return res.redirect('/admin?msg=Category renamed!');
+  return res.redirect('/admin/manage?msg=Category renamed!');
 });
 
 // Reorder images -- RATE LIMITED
 app.post('/reorder-images', requireLogin, adminLimiter, async (req, res) => {
   const { category, order } = req.body;
-  if (!isSafeCategory(category)) return res.redirect('/admin?msg=Invalid category!');
+  if (!isSafeCategory(category)) return res.redirect('/admin/manage?msg=Invalid category!');
   let orderArr;
   try {
     orderArr = JSON.parse(order);
     if (!Array.isArray(orderArr)) throw new Error();
   } catch {
-    return res.redirect('/admin?msg=Invalid order data!');
+    return res.redirect('/admin/manage?msg=Invalid order data!');
   }
   saveImageOrder(category, orderArr);
   invalidateCategoryCache();
-  return res.redirect('/admin?msg=Order saved!');
+  return res.redirect('/admin/manage?msg=Order saved!');
 });
 
 // Reorder categories -- RATE LIMITED
