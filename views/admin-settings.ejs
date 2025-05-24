@@ -128,9 +128,9 @@
                                         <span class="backup-filename">
                                             <%= b.name %>
                                         </span>
-                                        <span class="backup-meta">
-                                            <%= b.mtime.toLocaleString() %> &mdash; <%= (b.size/1024/1024).toFixed(2) %>
-                                                    MB
+                                        <span class="backup-meta" data-backup-date="<%= b.mtime.toISOString() %>">
+                                            <!-- JS will fill this in -->
+                                            <%= (b.size/1024/1024).toFixed(2) %> MB
                                         </span>
                                     </div>
                                 </label>
@@ -366,7 +366,20 @@
                     }
                 })();
             </script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.querySelectorAll('.backup-meta[data-backup-date]').forEach(function (span) {
+                        const iso = span.getAttribute('data-backup-date');
+                        if (iso) {
+                            const date = new Date(iso);
+                            // Format as local date and time
+                            const formatted = date.toLocaleString();
+                            // Insert at the beginning, keep MB info after
+                            span.innerHTML = `${formatted} &mdash; ${span.innerHTML.replace(/^[^&]+&mdash;\s*/, '')}`;
+                        }
+                    });
+                });
+            </script>
 </body>
 
 </html>
-````
