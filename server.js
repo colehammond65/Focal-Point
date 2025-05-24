@@ -289,7 +289,7 @@ app.post('/login', loginLimiter, async (req, res) => {
   if (admin) {
     req.session.loggedIn = true;
     req.session.adminId = admin.id;
-    return res.redirect('/admin');
+    return res.redirect('/admin/manage');
   } else {
     const settings = getAllSettings();
     return res.render('login', { error: 'Invalid credentials', settings });
