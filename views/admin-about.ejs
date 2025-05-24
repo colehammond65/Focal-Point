@@ -48,6 +48,44 @@
                     document.getElementById('aboutImageFileName')
                 );
             </script>
+            <script>
+                (function () {
+                    const dropzone = document.getElementById('aboutImageDropzone');
+                    const fileInput = document.getElementById('aboutImage');
+                    const fileNameLabel = document.getElementById('aboutImageFileName');
+
+                    // Open file dialog on click
+                    dropzone.addEventListener('click', () => fileInput.click());
+                    dropzone.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            fileInput.click();
+                        }
+                    });
+
+                    // Show file name when selected
+                    fileInput.addEventListener('change', () => {
+                        fileNameLabel.textContent = fileInput.files.length ? fileInput.files[0].name : '';
+                    });
+
+                    // Prevent default drag behaviors
+                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                        dropzone.addEventListener(eventName, e => e.preventDefault());
+                        dropzone.addEventListener(eventName, e => e.stopPropagation());
+                    });
+
+                    // Highlight dropzone on dragover
+                    dropzone.addEventListener('dragover', () => dropzone.classList.add('dragover'));
+                    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+                    dropzone.addEventListener('drop', (e) => {
+                        dropzone.classList.remove('dragover');
+                        if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                            fileInput.files = e.dataTransfer.files;
+                            fileInput.dispatchEvent(new Event('change'));
+                        }
+                    });
+                })();
+            </script>
 </body>
 
 </html>
