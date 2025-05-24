@@ -6,17 +6,21 @@
                 <%= settings.headerTitle || "Photo Gallery" %>
             </span>
             <% } %>
-                <% if (typeof showAdminNav !=='undefined' && showAdminNav) { %>
-                    <nav>
-                        <a href="/">Home</a>
+                <nav>
+                    <a href="/">Home</a>
+                    <a href="/about">About</a>
+                    <% if (typeof loggedIn !=='undefined' && loggedIn) { %>
                         <a href="/admin/manage">Manage Images</a>
                         <a href="/admin/settings">Site Settings</a>
                         <a href="/admin/users">Admin Users</a>
+                        <a href="/admin/about">Edit About</a>
                         <a href="/logout">Logout</a>
-                    </nav>
-                    <% } %>
-                        <!-- Dark mode toggle button absolutely positioned in header -->
-                        <button id="darkModeToggle" aria-label="Toggle dark mode" class="dark-mode-toggle">
-                            <span id="darkModeIcon" aria-hidden="true">🌙</span>
-                        </button>
+                        <% } else { %>
+                            <a href="/login">Login</a>
+                            <% } %>
+                </nav>
+                <!-- Dark mode toggle button absolutely positioned in header -->
+                <button id="darkModeToggle" aria-label="Toggle dark mode" class="dark-mode-toggle">
+                    <span id="darkModeIcon" aria-hidden="true">🌙</span>
+                </button>
 </header>

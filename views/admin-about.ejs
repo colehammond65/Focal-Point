@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>
+        <%= settings.siteTitle || "Photo Gallery" %>
+    </title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <%- include('partials/header', { showAdminNav: true, settings }) %>
+        <div class="container about-container">
+            <h1>Edit About Me</h1>
+            <% if (req.query && req.query.msg) { %>
+                <div class="admin-msg">
+                    <%= req.query.msg %>
+                </div>
+                <% } %>
+                    <form action="/admin/about" method="POST" enctype="multipart/form-data">
+                        <label for="markdown">About Me (Markdown):</label>
+                        <textarea name="markdown" id="markdown" rows="10"
+                            style="width:100%"><%= about.markdown %></textarea>
+                        <br>
+                        <label for="image">Photo:</label>
+                        <div id="aboutImageDropzone" class="dropzone dropzone-flex" tabindex="0">
+                            <span id="aboutImageDropzoneText">Drag & drop photo here or click to select</span>
+                            <input type="file" name="image" id="aboutImage" accept="image/*" style="display:none;">
+                            <span id="aboutImageFileName" class="file-name-label"></span>
+                        </div>
+                        <% if (about.image_path) { %>
+                            <img src="<%= about.image_path %>" alt="Current Photo"
+                                style="max-width:150px;display:block;margin-bottom:1em;">
+                            <input type="hidden" name="currentImage" value="<%= about.image_path %>">
+                            <button type="submit" formaction="/admin/about/delete-image" formmethod="POST"
+                                class="danger-btn" style="margin-bottom:1em;">Delete Image</button>
+                            <% } %>
+                                <br>
+                                <button type="submit">Save</button>
+                    </form>
+        </div>
+        <%- include('partials/dark-mode-toggle') %>
+            <script>
+                setupDropzone(
+                    document.getElementById('aboutImageDropzone'),
+                    document.getElementById('aboutImage'),
+                    document.getElementById('aboutImageFileName')
+                );
+            </script>
+</body>
+
+</html>

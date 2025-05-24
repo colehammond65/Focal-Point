@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>
+    <%= settings.siteTitle || "Photo Gallery" %>
+  </title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+  <%- include('partials/header', { showAdminNav: false, settings }) %>
+    <div class="container about-container">
+      <% if (image) { %>
+        <img src="<%= image %>" alt="About Me Photo" class="about-photo">
+        <% } %>
+          <div class="about-content">
+            <%- aboutHtml %>
+          </div>
+    </div>
+    <%- include('partials/footer') %>
+      <%- include('partials/dark-mode-toggle') %>
+</body>
+
+</html>

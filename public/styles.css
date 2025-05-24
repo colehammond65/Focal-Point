@@ -27,9 +27,9 @@ body.dark-mode .image-options-box {
 }
 
 body.dark-mode .admin-msg {
-    background: #223322;
-    color: #e0ffe0;
-    border-color: #3a5;
+    background: #223322 !important;
+    color: #e0ffe0 !important;
+    border-color: #3a5 !important;
 }
 
 body.dark-mode .admin-error {
@@ -184,6 +184,32 @@ body.dark-mode .admin-list-item.selected {
     box-shadow: 0 0 0 2px #4bb3fd, 0 2px 8px rgba(75, 179, 253, 0.10);
     border-color: #4bb3fd !important;
     color: #e0e0e0 !important;
+}
+
+/* Dark mode for About page */
+body.dark-mode .about-container {
+    background: #232527 !important;
+    color: #e0e0e0 !important;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.18);
+}
+
+body.dark-mode .about-photo {
+    background: #181a1b;
+    border: 3px solid #444;
+}
+
+body.dark-mode .about-content {
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode .about-content a {
+    color: #aad7ff !important;
+}
+
+body.dark-mode .about-content code,
+body.dark-mode .about-content pre {
+    background: #181a1b !important;
+    color: #aad7ff !important;
 }
 
 /* Headings */
@@ -1846,4 +1872,20 @@ body.dark-mode .bulk-select-img-item:focus {
     flex-direction: column;
     min-width: 0;
     box-sizing: border-box;
+}
+
+.about-container {
+    max-width: 700px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
+}
+
+.about-photo {
+    max-width: 200px;
+    border-radius: 50%;
+    display: block;
+    margin: 0 auto 2rem auto;
 }

@@ -20,6 +20,7 @@ const unzipper = require('unzipper');
 const bcrypt = require('bcryptjs');
 const backupUtils = require('./utils/backup');
 const Database = require('better-sqlite3');
+const marked = require('marked');
 
 const {
   getCategoriesWithPreviews,
@@ -242,7 +243,14 @@ if (process.env.NODE_ENV === 'test') {
 app.get('/', async (req, res) => {
   const categories = await getCachedCategories();
   const settings = getAllSettings();
-  res.render('index', { categories, images: null, category: null, loggedIn: req.session && req.session.loggedIn, settings });
+  res.render('index', {
+    categories,
+    images: null,
+    category: null,
+    loggedIn: req.session && req.session.loggedIn,
+    settings,
+    showAdminNav: req.session && req.session.loggedIn
+  });
 });
 
 // Gallery page: Show all images in a category
@@ -258,13 +266,20 @@ app.get('/gallery/:category', async (req, res) => {
   }
 
   const settings = getAllSettings();
-  res.render('index', { categories, category, images, loggedIn: req.session && req.session.loggedIn, settings });
+  res.render('index', {
+    categories,
+    category,
+    images,
+    loggedIn: req.session && req.session.loggedIn,
+    settings,
+    showAdminNav: req.session && req.session.loggedIn
+  });
 });
 
 // Login page (GET)
 app.get('/login', (req, res) => {
   const settings = getAllSettings();
-  res.render('login', { error: null, settings });
+  res.render('login', { error: null, settings, showAdminNav: req.session && req.session.loggedIn });
 });
 
 // Handle login form (POST) -- RATE LIMITED
@@ -288,10 +303,10 @@ app.get('/logout', (req, res) => {
   });
 });
 
-// Setup page (GET)
+// Setup page (GET) 
 app.get('/setup', (req, res) => {
   if (adminExists()) return res.redirect('/login');
-  res.render('setup', { error: null });
+  res.render('setup', { error: null, showAdminNav: req.session && req.session.loggedIn });
 });
 
 // Setup page (POST)
@@ -309,14 +324,27 @@ app.post('/setup', async (req, res) => {
 app.get('/admin/settings', requireLogin, (req, res) => {
   const settings = getAllSettings();
   const serverBackups = backupUtils.listBackups();
-  res.render('admin-settings', { req, settings, serverBackups, backupLimit: backupUtils.BACKUP_LIMIT_BYTES });
+  res.render('admin-settings', {
+    req,
+    settings,
+    serverBackups,
+    backupLimit: backupUtils.BACKUP_LIMIT_BYTES,
+    showAdminNav: req.session && req.session.loggedIn,
+    loggedIn: req.session && req.session.loggedIn
+  });
 });
 
 // Image & Category Management page
 app.get('/admin/manage', requireLogin, (req, res) => {
   const categories = getCategoriesWithImages();
   const settings = getAllSettings();
-  res.render('admin-manage', { categories, req, settings });
+  res.render('admin-manage', {
+    categories,
+    req,
+    settings,
+    showAdminNav: req.session && req.session.loggedIn,
+    loggedIn: req.session && req.session.loggedIn
+  });
 });
 
 // Redirect /admin to /admin/manage for backward compatibility
@@ -329,7 +357,14 @@ app.get('/admin/users', requireLogin, (req, res) => {
   const admins = db.prepare('SELECT id, username FROM admin').all();
   const currentAdmin = req.session.adminId;
   const settings = getAllSettings();
-  res.render('admin-users', { admins, currentAdmin, req, settings });
+  res.render('admin-users', {
+    admins,
+    currentAdmin,
+    req,
+    settings,
+    showAdminNav: req.session && req.session.loggedIn,
+    loggedIn: req.session && req.session.loggedIn
+  });
 });
 
 // Create new admin
@@ -770,6 +805,12 @@ app.get('/admin/backup', requireLogin, async (req, res) => {
       archive.directory(imagesDir, 'images');
     }
 
+    // Add the uploads directory
+    const uploadsDir = path.join(__dirname, 'public', 'uploads');
+    if (fs.existsSync(uploadsDir)) {
+      archive.directory(uploadsDir, 'uploads');
+    }
+
     // Wait for the archive to finish and get the buffer
     const backupBuffer = await new Promise((resolve, reject) => {
       archive.on('end', () => resolve(Buffer.concat(chunks)));
@@ -807,6 +848,12 @@ app.post('/admin/backup', requireLogin, async (req, res) => {
     const imagesDir = path.join(__dirname, 'public', 'images');
     if (fs.existsSync(imagesDir)) {
       archive.directory(imagesDir, 'images');
+    }
+
+    // Add the uploads directory
+    const uploadsDir = path.join(__dirname, 'public', 'uploads');
+    if (fs.existsSync(uploadsDir)) {
+      archive.directory(uploadsDir, 'uploads');
     }
 
     // Wait for the archive to finish and get the buffer
@@ -948,6 +995,38 @@ app.post('/admin/restore', requireLogin, restoreUpload.single('backup'), async (
       }
     }
 
+    // Move/extract uploads
+    const uploadsSrc = path.join(extractDir, 'uploads');
+    const uploadsDest = path.join(__dirname, 'public', 'uploads');
+    if (fs.existsSync(uploadsSrc)) {
+      if (fs.existsSync(uploadsDest)) {
+        fs.rmSync(uploadsDest, { recursive: true, force: true });
+      }
+      try {
+        fs.renameSync(uploadsSrc, uploadsDest);
+      } catch (err) {
+        if (err.code === 'EPERM' || err.code === 'EACCES' || err.code === 'ENOTEMPTY') {
+          // Fallback: copy files manually
+          const copyDir = (src, dest) => {
+            fs.mkdirSync(dest, { recursive: true });
+            for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+              const srcPath = path.join(src, entry.name);
+              const destPath = path.join(dest, entry.name);
+              if (entry.isDirectory()) {
+                copyDir(srcPath, destPath);
+              } else {
+                fs.copyFileSync(srcPath, destPath);
+              }
+            }
+          };
+          copyDir(uploadsSrc, uploadsDest);
+          fs.rmSync(uploadsSrc, { recursive: true, force: true });
+        } else {
+          throw err;
+        }
+      }
+    }
+
     res.redirect('/admin/settings?msg=Backup restored!');
   } catch (err) {
     errorOccurred = true;
@@ -1026,6 +1105,39 @@ app.post('/admin/restore-selected', requireLogin, async (req, res) => {
         }
       }
     }
+
+    // Move/extract uploads
+    const uploadsSrc = path.join(extractDir, 'uploads');
+    const uploadsDest = path.join(__dirname, 'public', 'uploads');
+    if (fs.existsSync(uploadsSrc)) {
+      if (fs.existsSync(uploadsDest)) {
+        fs.rmSync(uploadsDest, { recursive: true, force: true });
+      }
+      try {
+        fs.renameSync(uploadsSrc, uploadsDest);
+      } catch (err) {
+        if (err.code === 'EPERM' || err.code === 'EACCES' || err.code === 'ENOTEMPTY') {
+          // Fallback: copy files manually
+          const copyDir = (src, dest) => {
+            fs.mkdirSync(dest, { recursive: true });
+            for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+              const srcPath = path.join(src, entry.name);
+              const destPath = path.join(dest, entry.name);
+              if (entry.isDirectory()) {
+                copyDir(srcPath, destPath);
+              } else {
+                fs.copyFileSync(srcPath, destPath);
+              }
+            }
+          };
+          copyDir(uploadsSrc, uploadsDest);
+          fs.rmSync(uploadsSrc, { recursive: true, force: true });
+        } else {
+          throw err;
+        }
+      }
+    }
+
     res.redirect('/admin/settings?msg=Backup restored!');
   } catch (err) {
     console.error('Restore failed:', err);
@@ -1035,12 +1147,63 @@ app.post('/admin/restore-selected', requireLogin, async (req, res) => {
   }
 });
 
+const aboutUpload = multer({ dest: path.join(__dirname, 'public/uploads/') });
+// Public About page
+app.get('/about', (req, res) => {
+  const about = db.prepare('SELECT * FROM about LIMIT 1').get();
+  const aboutHtml = marked.parse(about?.markdown || '');
+  const settings = getAllSettings();
+  res.render('about', {
+    aboutHtml,
+    image: about?.image_path,
+    settings,
+    showAdminNav: req.session && req.session.loggedIn,
+    loggedIn: req.session && req.session.loggedIn
+  });
+});
+
+// Admin About editor (GET)
+app.get('/admin/about', requireLogin, (req, res) => {
+  const about = db.prepare('SELECT * FROM about LIMIT 1').get();
+  const settings = getAllSettings();
+  res.render('admin-about', {
+    about,
+    req,
+    settings,
+    showAdminNav: req.session && req.session.loggedIn,
+    loggedIn: req.session && req.session.loggedIn
+  });
+});
+
+// Admin About editor (POST)
+app.post('/admin/about', requireLogin, aboutUpload.single('image'), (req, res) => {
+  let imagePath = req.body.currentImage;
+  if (req.file) {
+    imagePath = '/uploads/' + req.file.filename;
+  }
+  db.prepare('UPDATE about SET markdown = ?, image_path = ? WHERE id = 1')
+    .run(req.body.markdown, imagePath);
+  res.redirect('/admin/about?msg=Saved!');
+});
+
+app.post('/admin/about/delete-image', requireLogin, (req, res) => {
+  const about = db.prepare('SELECT * FROM about LIMIT 1').get();
+  if (about && about.image_path) {
+    const imgPath = path.join(__dirname, 'public', about.image_path.replace(/^\//, ''));
+    if (fs.existsSync(imgPath)) {
+      try { fs.unlinkSync(imgPath); } catch (e) { /* ignore */ }
+    }
+    db.prepare('UPDATE about SET image_path = NULL WHERE id = 1').run();
+  }
+  res.redirect('/admin/about?msg=Image deleted!');
+});
+
 // Place this after all other routes, but before error handling middleware
 const notFoundPage = require('./views/partials/notfound'); // Import the 404 HTML generator
 
 app.use((req, res) => {
   const settings = getAllSettings();
-  res.status(404).send(notFoundPage(settings.siteTitle || "Photo Gallery"));
+  res.status(404).send(notFoundPage(settings.siteTitle || "Photo Gallery", req.session && req.session.loggedIn));
 });
 
 // Error handling middleware
