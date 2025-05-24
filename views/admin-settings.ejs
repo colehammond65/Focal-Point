@@ -21,50 +21,54 @@
                 <section class="admin-card">
                     <h2>Branding</h2>
                     <form action="/admin/settings" method="POST" enctype="multipart/form-data" class="admin-form">
-                        <label for="siteTitle">Site Name (browser tab):</label>
+                        <label for="siteTitle">Site Name (Browser tab):</label>
                         <input type="text" id="siteTitle" name="siteTitle" value="<%= settings.siteTitle %>" required>
 
-                        <label>Header Type:</label>
-                        <div class="header-type-radio-group">
-                            <label>
-                                <input type="radio" name="headerType" value="text" <%=settings.headerType !=='image'
-                                    ? 'checked' : '' %>>
-                                Text
-                            </label>
-                            <label>
-                                <input type="radio" name="headerType" value="image" <%=settings.headerType==='image'
-                                    ? 'checked' : '' %>>
-                                Image
-                            </label>
-                        </div>
+                        <% const headerType=(settings.headerType || 'text' ).trim().toLowerCase(); %>
+                            <label>Header Type:</label>
+                            <div class="header-type-radio-group">
+                                <label>
+                                    <input type="radio" name="headerType" value="text" <%=headerType==='text'
+                                        ? 'checked' : '' %>>
+                                    Text
+                                </label>
+                                <label>
+                                    <input type="radio" name="headerType" value="image" <%=headerType==='image'
+                                        ? 'checked' : '' %>>
+                                    Image
+                                </label>
+                            </div>
 
-                        <div id="headerTextInput" class="<%= settings.headerType === 'image' ? 'hidden' : '' %>">
-                            <label for="headerTitle" class="label-bottom-gap">Header Title:</label>
-                            <input type="text" id="headerTitle" name="headerTitle" value="<%= settings.headerTitle %>">
-                        </div>
+                            <div id="headerTextInput" class="<%= headerType === 'image' ? 'hidden' : '' %>">
+                                <label for="headerTitle" class="label-bottom-gap">Header Title:</label>
+                                <input type="text" id="headerTitle" name="headerTitle"
+                                    value="<%= settings.headerTitle %>">
+                            </div>
 
-                        <div id="headerImageInput" class="<%= settings.headerType === 'image' ? '' : 'hidden' %>">
-                            <label for="headerImage">Header Image (optional):</label>
-                            <div id="headerImageDropzone" class="dropzone dropzone-flex" tabindex="0">
-                                <span id="headerImageDropzoneText">Drag & drop header image here or click to
-                                    select</span>
-                                <input type="file" id="headerImage" name="headerImage" accept="image/*"
-                                    style="display:none;">
-                                <span id="headerImageFileName" class="file-name-label"></span>
+                            <div id="headerImageInput" class="<%= headerType === 'image' ? '' : 'hidden' %>">
+                                <div id="headerImageDropzone" class="dropzone dropzone-flex" tabindex="0">
+                                    <span id="headerImageDropzoneText">Drag & drop header image here or click to
+                                        select</span>
+                                    <input type="file" id="headerImage" name="headerImage" accept="image/*"
+                                        style="display:none;">
+                                    <span id="headerImageFileName" class="file-name-label"></span>
+                                </div>
                                 <% if (settings.headerImage) { %>
                                     <div class="header-image-preview-container">
                                         <img src="/uploads/<%= settings.headerImage %>" alt="Header Image"
                                             class="header-image-preview">
                                     </div>
                                     <% } %>
+                                        <img id="headerImagePreviewDynamic" alt="Header Image Preview"
+                                            style="display:none;max-width:120px;max-height:60px;margin-top:0.5em;" />
                             </div>
-                        </div>
 
-                        <label for="favicon">Favicon (image, optional):</label>
-                        <div id="faviconDropzone" class="dropzone dropzone-flex" tabindex="0">
-                            <span id="faviconDropzoneText">Drag & drop favicon here or click to select</span>
-                            <input type="file" id="favicon" name="favicon" accept="image/*" style="display:none;">
-                            <span id="faviconFileName" class="file-name-label"></span>
+                            <label for="favicon">Favicon (image, optional):</label>
+                            <div id="faviconDropzone" class="dropzone dropzone-flex" tabindex="0">
+                                <span id="faviconDropzoneText">Drag & drop favicon here or click to select</span>
+                                <input type="file" id="favicon" name="favicon" accept="image/*" style="display:none;">
+                                <span id="faviconFileName" class="file-name-label"></span>
+                            </div>
                             <% if (settings.favicon) { %>
                                 <div class="favicon-preview-container">
                                     <span class="favicon-preview-label">Preview</span>
@@ -72,8 +76,9 @@
                                         class="favicon-preview">
                                 </div>
                                 <% } %>
-                        </div>
-                        <button type="submit">Save Settings</button>
+                                    <img id="faviconPreviewDynamic" alt="Favicon Preview"
+                                        style="display:none;max-width:32px;max-height:32px;margin-top:0.5em;" />
+                                    <button type="submit">Save Settings</button>
                     </form>
                     <% if (settings.headerImage) { %>
                         <form action="/admin/settings/remove-header-image" method="POST" class="form-margin-top">
@@ -205,12 +210,20 @@
                 );
             </script>
             <script>
+                function updateHeaderInputVisibility() {
+                    const checked = document.querySelector('input[name="headerType"]:checked');
+                    if (!checked) return;
+                    document.getElementById('headerTextInput').classList.toggle('hidden', checked.value !== 'text');
+                    document.getElementById('headerImageInput').classList.toggle('hidden', checked.value !== 'image');
+                }
+
+                // Update on radio change
                 document.querySelectorAll('input[name="headerType"]').forEach(radio => {
-                    radio.addEventListener('change', function () {
-                        document.getElementById('headerTextInput').classList.toggle('hidden', this.value !== 'text');
-                        document.getElementById('headerImageInput').classList.toggle('hidden', this.value !== 'image');
-                    });
+                    radio.addEventListener('change', updateHeaderInputVisibility);
                 });
+
+                // Update on page load
+                window.addEventListener('DOMContentLoaded', updateHeaderInputVisibility);
             </script>
             <script>
                 document.querySelectorAll('.backup-checkbox').forEach(cb => {
@@ -318,6 +331,42 @@
                     }
                 });
             </script>
+            <script>
+                (function () {
+                    // Favicon preview
+                    const faviconInput = document.getElementById('favicon');
+                    const faviconPreview = document.getElementById('faviconPreviewDynamic');
+                    if (faviconInput && faviconPreview) {
+                        faviconInput.addEventListener('change', function () {
+                            if (this.files && this.files[0]) {
+                                const reader = new FileReader();
+                                reader.onload = function (e) {
+                                    faviconPreview.src = e.target.result;
+                                    faviconPreview.style.display = 'inline-block';
+                                };
+                                reader.readAsDataURL(this.files[0]);
+                            }
+                        });
+                    }
+
+                    // Header image preview
+                    const headerInput = document.getElementById('headerImage');
+                    const headerPreview = document.getElementById('headerImagePreviewDynamic');
+                    if (headerInput && headerPreview) {
+                        headerInput.addEventListener('change', function () {
+                            if (this.files && this.files[0]) {
+                                const reader = new FileReader();
+                                reader.onload = function (e) {
+                                    headerPreview.src = e.target.result;
+                                    headerPreview.style.display = 'block';
+                                };
+                                reader.readAsDataURL(this.files[0]);
+                            }
+                        });
+                    }
+                })();
+            </script>
 </body>
 
 </html>
+````

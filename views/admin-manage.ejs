@@ -29,6 +29,8 @@
                             <h2>Upload Images</h2>
                             <form action="/upload" method="POST" enctype="multipart/form-data" class="admin-form">
                                 <label for="image">Choose image(s):</label>
+                                <p class="backup-note">Max 20 images at a time. Max 10MB per image. Supported formats:
+                                    JPG, PNG, GIF.</p>
                                 <div id="dropzone" class="dropzone">Drag & drop images here or click to select</div>
                                 <input type="file" name="images" id="image" multiple required style="display:none;">
                                 <div id="preview" class="preview"></div>

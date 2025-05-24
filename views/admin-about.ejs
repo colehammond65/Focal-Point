@@ -12,34 +12,51 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: true, settings }) %>
-        <div class="container about-container">
+        <div class="container">
             <h1>Edit About Me</h1>
             <% if (req.query && req.query.msg) { %>
                 <div class="admin-msg">
                     <%= req.query.msg %>
                 </div>
                 <% } %>
-                    <form action="/admin/about" method="POST" enctype="multipart/form-data">
-                        <label for="markdown">About Me (Markdown):</label>
-                        <textarea name="markdown" id="markdown" rows="10"
-                            style="width:100%"><%= about.markdown %></textarea>
-                        <br>
-                        <label for="image">Photo:</label>
-                        <div id="aboutImageDropzone" class="dropzone dropzone-flex" tabindex="0">
-                            <span id="aboutImageDropzoneText">Drag & drop photo here or click to select</span>
-                            <input type="file" name="image" id="aboutImage" accept="image/*" style="display:none;">
-                            <span id="aboutImageFileName" class="file-name-label"></span>
-                        </div>
-                        <% if (about.image_path) { %>
-                            <img src="<%= about.image_path %>" alt="Current Photo"
-                                style="max-width:150px;display:block;margin-bottom:1em;">
-                            <input type="hidden" name="currentImage" value="<%= about.image_path %>">
-                            <button type="submit" formaction="/admin/about/delete-image" formmethod="POST"
-                                class="danger-btn" style="margin-bottom:1em;">Delete Image</button>
-                            <% } %>
-                                <br>
+                    <div class="admin-flex-row">
+                        <!-- Left: Bio -->
+                        <section class="admin-card">
+                            <h2>Edit bio</h2>
+                            <form action="/admin/about/bio" method="POST" class="admin-form">
+                                <label for="markdown">About Me (Markdown):</label>
+                                <p class="backup-note"> <a href="https://www.markdownguide.org/basic-syntax/">How to use
+                                        markdown</a></p>
+                                <textarea name="markdown" id="markdown" rows="20"
+                                    style="width:100%"><%= about.markdown %></textarea>
                                 <button type="submit">Save</button>
-                    </form>
+                            </form>
+                        </section>
+                        <!-- Right: Image -->
+                        <section class="admin-card">
+                            <h2>About image</h2>
+                            <form action="/admin/about/image" method="POST" enctype="multipart/form-data"
+                                class="admin-form">
+                                <label for="image">Photo:</label>
+                                <div id="aboutImageDropzone" class="dropzone dropzone-flex" tabindex="0">
+                                    <span id="aboutImageDropzoneText">Drag & drop photo here or click to select</span>
+                                    <input type="file" name="image" id="aboutImage" accept="image/*"
+                                        style="display:none;">
+                                    <span id="aboutImageFileName" class="file-name-label"></span>
+                                </div>
+                                <% if (about.image_path) { %>
+                                    <img src="<%= about.image_path %>" alt="Current Photo"
+                                        style="max-width:150px;display:block;margin-bottom:1em;">
+                                    <input type="hidden" name="currentImage" value="<%= about.image_path %>">
+                                    <button type="submit" formaction="/admin/about/delete-image" formmethod="POST"
+                                        class="danger-btn" style="margin-bottom:1em;">Delete Image</button>
+                                    <% } %>
+                                        <img id="aboutImagePreview"
+                                            style="max-width:150px;display:none;margin-bottom:1em;" alt="Preview">
+                                        <button type="submit">Save Image</button>
+                            </form>
+                        </section>
+                    </div>
         </div>
         <%- include('partials/dark-mode-toggle') %>
             <script>
@@ -54,8 +71,6 @@
                     const dropzone = document.getElementById('aboutImageDropzone');
                     const fileInput = document.getElementById('aboutImage');
                     const fileNameLabel = document.getElementById('aboutImageFileName');
-
-                    // Open file dialog on click
                     dropzone.addEventListener('click', () => fileInput.click());
                     dropzone.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -63,19 +78,13 @@
                             fileInput.click();
                         }
                     });
-
-                    // Show file name when selected
                     fileInput.addEventListener('change', () => {
                         fileNameLabel.textContent = fileInput.files.length ? fileInput.files[0].name : '';
                     });
-
-                    // Prevent default drag behaviors
                     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                         dropzone.addEventListener(eventName, e => e.preventDefault());
                         dropzone.addEventListener(eventName, e => e.stopPropagation());
                     });
-
-                    // Highlight dropzone on dragover
                     dropzone.addEventListener('dragover', () => dropzone.classList.add('dragover'));
                     dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
                     dropzone.addEventListener('drop', (e) => {
@@ -85,6 +94,27 @@
                             fileInput.dispatchEvent(new Event('change'));
                         }
                     });
+                })();
+            </script>
+            <script>
+                (function () {
+                    const fileInput = document.getElementById('aboutImage');
+                    const previewImg = document.getElementById('aboutImagePreview');
+
+                    if (fileInput) {
+                        fileInput.addEventListener('change', function () {
+                            if (this.files && this.files[0]) {
+                                const reader = new FileReader();
+                                reader.onload = function (e) {
+                                    if (previewImg) {
+                                        previewImg.src = e.target.result;
+                                        previewImg.style.display = 'block';
+                                    }
+                                };
+                                reader.readAsDataURL(this.files[0]);
+                            }
+                        });
+                    }
                 })();
             </script>
 </body>

@@ -1170,15 +1170,24 @@ app.get('/admin/about', requireLogin, (req, res) => {
   });
 });
 
-// Admin About editor (POST)
-app.post('/admin/about', requireLogin, aboutUpload.single('image'), (req, res) => {
+// Update About bio (markdown only)
+app.post('/admin/about/bio', requireLogin, (req, res) => {
+  const markdown = req.body.markdown || '';
+  db.prepare('UPDATE about SET markdown = ? WHERE id = 1').run(markdown);
+  res.redirect('/admin/about?msg=Bio saved!');
+});
+
+// Update About image only
+app.post('/admin/about/image', requireLogin, aboutUpload.single('image'), (req, res) => {
   let imagePath = req.body.currentImage;
   if (req.file) {
     imagePath = '/uploads/' + req.file.filename;
   }
+  // Get the current markdown so we don't overwrite it
+  const about = db.prepare('SELECT * FROM about LIMIT 1').get();
   db.prepare('UPDATE about SET markdown = ?, image_path = ? WHERE id = 1')
-    .run(req.body.markdown, imagePath);
-  res.redirect('/admin/about?msg=Saved!');
+    .run(about.markdown || '', imagePath);
+  res.redirect('/admin/about?msg=Image saved!');
 });
 
 app.post('/admin/about/delete-image', requireLogin, (req, res) => {
