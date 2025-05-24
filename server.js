@@ -299,7 +299,7 @@ app.post('/login', loginLimiter, async (req, res) => {
 // Logout: destroy session and redirect to login
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
-    res.redirect('/login');
+    res.redirect('/');
   });
 });
 
