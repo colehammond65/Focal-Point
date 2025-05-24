@@ -197,8 +197,7 @@ h1 {
 
 /* Admin Panel & Cards */
 .admin-card,
-.login-box,
-.category {
+.login-box {
     background: #fff;
     border-radius: 0;
     box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
@@ -207,34 +206,11 @@ h1 {
     width: 100%;
     box-sizing: border-box;
     border: 1px solid #e0e0e0;
-    max-width: 900px;
-    min-width: 0;
-    margin: 0 auto 2.5rem auto;
 }
 
 .admin-card {
     margin-top: 1.5rem;
     margin-bottom: 1.5rem;
-}
-
-.category {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    background: #fff;
-    border-radius: 0;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
-    border: 1px solid #e0e0e0;
-    width: 320px;
-    height: 350px;
-    overflow: hidden;
-    margin: 0 auto 2.5rem auto;
-    min-width: 0;
-    min-height: 0;
-    max-width: 100%;
-    position: relative;
-    padding: 0;
 }
 
 .category-image-wrapper {
@@ -247,13 +223,12 @@ h1 {
     display: block;
 }
 
-.category img,
-.category .no-image {
+img,
+.no-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
-    margin: 0;
     border-radius: 0;
     border: none;
     background: #e9ecef;
@@ -272,13 +247,6 @@ h1 {
     border-top: 1px solid #eee;
     width: 100%;
     box-sizing: border-box;
-}
-
-.category>div:not(.category-image-wrapper):not(.category-name) {
-    margin: 0;
-    padding: 0;
-    background: none;
-    border: none;
 }
 
 .admin-card,
@@ -741,7 +709,8 @@ header nav a:focus {
 
 .categories {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
+    /* 4 per row, 25% each */
     gap: 2rem;
     width: 100%;
     max-width: 100vw;
@@ -749,36 +718,25 @@ header nav a:focus {
     padding: 0 1.5vw;
     box-sizing: border-box;
     overflow-x: hidden;
+    min-width: 1200px;
 }
 
 .category {
-    text-decoration: none;
-    color: inherit;
-    background: #fff;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
     min-width: 0;
-    min-height: 320px;
+    margin: 0 0 2.5rem 0;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: box-shadow 0.2s, transform 0.2s;
-    overflow: hidden;
-    position: relative;
-    border-radius: 0;
-    border: 1px solid #e0e0e0;
-    max-width: 900px;
-    min-width: 0;
-    margin: 0 auto 2.5rem auto;
 }
 
-.category img,
+img,
 .no-image {
     width: 100%;
     aspect-ratio: 1 / 1;
     object-fit: cover;
     background: #e9ecef;
     display: block;
-    margin-top: 0;
 }
 
 .site-title {
@@ -970,12 +928,14 @@ footer a {
 
     .categories,
     .gallery {
-        max-width: 1000px;
-    }
-
-    .category {
-        width: 350px;
-        min-height: 220px;
+        display: grid;
+        gap: 2rem;
+        width: 100%;
+        max-width: 100vw;
+        margin-bottom: 3rem;
+        padding: 0 1.5vw;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
 
     .no-image {
@@ -984,7 +944,6 @@ footer a {
 
     .admin-card,
     .login-box,
-    .category,
     .settings-flex-row .admin-card {
         max-width: 100vw;
     }
@@ -995,30 +954,6 @@ footer a {
 }
 
 @media (max-width: 1200px) and (min-width: 601px) {
-    .categories {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.2rem;
-        padding: 0 1vw;
-        max-width: 100vw;
-        box-sizing: border-box;
-        overflow-x: hidden;
-    }
-
-    .category {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        justify-content: flex-start;
-        min-height: 320px;
-        height: auto;
-        width: 100%;
-        min-width: 0;
-        max-width: 100% !important;
-        margin: 0 0 2.5rem 0 !important;
-        box-sizing: border-box;
-        padding: 0;
-    }
-
     .category-name {
         display: flex !important;
         align-items: center;
@@ -1036,37 +971,20 @@ footer a {
     }
 }
 
-@media (max-width: 900px) and (min-width: 601px) {
-    .categories {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-        padding: 0 1vw;
-        max-width: 100vw;
-        box-sizing: border-box;
-        overflow-x: hidden;
-    }
-
-    .category {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        margin: 0 0 2.5rem 0 !important;
-        box-sizing: border-box;
-    }
-}
-
 @media (max-width: 900px) {
     .gallery {
         column-count: 2;
     }
 
     .categories {
-        gap: 1rem;
-    }
-
-    .category {
-        width: 90vw;
-        min-width: 200px;
+        display: grid;
+        gap: 2rem;
+        width: 100%;
+        max-width: 100vw;
+        margin-bottom: 3rem;
+        padding: 0 1.5vw;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
 
     .admin-card {
@@ -1123,22 +1041,6 @@ footer a {
     .gallery {
         column-count: 1;
         padding: 1rem 0;
-    }
-
-    .categories {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-        padding: 0 0.5rem;
-    }
-
-    .category {
-        min-width: 0;
-        width: 100%;
-        min-height: 0;
-        height: auto;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
     }
 
     .category-image-wrapper {
@@ -1207,7 +1109,6 @@ footer a {
 
     .admin-card,
     .login-box,
-    .category,
     .settings-flex-row .admin-card {
         padding: 0px;
         min-width: 0;
@@ -1938,4 +1839,11 @@ body.dark-mode .bulk-select-img-item:focus {
         transform: translateY(-30px);
         opacity: 0;
     }
+}
+
+.categories>.category {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    box-sizing: border-box;
 }
