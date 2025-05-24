@@ -119,27 +119,37 @@
                   if (!grid) return;
                   const items = grid.children.length;
                   const containerWidth = grid.offsetWidth;
+                  const minCardWidth = 220; // Minimum width for a card
 
-                  const minCardWidth = 350;
+                  // Responsive breakpoints
+                  if (window.innerWidth <= 900) {
+                    grid.style.display = 'grid';
+                    grid.style.gridTemplateColumns = `repeat(1, minmax(${minCardWidth}px, 1fr))`;
+                    grid.style.justifyContent = 'center';
+                    return;
+                  }
+                  if (window.innerWidth <= 1250) {
+                    grid.style.display = 'grid';
+                    grid.style.gridTemplateColumns = `repeat(2, minmax(${minCardWidth}px, 1fr))`;
+                    grid.style.justifyContent = 'center';
+                    return;
+                  }
 
-                  console.log("Container width:", containerWidth);
-                  console.log("Item count:", items);
-
+                  // Desktop: balance columns, but enforce min width
+                  const minDesktopCardWidth = 350;
                   let bestCols = 1;
-                  let bestRows = items;  // start with max rows (1 col)
+                  let bestRows = items;
                   let bestImbalance = Infinity;
 
                   for (let cols = 1; cols <= items; cols++) {
                     const cardWidth = containerWidth / cols;
-                    if (cardWidth < minCardWidth) continue;
+                    if (cardWidth < minDesktopCardWidth) continue;
 
                     const rows = Math.ceil(items / cols);
                     const lastRowItems = items % cols || cols;
-
                     if (lastRowItems < 2) continue;
 
                     const imbalance = Math.abs(cols - (items / rows));
-
                     if (
                       rows < bestRows ||
                       (rows === bestRows && imbalance < bestImbalance)
@@ -148,15 +158,12 @@
                       bestRows = rows;
                       bestImbalance = imbalance;
                     }
-
-                    console.log(`Cols: ${cols}, CardWidth: ${cardWidth.toFixed(2)}, Rows: ${rows}, LastRowItems: ${lastRowItems}, Imbalance: ${imbalance.toFixed(2)}`);
                   }
 
-                  console.log("Best columns:", bestCols);
                   grid.style.display = 'grid';
-                  grid.style.gridTemplateColumns = `repeat(${bestCols}, 1fr)`;
+                  grid.style.gridTemplateColumns = `repeat(${bestCols}, minmax(${minCardWidth}px, 1fr))`;
+                  grid.style.justifyContent = '';
                 }
-
                 window.addEventListener('resize', balanceCategoryGrid);
                 window.addEventListener('DOMContentLoaded', balanceCategoryGrid);
               </script>

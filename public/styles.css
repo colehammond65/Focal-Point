@@ -736,15 +736,18 @@ header nav a:focus {
 .categories {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    /* 4 per row, 25% each */
     gap: 2rem;
-    width: 100%;
     max-width: 100vw;
     margin-bottom: 3rem;
     padding: 0 1.5vw;
     box-sizing: border-box;
     overflow-x: hidden;
-    min-width: 1200px;
+    min-width: 0 !important;
+}
+
+.categories>.category {
+    min-width: 0 !important;
+    box-sizing: border-box;
 }
 
 .category {
@@ -956,7 +959,6 @@ footer a {
     .gallery {
         display: grid;
         gap: 2rem;
-        width: 100%;
         max-width: 100vw;
         margin-bottom: 3rem;
         padding: 0 1.5vw;
@@ -1005,7 +1007,6 @@ footer a {
     .categories {
         display: grid;
         gap: 2rem;
-        width: 100%;
         max-width: 100vw;
         margin-bottom: 3rem;
         padding: 0 1.5vw;
@@ -1956,7 +1957,7 @@ body.dark-mode .bulk-select-img-item:focus {
 .categories>.category {
     display: flex;
     flex-direction: column;
-    min-width: 0;
+    min-width: 0 !important;
     box-sizing: border-box;
 }
 
