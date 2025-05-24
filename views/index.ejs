@@ -21,7 +21,6 @@
 
         <% if (images && images.length) { %>
           <!-- Gallery view for a category -->
-          <a class="back" href="/">Back to Categories</a>
           <div class="gallery">
             <% images.forEach(img=> { %>
               <img src="/images/<%= category %>/<%= img.filename %>" alt="<%= img.alt_text %>" loading="lazy">
