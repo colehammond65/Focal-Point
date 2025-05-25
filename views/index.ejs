@@ -56,6 +56,10 @@
               </div>
 
               <script>
+                var isCategoryGrid = <%= images && images.length ? 'false' : 'true' %>;
+              </script>
+
+              <script>
                 // Lightbox functionality for gallery images
                 const images = document.querySelectorAll('.gallery img');
                 const lightbox = document.getElementById('lightbox');
@@ -116,6 +120,8 @@
                 function balanceCategoryGrid() {
                   const grid = document.querySelector('.categories');
                   if (!grid) return;
+                  const gallery = document.querySelector('.gallery');
+                  if (gallery) return; // Only run on homepage
                   const items = grid.children.length;
                   const containerWidth = grid.offsetWidth;
                   const minCardWidth = 220; // Minimum width for a card
@@ -163,8 +169,14 @@
                   grid.style.gridTemplateColumns = `repeat(${bestCols}, minmax(${minCardWidth}px, 1fr))`;
                   grid.style.justifyContent = '';
                 }
-                window.addEventListener('resize', balanceCategoryGrid);
-                window.addEventListener('DOMContentLoaded', balanceCategoryGrid);
+
+                // Only run balanceCategoryGrid if the .categories grid is present and images are NOT present
+                window.addEventListener('resize', () => {
+                  if (isCategoryGrid) balanceCategoryGrid();
+                });
+                window.addEventListener('DOMContentLoaded', () => {
+                  if (isCategoryGrid) balanceCategoryGrid();
+                });
               </script>
     </div>
     <%- include('partials/footer') %>
