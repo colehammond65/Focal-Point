@@ -153,6 +153,10 @@ app.use((req, res, next) => {
 const tmpDir = path.join(__dirname, 'public/images/tmp');
 fs.mkdirSync(tmpDir, { recursive: true });
 
+// Ensure the permanent temp folder exists
+const tempDir = path.join(__dirname, 'temp');
+fs.mkdirSync(tempDir, { recursive: true });
+
 // Configure Multer for file uploads (uploads go to tmp folder first)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -806,6 +810,12 @@ app.get('/admin/backup', requireLogin, async (req, res) => {
       archive.directory(uploadsDir, 'uploads');
     }
 
+    // Add the umzug.json migration state file
+    const umzugPath = path.join(__dirname, 'data', 'umzug.json');
+    if (fs.existsSync(umzugPath)) {
+      archive.file(umzugPath, { name: 'umzug.json' });
+    }
+
     // Wait for the archive to finish and get the buffer
     const backupBuffer = await new Promise((resolve, reject) => {
       archive.on('end', () => resolve(Buffer.concat(chunks)));
@@ -849,6 +859,12 @@ app.post('/admin/backup', requireLogin, async (req, res) => {
     const uploadsDir = path.join(__dirname, 'public', 'uploads');
     if (fs.existsSync(uploadsDir)) {
       archive.directory(uploadsDir, 'uploads');
+    }
+
+    // Add the umzug.json migration state file
+    const umzugPath = path.join(__dirname, 'data', 'umzug.json');
+    if (fs.existsSync(umzugPath)) {
+      archive.file(umzugPath, { name: 'umzug.json' });
     }
 
     // Wait for the archive to finish and get the buffer
@@ -931,10 +947,9 @@ const restoreUpload = multer({ dest: path.join(__dirname, 'public', 'uploads') }
 app.post('/admin/restore', requireLogin, restoreUpload.single('backup'), async (req, res) => {
   if (!req.file) return res.status(400).send('No file uploaded');
   const zipPath = req.file.path;
-  const extractDir = path.join(__dirname, 'public', 'uploads', 'restore-tmp-' + Date.now());
+  const extractDir = path.join(tempDir, `restore-tmp-${Date.now()}`);
   let errorOccurred = false;
   try {
-    // Extract zip to a temp dir
     fs.mkdirSync(extractDir, { recursive: true });
     await fs.createReadStream(zipPath)
       .pipe(unzipper.Extract({ path: extractDir }))
@@ -1022,13 +1037,19 @@ app.post('/admin/restore', requireLogin, restoreUpload.single('backup'), async (
       }
     }
 
+    // Move/extract umzug.json
+    const umzugSrc = path.join(extractDir, 'umzug.json');
+    const umzugDest = path.join(__dirname, 'data', 'umzug.json');
+    if (fs.existsSync(umzugSrc)) {
+      fs.copyFileSync(umzugSrc, umzugDest);
+    }
+
     res.redirect('/admin/settings?msg=Backup restored!');
   } catch (err) {
     errorOccurred = true;
     console.error('Restore failed:', err);
     res.redirect('/admin/settings?msg=Restore failed: ' + encodeURIComponent(err.message));
   } finally {
-    // Always cleanup temp files/folders
     try { if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath); } catch { }
     try { if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true }); } catch { }
   }
@@ -1044,7 +1065,7 @@ app.post('/admin/restore-selected', requireLogin, async (req, res) => {
     return res.redirect('/admin/settings?msg=Backup file not found');
   }
   const unzipper = require('unzipper');
-  const extractDir = path.join(__dirname, 'public', 'uploads', 'restore-tmp-' + Date.now());
+  const extractDir = path.join(tempDir, `restore-tmp-${Date.now()}`);
   try {
     fs.mkdirSync(extractDir, { recursive: true });
     await fs.createReadStream(filePath)
@@ -1131,6 +1152,13 @@ app.post('/admin/restore-selected', requireLogin, async (req, res) => {
           throw err;
         }
       }
+    }
+
+    // Move/extract umzug.json
+    const umzugSrc = path.join(extractDir, 'umzug.json');
+    const umzugDest = path.join(__dirname, 'data', 'umzug.json');
+    if (fs.existsSync(umzugSrc)) {
+      fs.copyFileSync(umzugSrc, umzugDest);
     }
 
     res.redirect('/admin/settings?msg=Backup restored!');

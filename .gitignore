@@ -135,3 +135,4 @@ data/
 uploads/
 umzug.json
 .env.test
+temp/

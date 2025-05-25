@@ -1,9 +1,7 @@
 {
   "ignore": [
-    "public/images/*/order.json",
-    "public/images/**/*.jpg",
-    "public/images/**/*.jpeg",
-    "public/images/**/*.png",
-    "public/images/**/*.gif"
+    "public/",
+    "data/",
+    "temp/"
   ]
 }
