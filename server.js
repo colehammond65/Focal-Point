@@ -532,19 +532,30 @@ app.post('/admin/settings', requireLogin, settingsUpload.fields([
     // Optionally: remove old header images if you want to keep only the latest
   }
 
-  // Handle favicon upload (existing logic)
+  // Handle favicon upload (generate multiple sizes for PWA)
   if (req.files && req.files.favicon && req.files.favicon[0]) {
     const inputPath = req.files.favicon[0].path;
-    const outputFilename = `favicon-${Date.now()}.png`;
-    const outputPath = path.join(uploadsDir, outputFilename);
+    const baseFilename = `favicon-${Date.now()}`;
+    const sizes = [32, 192, 512];
+    let lastOutputFilename = '';
 
-    await sharp(inputPath)
-      .resize(32, 32)
-      .png()
-      .toFile(outputPath);
+    for (const size of sizes) {
+      const outputFilename = `${baseFilename}-${size}.png`;
+      const outputPath = path.join(uploadsDir, outputFilename);
+
+      await sharp(inputPath)
+        .resize(size, size)
+        .png()
+        .toFile(outputPath);
+
+      // Use the 32px version for browser tab favicon
+      if (size === 32) {
+        lastOutputFilename = outputFilename;
+      }
+    }
 
     fs.unlinkSync(inputPath);
-    setSetting('favicon', outputFilename);
+    setSetting('favicon', lastOutputFilename); // Store the 32px version for <link rel="icon">
   }
 
   res.redirect('/admin/settings?msg=Settings updated!');
@@ -1231,6 +1242,40 @@ app.post('/admin/about/delete-image', requireLogin, (req, res) => {
 });
 
 // Place this after all other routes, but before error handling middleware
+app.get('/manifest.json', (req, res) => {
+  const settings = getAllSettings();
+  1  // Get the base name (without -32.png) to find other sizes
+  let base = 'favicon-192.png';
+  if (settings.favicon && settings.favicon.startsWith('favicon-')) {
+    base = settings.favicon.replace(/-32\.png$/, '');
+  } else {
+    base = 'favicon'; // fallback
+  }
+
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.send(JSON.stringify({
+    name: settings.siteTitle || "Photo Gallery",
+    short_name: (settings.siteTitle || "Gallery").slice(0, 12),
+    start_url: "/",
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: "#22223b",
+    description: "A simple photo gallery.",
+    icons: [
+      {
+        src: `/uploads/${base}-192.png`,
+        sizes: "192x192",
+        type: "image/png"
+      },
+      {
+        src: `/uploads/${base}-512.png`,
+        sizes: "512x512",
+        type: "image/png"
+      }
+    ]
+  }));
+});
+
 const notFoundPage = require('./views/partials/notfound'); // Import the 404 HTML generator
 
 app.use((req, res) => {
