@@ -25,11 +25,12 @@
                             <h2>Edit bio</h2>
                             <form action="/admin/about/bio" method="POST" class="admin-form">
                                 <label for="markdown">About Me (Markdown):</label>
-                                <p class="backup-note"> <a href="https://www.markdownguide.org/basic-syntax/">How to use
+                                <p class="backup-note"> <a href="https://www.markdownguide.org/basic-syntax/"
+                                        target="_blank"">How to use
                                         markdown</a></p>
-                                <textarea name="markdown" id="markdown" rows="20"
-                                    style="width:100%"><%= about.markdown %></textarea>
-                                <button type="submit">Save</button>
+                                <textarea name=" markdown" id="markdown" rows="20" style="width:100%">
+                                        <%= about.markdown %></textarea>
+                                            <button type="submit">Save</button>
                             </form>
                         </section>
                         <!-- Right: Image -->
