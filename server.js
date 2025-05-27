@@ -821,12 +821,6 @@ app.get('/admin/backup', requireLogin, async (req, res) => {
       archive.directory(uploadsDir, 'uploads');
     }
 
-    // Add the umzug.json migration state file
-    const umzugPath = path.join(__dirname, 'data', 'umzug.json');
-    if (fs.existsSync(umzugPath)) {
-      archive.file(umzugPath, { name: 'umzug.json' });
-    }
-
     // Wait for the archive to finish and get the buffer
     const backupBuffer = await new Promise((resolve, reject) => {
       archive.on('end', () => resolve(Buffer.concat(chunks)));
@@ -870,12 +864,6 @@ app.post('/admin/backup', requireLogin, async (req, res) => {
     const uploadsDir = path.join(__dirname, 'public', 'uploads');
     if (fs.existsSync(uploadsDir)) {
       archive.directory(uploadsDir, 'uploads');
-    }
-
-    // Add the umzug.json migration state file
-    const umzugPath = path.join(__dirname, 'data', 'umzug.json');
-    if (fs.existsSync(umzugPath)) {
-      archive.file(umzugPath, { name: 'umzug.json' });
     }
 
     // Wait for the archive to finish and get the buffer
