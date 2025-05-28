@@ -1,93 +1,133 @@
-# Photo Gallery Admin
+# 📸 Photo Gallery
 
-A simple Node.js/Express photo gallery with admin panel.
+A simple and elegant Node.js/Express photo gallery with admin panel for managing your image collections.
 
-## Setup
+## 🚀 Quick Start
 
-1. **Clone the repo**
-2. **Install dependencies**
-    ```sh
-    npm install
-    ```
-3. **Create a `.env` file** with:
-    ```
-    SESSION_SECRET=yourrandomsecret
-    TRUST_PROXY=false
-    ```
-    - `SESSION_SECRET` is required for session security.
-    - `TRUST_PROXY` controls Express's trust proxy setting (see below).
-4. **Run the app**
-    ```sh
-    npm start
-    ```
-    or for development with auto-reload:
-    ```sh
-    npm run dev
-    ```
+### Option 1: Docker (Recommended)
 
-## Usage
-
-- Visit `/admin` to manage images and categories.
-- Images are stored in `public/images/<category>`.
-- Categories are folders in `public/images`.
-- The SQLite database and migration state are stored in `data/` (`gallery.db`, `umzug.json`).
-
-## Environment Variables
-
-- `SESSION_SECRET` – random string for session security (**required**)
-- `TRUST_PROXY` – set to `1`, `true`, or `false` to control Express's trust proxy setting (default: `false`)
-    - Set to `1` if running behind a reverse proxy or tunnel (e.g., Cloudflare Tunnel, Nginx, etc.)
-
-## Folder Structure
-
-- `public/` – static files and images
-- `public/images/` – image storage (persisted via Docker volume)
-- `data/gallery.db` – SQLite database (persisted via Docker volume)
-- `data/umzug.json` – migration state (persisted via Docker volume)
-- `views/` – EJS templates
-- `migrations/` – database migration scripts (run automatically)
-- `utils.js` – database and helper functions
-- `server.js` – main server
-
-## Docker
-
-### Build and Run Locally
-
+#### Using Docker Compose
+1. Clone the repository:
 ```sh
+git clone <your-repo-url>
+cd photo-gallery
+```
+
+2. Edit `docker-compose.yml` with your environment variables
+3. Start the application:
+```sh
+docker-compose up -d
+```
+
+#### Using Docker directly
+```sh
+git clone <your-repo-url>
+cd photo-gallery
 docker build -t photo-gallery .
 docker run -p 3000:3000 \
   -v $(pwd)/images:/home/node/app/public/images \
   -v $(pwd)/data:/home/node/app/data \
-  -e SESSION_SECRET=yourrandomsecret \
+  -e SESSION_SECRET=your-secret-here \
   -e TRUST_PROXY=1 \
   photo-gallery
 ```
 
-### Using Docker Compose
+### Option 2: Local Development
 
-1. Edit `docker-compose.yml` and set your `SESSION_SECRET` and `TRUST_PROXY` as needed.
-2. Run:
-    ```sh
-    docker-compose up -d
-    ```
+#### 1. Clone and Install
+```sh
+git clone <your-repo-url>
+cd photo-gallery
+npm install
+```
 
-### Docker Volumes
+#### 2. Environment Setup
+Create a `.env` file in the root directory:
+```env
+SESSION_SECRET=your-super-secret-random-string-here
+TRUST_PROXY=false
+```
 
-- `./images` is mounted to `/home/node/app/public/images` in the container.
-- `./data` is mounted to `/home/node/app/data` in the container.
+#### 3. Start the Application
+```sh
+# Production
+npm start
 
-This ensures your images, database, and migration state persist across container restarts.
+# Development (with auto-reload)
+npm run dev
+```
 
-## Git & Docker Ignore
+**Visit `http://localhost:3000` to see your gallery!**
 
-- The `images/` and `data/` folders are ignored by Git and not included in Docker builds.
+## 📋 Usage
 
-## Security Notes
+- **Admin Panel**: Visit `/admin` to manage images and categories
+- **Image Storage**: Images are organized in `public/images/<category>/`
+- **Categories**: Each folder in `public/images/` becomes a category
+- **Database**: SQLite database stored in `data/gallery.db`
 
-- **Do not serve the entire `data/` folder as static content.** Only serve `public/` and its subfolders.
-- Always set a strong, random `SESSION_SECRET`.
-- Set `TRUST_PROXY=1` if running behind a proxy or tunnel.
+## 📁 Project Structure
 
-## License
+```
+photo-gallery/
+├── 📂 public/              # Static files and images
+│   └── 📂 images/          # Image storage (categories as folders)
+├── 📂 data/                # Database storage
+│   └── 📄 gallery.db       # SQLite database
+├── 📂 views/               # EJS templates
+├── 📂 migrations/          # Database migration scripts
+├── 📄 utils.js             # Database and helper functions
+├── 📄 server.js            # Main application server
+├── 📄 docker-compose.yml   # Docker composition
+├── 📄 Dockerfile           # Docker build instructions
+└── 📄 .env                 # Environment configuration
+```
 
-MIT
+## 🐳 Docker Configuration
+
+### Environment Variables
+Edit `docker-compose.yml` or pass as environment variables:
+- `SESSION_SECRET` – **Required** random string for session security
+- `TRUST_PROXY` – Set to `1` if running behind a reverse proxy (Nginx, Cloudflare Tunnel, etc.)
+
+### 💾 Persistent Storage
+- `./images` → `/home/node/app/public/images` (your photos)
+- `./data` → `/home/node/app/data` (database)
+
+Both directories are automatically created and persist across container restarts.
+
+### Docker Commands
+```sh
+# Start the application
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the application
+docker-compose down
+
+# Rebuild after changes
+docker-compose up --build -d
+```
+
+## 🔒 Security Notes
+
+- ✅ Set a **strong, random** `SESSION_SECRET`
+- ✅ Use `TRUST_PROXY=1` when behind a reverse proxy
+- ⚠️ **Never** serve the `data/` folder as static content
+- ⚠️ Only the `public/` folder should be web-accessible
+
+## 🚫 Ignored Files
+
+The following directories are excluded from Git and Docker builds:
+- `images/` - Your photo collection
+- `data/` - Database files
+
+## 📝 License
+
+MIT License - Feel free to use this project for personal or commercial purposes.
+
+---
+
+*Built with ❤️ using Node.js, Express, and SQLite*
