@@ -1,4 +1,4 @@
-module.exports = function notFoundPage(siteTitle = "Photo Gallery") {
+module.exports = function notFoundPage(siteTitle = "Focal Point ") {
   return `
     <html>
       <head>

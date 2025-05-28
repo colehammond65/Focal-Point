@@ -9,10 +9,15 @@ COPY package*.json ./
 RUN apt-get update && apt-get install -y python3 make g++ && \
     rm -rf /var/lib/apt/lists/*
 
-RUN npm install
+RUN npm ci --only=production
 
 COPY . .
 
 EXPOSE 3000
 
-CMD [ "node", "server.js" ]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Start the application
+CMD ["npm", "start"]

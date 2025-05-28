@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  photo-gallery:
+  focalpoint:
     image: encrypt65/photo-gallery:latest
     container_name: photo-gallery
     ports:

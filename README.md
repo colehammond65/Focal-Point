@@ -1,6 +1,6 @@
-# 📸 Photo Gallery
+# 📸 FocalPoint
 
-A simple and elegant Node.js/Express photo gallery with admin panel for managing your image collections.
+A simple and elegant Node.js/Express photo gallery with admin panel for photography freelancers to showcase their portfolio and manage client galleries.
 
 ## 🚀 Quick Start
 
@@ -10,7 +10,7 @@ A simple and elegant Node.js/Express photo gallery with admin panel for managing
 1. Clone the repository:
 ```sh
 git clone <your-repo-url>
-cd photo-gallery
+cd focalpoint
 ```
 
 2. Edit `docker-compose.yml` with your environment variables
@@ -22,14 +22,14 @@ docker-compose up -d
 #### Using Docker directly
 ```sh
 git clone <your-repo-url>
-cd photo-gallery
-docker build -t photo-gallery .
+cd focalpoint
+docker build -t focalpoint .
 docker run -p 3000:3000 \
   -v $(pwd)/images:/home/node/app/public/images \
   -v $(pwd)/data:/home/node/app/data \
   -e SESSION_SECRET=your-secret-here \
   -e TRUST_PROXY=1 \
-  photo-gallery
+  focalpoint
 ```
 
 ### Option 2: Local Development
@@ -37,7 +37,7 @@ docker run -p 3000:3000 \
 #### 1. Clone and Install
 ```sh
 git clone <your-repo-url>
-cd photo-gallery
+cd focalpoint
 npm install
 ```
 
@@ -69,7 +69,7 @@ npm run dev
 ## 📁 Project Structure
 
 ```
-photo-gallery/
+focalpoint/
 ├── 📂 public/              # Static files and images
 │   └── 📂 images/          # Image storage (categories as folders)
 ├── 📂 data/                # Database storage

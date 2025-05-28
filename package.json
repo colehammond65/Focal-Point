@@ -1,7 +1,15 @@
 {
-  "name": "photo-gallery",
+  "name": "focalpoint",
   "version": "1.0.0",
+  "description": "A simple and elegant Node.js/Express photo gallery for photography freelancers",
   "main": "index.js",
+  "keywords": [
+    "photography",
+    "portfolio",
+    "gallery",
+    "express",
+    "nodejs"
+  ],
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
@@ -11,14 +19,12 @@
     "type": "git",
     "url": "git+https://github.com/colehammond65/photo-gallery.git"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Cole Hammond",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/colehammond65/photo-gallery/issues"
   },
   "homepage": "https://github.com/colehammond65/photo-gallery#readme",
-  "description": "",
   "dependencies": {
     "archiver": "^7.0.1",
     "basic-auth": "^2.0.1",

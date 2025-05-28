@@ -515,9 +515,9 @@ app.post('/admin/settings', requireLogin, settingsUpload.fields([
   { name: 'favicon', maxCount: 1 },
   { name: 'headerImage', maxCount: 1 }
 ]), async (req, res) => {
-  setSetting('siteTitle', req.body.siteTitle || "Photo Gallery");
+  setSetting('siteTitle', req.body.siteTitle || "Focal Point ");
   setSetting('headerType', req.body.headerType === 'image' ? 'image' : 'text');
-  setSetting('headerTitle', req.body.headerTitle || "Photo Gallery");
+  setSetting('headerTitle', req.body.headerTitle || "Focal Point ");
 
   // Handle header image upload
   if (req.files && req.files.headerImage && req.files.headerImage[0]) {
@@ -1242,13 +1242,13 @@ app.get('/manifest.json', (req, res) => {
 
   res.setHeader('Content-Type', 'application/manifest+json');
   res.send(JSON.stringify({
-    name: settings.siteTitle || "Photo Gallery",
+    name: settings.siteTitle || "Focal Point ",
     short_name: (settings.siteTitle || "Gallery").slice(0, 12),
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#22223b",
-    description: "A simple photo gallery.",
+    description: "A simple Focal Point .",
     icons: [
       {
         src: `/uploads/${base}-192.png`,
@@ -1268,7 +1268,7 @@ const notFoundPage = require('./views/partials/notfound'); // Import the 404 HTM
 
 app.use((req, res) => {
   const settings = getAllSettings();
-  res.status(404).send(notFoundPage(settings.siteTitle || "Photo Gallery", req.session && req.session.loggedIn));
+  res.status(404).send(notFoundPage(settings.siteTitle || "Focal Point ", req.session && req.session.loggedIn));
 });
 
 // Error handling middleware
