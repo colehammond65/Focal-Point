@@ -2445,7 +2445,6 @@ body.dark-mode .bulk-select-img-item:focus {
 
 .about-photo {
     max-width: 200px;
-    border-radius: 50%;
     display: block;
     margin: 0 auto 2rem auto;
 }
