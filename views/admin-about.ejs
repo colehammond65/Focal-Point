@@ -12,13 +12,30 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: true, settings }) %>
-        <div class="container">
-            <h1>Edit About Me</h1>
-            <% if (req.query && req.query.msg) { %>
-                <div class="admin-msg">
-                    <%= req.query.msg %>
-                </div>
-                <% } %>
+        <div id="toast-container" class="toast-container"></div>
+        <script>
+            function showToast(msg, timeout = 3500) {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.animation = 'toast-out 0.4s forwards';
+                    setTimeout(() => toast.remove(), 400);
+                }, timeout);
+            }
+        </script>
+        <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showToast(<%= JSON.stringify(req.query.msg) %>);
+                });
+            </script>
+            <% } %>
+                <div class="container">
+                    <h1>Edit About Me</h1>
                     <div class="admin-flex-row">
                         <!-- Left: Bio -->
                         <section class="admin-card">
@@ -59,58 +76,58 @@
                             </form>
                         </section>
                     </div>
-        </div>
-        <%- include('partials/dark-mode-toggle') %>
-            <script>
-                // Dropzone setup
-                (function () {
-                    const dropzone = document.getElementById('aboutImageDropzone');
-                    const fileInput = document.getElementById('aboutImage');
-                    const fileNameLabel = document.getElementById('aboutImageFileName');
-                    dropzone.addEventListener('click', () => fileInput.click());
-                    dropzone.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            fileInput.click();
-                        }
-                    });
-                    fileInput.addEventListener('change', () => {
-                        fileNameLabel.textContent = fileInput.files.length ? fileInput.files[0].name : '';
-                    });
-                    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                        dropzone.addEventListener(eventName, e => e.preventDefault());
-                        dropzone.addEventListener(eventName, e => e.stopPropagation());
-                    });
-                    dropzone.addEventListener('dragover', () => dropzone.classList.add('dragover'));
-                    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-                    dropzone.addEventListener('drop', (e) => {
-                        dropzone.classList.remove('dragover');
-                        if (e.dataTransfer.files && e.dataTransfer.files.length) {
-                            fileInput.files = e.dataTransfer.files;
-                            fileInput.dispatchEvent(new Event('change'));
-                        }
-                    });
-                })();
-                // Preview image
-                (function () {
-                    const fileInput = document.getElementById('aboutImage');
-                    const previewImg = document.getElementById('aboutImagePreview');
-                    if (fileInput) {
-                        fileInput.addEventListener('change', function () {
-                            if (this.files && this.files[0]) {
-                                const reader = new FileReader();
-                                reader.onload = function (e) {
-                                    if (previewImg) {
-                                        previewImg.src = e.target.result;
-                                        previewImg.style.display = 'block';
+                </div>
+                <%- include('partials/dark-mode-toggle') %>
+                    <script>
+                        // Dropzone setup
+                        (function () {
+                            const dropzone = document.getElementById('aboutImageDropzone');
+                            const fileInput = document.getElementById('aboutImage');
+                            const fileNameLabel = document.getElementById('aboutImageFileName');
+                            dropzone.addEventListener('click', () => fileInput.click());
+                            dropzone.addEventListener('keydown', (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    fileInput.click();
+                                }
+                            });
+                            fileInput.addEventListener('change', () => {
+                                fileNameLabel.textContent = fileInput.files.length ? fileInput.files[0].name : '';
+                            });
+                            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                                dropzone.addEventListener(eventName, e => e.preventDefault());
+                                dropzone.addEventListener(eventName, e => e.stopPropagation());
+                            });
+                            dropzone.addEventListener('dragover', () => dropzone.classList.add('dragover'));
+                            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+                            dropzone.addEventListener('drop', (e) => {
+                                dropzone.classList.remove('dragover');
+                                if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                                    fileInput.files = e.dataTransfer.files;
+                                    fileInput.dispatchEvent(new Event('change'));
+                                }
+                            });
+                        })();
+                        // Preview image
+                        (function () {
+                            const fileInput = document.getElementById('aboutImage');
+                            const previewImg = document.getElementById('aboutImagePreview');
+                            if (fileInput) {
+                                fileInput.addEventListener('change', function () {
+                                    if (this.files && this.files[0]) {
+                                        const reader = new FileReader();
+                                        reader.onload = function (e) {
+                                            if (previewImg) {
+                                                previewImg.src = e.target.result;
+                                                previewImg.style.display = 'block';
+                                            }
+                                        };
+                                        reader.readAsDataURL(this.files[0]);
                                     }
-                                };
-                                reader.readAsDataURL(this.files[0]);
+                                });
                             }
-                        });
-                    }
-                })();
-            </script>
+                        })();
+                    </script>
 </body>
 
 </html>

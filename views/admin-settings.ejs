@@ -25,18 +25,86 @@
                         <label for="siteTitle">Site Name (Browser tab):</label>
                         <input type="text" id="siteTitle" name="siteTitle" value="<%= settings.siteTitle %>" required>
 
+                        <label for="accentColor">Accent Colour (HEX):</label>
+                        <div style="display:flex;align-items:center;gap:0.5em;">
+                            <input type="color" id="accentColorPicker" value="<%= settings.accentColor || '#2ecc71' %>"
+                                style="width:40px;height:32px;padding:0;border:none;background:none;">
+                            <input type="text" id="accentColor" name="accentColor"
+                                value="<%= settings.accentColor || '#2ecc71' %>" pattern="#?[A-Fa-f0-9]{6,7}"
+                                maxlength="7" style="width:100px" required>
+                        </div>
+                        <small>Used for buttons and highlights. Example: #2ecc71</small>
+
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function () {
+                                const colorInput = document.getElementById('accentColor');
+                                const colorPicker = document.getElementById('accentColorPicker');
+                                function normalizeHex(v) {
+                                    v = v.trim();
+                                    if (!v.startsWith('#')) v = '#' + v;
+                                    if (/^#[A-Fa-f0-9]{6}$/.test(v)) return v;
+                                    // Try to fix 3-digit hex
+                                    if (/^#[A-Fa-f0-9]{3}$/.test(v)) {
+                                        v = '#' + v.slice(1).split('').map(x => x + x).join('');
+                                        return v;
+                                    }
+                                    return '';
+                                }
+                                function syncFromPicker() {
+                                    if (colorPicker && colorInput) {
+                                        colorInput.value = colorPicker.value;
+                                    }
+                                }
+                                function syncFromInput() {
+                                    if (colorInput && colorPicker) {
+                                        let v = normalizeHex(colorInput.value);
+                                        if (v) colorPicker.value = v;
+                                    }
+                                }
+                                if (colorInput && colorPicker) {
+                                    colorPicker.addEventListener('input', syncFromPicker);
+                                    colorPicker.addEventListener('change', syncFromPicker);
+                                    colorInput.addEventListener('input', syncFromInput);
+                                    colorInput.addEventListener('change', syncFromInput);
+                                    // Initial sync
+                                    syncFromInput();
+                                }
+                            });
+                        </script>
+
                         <% const headerType=(settings.headerType || 'text' ).trim().toLowerCase(); %>
-                            <label>Header Type:</label>
-                            <div class="header-type-radio-group">
-                                <label>
-                                    <input type="radio" name="headerType" value="text" <%=headerType==='text'
-                                        ? 'checked' : '' %>> Text
+                            <label for="headerTypeSwitch" class="switch-label">Header Type:</label>
+                            <div class="switch-toggle-group">
+                                <span class="switch-label-text">Text</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="headerTypeSwitch" name="headerType" value="image"
+                                        <%=headerType==='image' ? 'checked' : '' %>>
+                                    <span class="slider"></span>
                                 </label>
-                                <label>
-                                    <input type="radio" name="headerType" value="image" <%=headerType==='image'
-                                        ? 'checked' : '' %>> Image
-                                </label>
+                                <span class="switch-label-text">Image</span>
                             </div>
+                            <input type="hidden" id="headerTypeHidden" name="headerTypeHidden"
+                                value="<%= headerType %>">
+
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    var switchInput = document.getElementById('headerTypeSwitch');
+                                    var hiddenInput = document.getElementById('headerTypeHidden');
+                                    var textInput = document.getElementById('headerTextInput');
+                                    var imageInput = document.getElementById('headerImageInput');
+                                    function updateHeaderTypeUI() {
+                                        var isImage = switchInput.checked;
+                                        hiddenInput.value = isImage ? 'image' : 'text';
+                                        if (textInput && imageInput) {
+                                            textInput.classList.toggle('hidden', isImage);
+                                            imageInput.classList.toggle('hidden', !isImage);
+                                        }
+                                    }
+                                    switchInput.addEventListener('change', updateHeaderTypeUI);
+                                    // Initial sync
+                                    updateHeaderTypeUI();
+                                });
+                            </script>
 
                             <div id="headerTextInput" class="<%= headerType === 'image' ? 'hidden' : '' %>">
                                 <label for="headerTitle" class="label-bottom-gap">Header Title:</label>
@@ -100,7 +168,7 @@
                                 style="display:none;">
                             <span id="restoreFileName" class="file-name-label"></span>
                         </div>
-                        <button type="submit" id="restoreBtn" class="btn btn-primary" disabled>Restore Backup</button>
+                        <button type="submit" id="restoreBtn" class="btn btn-primary" disabled>Upload Backup</button>
                     </form>
                     <p class="backup-note">Backups are ZIP files containing your database and all images.</p>
                     <% if (serverBackups.length) { %>
@@ -367,3 +435,4 @@
 </body>
 
 </html>
+`````

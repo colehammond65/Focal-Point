@@ -15,114 +15,136 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
-
-        <div class="container">
-            <div class="client-header">
-                <div class="client-info">
-                    <div>
-                        <h2>
-                            <%= shootTitle || "Your Photos" %>
-                        </h2>
-                        <p>
-                            <%= images.length %> photo<%= images.length !==1 ? 's' : '' %> available
-                        </p>
-                    </div>
-                    <div class="download-actions">
-                        <% if (images.length> 0) { %>
-                            <a href="/client/download-all" class="download-btn">
-                                📦 Download All Photos
-                            </a>
-                            <% } %>
-                    </div>
-                </div>
-            </div>
-
-            <div class="gallery-container">
-                <% if (images && images.length> 0) { %>
-                    <div class="gallery-grid">
-                        <% images.forEach((image, idx)=> { %>
-                            <img class="gallery-thumb-img" src="/client-images/<%= image.filename %>"
-                                alt="<%= image.original_filename || ('Photo ' + (idx + 1)) %>" loading="lazy" />
-                            <% }); %>
-                    </div>
-                    <% } else { %>
-                        <div class="empty-state">
-                            <h3>No photos available yet</h3>
-                            <p>Your photographer hasn't uploaded any photos yet. Please check back later.</p>
-                        </div>
-                        <% } %>
-            </div>
-
-            <!-- Lightbox for viewing images -->
-            <div id="lightbox" class="lightbox" role="dialog" aria-modal="true">
-                <button class="close-btn" id="closeBtn" aria-label="Close">&times;</button>
-                <div class="lightbox-inner">
-                    <img id="lightboxImg" src="" alt="">
-                    <div id="lightboxAlt" class="lightbox-alt"></div>
-                </div>
-            </div>
-        </div>
-
-        <%- include('partials/dark-mode-toggle') %>
-
+        <div id="toast-container" class="toast-container"></div>
+        <script>
+            function showToast(msg, timeout = 3500) {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.animation = 'toast-out 0.4s forwards';
+                    setTimeout(() => toast.remove(), 400);
+                }, timeout);
+            }
+        </script>
+        <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
             <script>
-                // Lightbox functionality for gallery images
                 document.addEventListener('DOMContentLoaded', function () {
-                    const images = document.querySelectorAll('.gallery-thumb-img');
-                    const lightbox = document.getElementById('lightbox');
-                    const lightboxImg = document.getElementById('lightboxImg');
-                    const closeBtn = document.getElementById('closeBtn');
-                    const altBox = document.getElementById('lightboxAlt');
-
-                    images.forEach(img => {
-                        img.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            lightboxImg.src = img.src;
-                            lightboxImg.alt = img.alt;
-                            lightbox.style.display = 'flex';
-                            document.body.classList.add('lightbox-open');
-                            closeBtn.focus();
-                            if (img.alt && img.alt.trim() !== '') {
-                                altBox.textContent = img.alt;
-                                altBox.style.display = '';
-                            } else {
-                                altBox.textContent = '';
-                                altBox.style.display = 'none';
-                            }
-                        });
-                    });
-
-                    function closeLightbox() {
-                        lightbox.style.display = 'none';
-                        lightboxImg.src = '';
-                        document.body.classList.remove('lightbox-open');
-                    }
-
-                    closeBtn.addEventListener('click', closeLightbox);
-
-                    document.addEventListener('keydown', (e) => {
-                        if (e.key === 'Escape') {
-                            closeLightbox();
-                        }
-                    });
-
-                    lightbox.addEventListener('click', (e) => {
-                        if (e.target === lightbox) {
-                            closeLightbox();
-                        }
-                    });
-
-                    // Fade-in effect for lazy-loaded images
-                    document.querySelectorAll('.gallery-thumb-img[loading="lazy"]').forEach(img => {
-                        img.addEventListener('load', () => {
-                            img.setAttribute('data-loaded', 'true');
-                        });
-                        if (img.complete) {
-                            img.setAttribute('data-loaded', 'true');
-                        }
-                    });
+                    showToast(<%= JSON.stringify(req.query.msg) %>);
                 });
             </script>
+            <% } %>
+
+                <div class="container">
+                    <div class="client-header">
+                        <div class="client-info">
+                            <div>
+                                <h2>
+                                    <%= shootTitle || "Your Photos" %>
+                                </h2>
+                                <p>
+                                    <%= images.length %> photo<%= images.length !==1 ? 's' : '' %> available
+                                </p>
+                            </div>
+                            <div class="download-actions">
+                                <% if (images.length> 0) { %>
+                                    <a href="/client/download-all" class="download-btn">
+                                        📦 Download All Photos
+                                    </a>
+                                    <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="gallery-container">
+                        <% if (images && images.length> 0) { %>
+                            <div class="gallery-grid">
+                                <% images.forEach((image, idx)=> { %>
+                                    <img class="gallery-thumb-img" src="/client-images/<%= image.filename %>"
+                                        alt="<%= image.original_filename || ('Photo ' + (idx + 1)) %>" loading="lazy" />
+                                    <% }); %>
+                            </div>
+                            <% } else { %>
+                                <div class="empty-state">
+                                    <h3>No photos available yet</h3>
+                                    <p>Your photographer hasn't uploaded any photos yet. Please check back later.</p>
+                                </div>
+                                <% } %>
+                    </div>
+
+                    <!-- Lightbox for viewing images -->
+                    <div id="lightbox" class="lightbox" role="dialog" aria-modal="true">
+                        <button class="close-btn" id="closeBtn" aria-label="Close">&times;</button>
+                        <div class="lightbox-inner">
+                            <img id="lightboxImg" src="" alt="">
+                            <div id="lightboxAlt" class="lightbox-alt"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <%- include('partials/dark-mode-toggle') %>
+
+                    <script>
+                        // Lightbox functionality for gallery images
+                        document.addEventListener('DOMContentLoaded', function () {
+                            const images = document.querySelectorAll('.gallery-thumb-img');
+                            const lightbox = document.getElementById('lightbox');
+                            const lightboxImg = document.getElementById('lightboxImg');
+                            const closeBtn = document.getElementById('closeBtn');
+                            const altBox = document.getElementById('lightboxAlt');
+
+                            images.forEach(img => {
+                                img.addEventListener('click', (e) => {
+                                    e.preventDefault();
+                                    lightboxImg.src = img.src;
+                                    lightboxImg.alt = img.alt;
+                                    lightbox.style.display = 'flex';
+                                    document.body.classList.add('lightbox-open');
+                                    closeBtn.focus();
+                                    if (img.alt && img.alt.trim() !== '') {
+                                        altBox.textContent = img.alt;
+                                        altBox.style.display = '';
+                                    } else {
+                                        altBox.textContent = '';
+                                        altBox.style.display = 'none';
+                                    }
+                                });
+                            });
+
+                            function closeLightbox() {
+                                lightbox.style.display = 'none';
+                                lightboxImg.src = '';
+                                document.body.classList.remove('lightbox-open');
+                            }
+
+                            closeBtn.addEventListener('click', closeLightbox);
+
+                            document.addEventListener('keydown', (e) => {
+                                if (e.key === 'Escape') {
+                                    closeLightbox();
+                                }
+                            });
+
+                            lightbox.addEventListener('click', (e) => {
+                                if (e.target === lightbox) {
+                                    closeLightbox();
+                                }
+                            });
+
+                            // Fade-in effect for lazy-loaded images
+                            document.querySelectorAll('.gallery-thumb-img[loading="lazy"]').forEach(img => {
+                                img.addEventListener('load', () => {
+                                    img.setAttribute('data-loaded', 'true');
+                                });
+                                if (img.complete) {
+                                    img.setAttribute('data-loaded', 'true');
+                                }
+                            });
+                        });
+                    </script>
 </body>
 
 </html>

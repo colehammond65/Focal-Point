@@ -15,16 +15,32 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: true }) %>
+        <div id="toast-container" class="toast-container"></div>
+        <script>
+            function showToast(msg, timeout = 3500) {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.animation = 'toast-out 0.4s forwards';
+                    setTimeout(() => toast.remove(), 400);
+                }, timeout);
+            }
+        </script>
+        <% if (typeof req !=='undefined' && req.query && req.query.error) { %>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showToast(<%= JSON.stringify(req.query.error) %>);
+                });
+            </script>
+            <% } %>
 
-        <div class="container">
-            <div class="admin-container">
-                <h1>Create New Client</h1>
-
-                <% if (req.query.error) { %>
-                    <div class="error-message">
-                        <%= req.query.error %>
-                    </div>
-                    <% } %>
+                <div class="container">
+                    <div class="admin-container">
+                        <h1>Create New Client</h1>
 
                         <div class="form-container">
                             <form action="/admin/clients/create" method="POST">
@@ -47,8 +63,8 @@
                                     <input type="text" name="password" id="password" required minlength="4"
                                         maxlength="50" placeholder="Enter a password">
                                     <div class="password-generator">
-                                        <button type="button" class="generate-btn" onclick="generatePassword()">Generate
-                                            Random Password</button>
+                                        <button type="button" class="btn btn-secondary btn-small"
+                                            onclick="generatePassword()">Generate Random Password</button>
                                     </div>
                                     <small>This is what the client will use to log in. Make it memorable but
                                         secure.</small>
@@ -67,41 +83,41 @@
                                 </div>
                             </form>
                         </div>
-            </div>
-        </div>
+                    </div>
+                </div>
 
-        <script>
-            // Set default expiry to 1 month from now
-            window.onload = function () {
-                const expiryField = document.getElementById('customExpiry');
-                if (!expiryField) return;
-                const defaultExpiry = new Date();
-                defaultExpiry.setMonth(defaultExpiry.getMonth() + 1);
+                <script>
+                    // Set default expiry to 1 month from now
+                    window.onload = function () {
+                        const expiryField = document.getElementById('customExpiry');
+                        if (!expiryField) return;
+                        const defaultExpiry = new Date();
+                        defaultExpiry.setMonth(defaultExpiry.getMonth() + 1);
 
-                // Format for datetime-local input
-                const year = defaultExpiry.getFullYear();
-                const month = String(defaultExpiry.getMonth() + 1).padStart(2, '0');
-                const day = String(defaultExpiry.getDate()).padStart(2, '0');
-                const hours = String(defaultExpiry.getHours()).padStart(2, '0');
-                const minutes = String(defaultExpiry.getMinutes()).padStart(2, '0');
+                        // Format for datetime-local input
+                        const year = defaultExpiry.getFullYear();
+                        const month = String(defaultExpiry.getMonth() + 1).padStart(2, '0');
+                        const day = String(defaultExpiry.getDate()).padStart(2, '0');
+                        const hours = String(defaultExpiry.getHours()).padStart(2, '0');
+                        const minutes = String(defaultExpiry.getMinutes()).padStart(2, '0');
 
-                expiryField.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-            };
+                        expiryField.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                    };
 
-            function generatePassword() {
-                const adjectives = ['Happy', 'Sunny', 'Bright', 'Swift', 'Lucky', 'Smart', 'Cool', 'Fresh'];
-                const nouns = ['Photo', 'Smile', 'Memory', 'Moment', 'Light', 'Frame', 'Shot', 'View'];
-                const numbers = Math.floor(Math.random() * 100);
+                    function generatePassword() {
+                        const adjectives = ['Happy', 'Sunny', 'Bright', 'Swift', 'Lucky', 'Smart', 'Cool', 'Fresh'];
+                        const nouns = ['Photo', 'Smile', 'Memory', 'Moment', 'Light', 'Frame', 'Shot', 'View'];
+                        const numbers = Math.floor(Math.random() * 100);
 
-                const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-                const noun = nouns[Math.floor(Math.random() * nouns.length)];
+                        const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+                        const noun = nouns[Math.floor(Math.random() * nouns.length)];
 
-                const password = `${adjective}${noun}${numbers}`;
-                document.getElementById('password').value = password;
-            }
-        </script>
+                        const password = `${adjective}${noun}${numbers}`;
+                        document.getElementById('password').value = password;
+                    }
+                </script>
 
-        <%- include('partials/dark-mode-toggle') %>
+                <%- include('partials/dark-mode-toggle') %>
 </body>
 
 </html>

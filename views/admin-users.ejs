@@ -17,10 +17,15 @@
     <%- include('partials/header', { showAdminNav: true, settings, loggedIn: true }) %>
         <div class="container">
             <h1>Admin User Management</h1>
-            <% if (req.query && req.query.msg) { %>
+            <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
                 <div class="admin-msg">
                     <%= req.query.msg %>
                 </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        showToast(<%= JSON.stringify(req.query.msg) %>);
+                    });
+                </script>
                 <% } %>
                     <div id="toast-container" class="toast-container"></div>
                     <div class="admin-flex-row">

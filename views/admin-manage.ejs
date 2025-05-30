@@ -16,12 +16,15 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: true, settings, loggedIn: true }) %>
-        <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
-            <div class="admin-msg" aria-live="polite">
-                <%= req.query.msg %>
-            </div>
-            <% } %>
-                <div class="container">
+        <div class="container">
+            <div id="toast-container" class="toast-container"></div>
+            <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        showToast(<%= JSON.stringify(req.query.msg) %>);
+                    });
+                </script>
+                <% } %>
                     <h1>Image & Category Management</h1>
                     <div class="admin-flex-row">
                         <!-- Upload Images Form -->
@@ -169,169 +172,182 @@
                                 <p>No categories found.</p>
                                 <% } %>
                     </section>
-                    <div id="toast-container" class="toast-container"></div>
                     <div id="saving-indicator" class="saving-indicator">Saving...</div>
-                </div>
-                <%- include('partials/dark-mode-toggle') %>
-                    <script src="/js/admin-manage.js"></script>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                            var dropzone = document.getElementById('dropzone');
-                            var fileInput = document.getElementById('image');
-                            if (dropzone && fileInput) {
-                                dropzone.addEventListener('click', function () {
-                                    fileInput.click();
-                                });
-                                dropzone.addEventListener('keydown', function (e) {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        fileInput.click();
-                                    }
-                                });
-                                // Optional: Add dragover/leave styling
-                                dropzone.addEventListener('dragover', function (e) {
-                                    e.preventDefault();
-                                    dropzone.classList.add('dragover');
-                                });
-                                dropzone.addEventListener('dragleave', function (e) {
-                                    e.preventDefault();
-                                    dropzone.classList.remove('dragover');
-                                });
-                                dropzone.addEventListener('drop', function (e) {
-                                    e.preventDefault();
-                                    dropzone.classList.remove('dragover');
-                                    if (e.dataTransfer.files && e.dataTransfer.files.length) {
-                                        fileInput.files = e.dataTransfer.files;
-                                        // Optionally trigger change event for preview
-                                        fileInput.dispatchEvent(new Event('change'));
-                                    }
-                                });
+        </div>
+        <%- include('partials/dark-mode-toggle') %>
+            <script src="/js/admin-manage.js"></script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var dropzone = document.getElementById('dropzone');
+                    var fileInput = document.getElementById('image');
+                    if (dropzone && fileInput) {
+                        dropzone.addEventListener('click', function () {
+                            fileInput.click();
+                        });
+                        dropzone.addEventListener('keydown', function (e) {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                fileInput.click();
                             }
                         });
-                    </script>
-                    <script>
-                        function toggleCategoryPanel(catName) {
-                            var toggle = document.querySelector('.category-accordion[data-cat="' + catName + '"] .category-toggle');
-                            var panel = document.getElementById('cat-' + catName + '-panel');
-                            if (!toggle || !panel) return;
-                            var expanded = panel.classList.toggle('hidden');
-                            toggle.setAttribute('aria-expanded', !expanded);
-                            // Optionally rotate arrow
-                            var arrow = toggle.querySelector('.accordion-arrow');
-                            if (arrow) arrow.style.transform = expanded ? '' : 'rotate(90deg)';
-                        }
-
-                        // Optional: Keyboard accessibility for toggles
-                        document.addEventListener('DOMContentLoaded', function () {
-                            document.querySelectorAll('.category-toggle').forEach(function (toggle) {
-                                toggle.addEventListener('keydown', function (e) {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        var catName = toggle.closest('.category-accordion').getAttribute('data-cat');
-                                        toggleCategoryPanel(catName);
-                                    }
-                                });
-                            });
+                        // Optional: Add dragover/leave styling
+                        dropzone.addEventListener('dragover', function (e) {
+                            e.preventDefault();
+                            dropzone.classList.add('dragover');
                         });
-                    </script>
-                    <script>
-                        // Toggle selection for bulk image actions
-                        function toggleImageSelect(imgDiv) {
-                            imgDiv.classList.toggle('selected');
-                            // Enable/disable bulk action buttons based on selection
-                            var catName = imgDiv.closest('.category-accordion').getAttribute('data-cat');
-                            var selected = document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected');
-                            var bulkDeleteBtn = document.getElementById('bulkDeleteBtn-' + catName);
-                            var setThumbBtn = document.getElementById('setThumbBtn-' + catName);
-                            var moveImagesBtn = document.getElementById('moveImagesBtn-' + catName);
-                            if (bulkDeleteBtn) bulkDeleteBtn.disabled = selected.length === 0;
-                            if (setThumbBtn) setThumbBtn.disabled = selected.length !== 1;
-                            if (moveImagesBtn) moveImagesBtn.disabled = selected.length === 0;
-                        }
+                        dropzone.addEventListener('dragleave', function (e) {
+                            e.preventDefault();
+                            dropzone.classList.remove('dragover');
+                        });
+                        dropzone.addEventListener('drop', function (e) {
+                            e.preventDefault();
+                            dropzone.classList.remove('dragover');
+                            if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                                fileInput.files = e.dataTransfer.files;
+                                // Optionally trigger change event for preview
+                                fileInput.dispatchEvent(new Event('change'));
+                            }
+                        });
+                    }
+                });
+            </script>
+            <script>
+                function toggleCategoryPanel(catName) {
+                    var toggle = document.querySelector('.category-accordion[data-cat="' + catName + '"] .category-toggle');
+                    var panel = document.getElementById('cat-' + catName + '-panel');
+                    if (!toggle || !panel) return;
+                    var expanded = panel.classList.toggle('hidden');
+                    toggle.setAttribute('aria-expanded', !expanded);
+                    // Optionally rotate arrow
+                    var arrow = toggle.querySelector('.accordion-arrow');
+                    if (arrow) arrow.style.transform = expanded ? '' : 'rotate(90deg)';
+                }
 
-                        // Optional: Deselect all images when switching category panels
-                        document.querySelectorAll('.category-toggle').forEach(function (toggle) {
-                            toggle.addEventListener('click', function () {
+                // Optional: Keyboard accessibility for toggles
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.querySelectorAll('.category-toggle').forEach(function (toggle) {
+                        toggle.addEventListener('keydown', function (e) {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
                                 var catName = toggle.closest('.category-accordion').getAttribute('data-cat');
-                                document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected')
-                                    .forEach(function (img) { img.classList.remove('selected'); });
-                                // Also disable bulk buttons
-                                var bulkDeleteBtn = document.getElementById('bulkDeleteBtn-' + catName);
-                                var setThumbBtn = document.getElementById('setThumbBtn-' + catName);
-                                var moveImagesBtn = document.getElementById('moveImagesBtn-' + catName);
-                                if (bulkDeleteBtn) bulkDeleteBtn.disabled = true;
-                                if (setThumbBtn) setThumbBtn.disabled = true;
-                                if (moveImagesBtn) moveImagesBtn.disabled = true;
-                            });
+                                toggleCategoryPanel(catName);
+                            }
                         });
-                    </script>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                            document.querySelectorAll('.image-grid').forEach(function (grid) {
-                                new Sortable(grid, {
-                                    animation: 150,
-                                    handle: '.img-item',
-                                    draggable: '.img-item',
-                                    onEnd: function (evt) {
-                                        // Save new order to server
-                                        const catName = grid.getAttribute('data-cat');
-                                        const order = Array.from(grid.querySelectorAll('.img-item')).map(div => div.dataset.filename);
-                                        fetch('/reorder-images', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ category: catName, order: JSON.stringify(order) })
-                                        })
-                                            .then(res => res.ok ? res.json() : Promise.reject())
-                                            .then(() => {
-                                                // Optionally show a toast or indicator
-                                                const indicator = document.getElementById('saving-indicator');
-                                                if (indicator) {
-                                                    indicator.textContent = 'Order saved!';
-                                                    indicator.style.opacity = 1;
-                                                    setTimeout(() => { indicator.style.opacity = 0; }, 1200);
-                                                }
-                                            })
-                                            .catch(() => {
-                                                const indicator = document.getElementById('saving-indicator');
-                                                if (indicator) {
-                                                    indicator.textContent = 'Failed to save order!';
-                                                    indicator.style.opacity = 1;
-                                                    setTimeout(() => { indicator.style.opacity = 0; }, 2000);
-                                                }
-                                            });
-                                    }
-                                });
-                            });
+                    });
+                });
+            </script>
+            <script>
+                // Toggle selection for bulk image actions
+                function toggleImageSelect(imgDiv) {
+                    imgDiv.classList.toggle('selected');
+                    // Enable/disable bulk action buttons based on selection
+                    var catName = imgDiv.closest('.category-accordion').getAttribute('data-cat');
+                    var selected = document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected');
+                    var bulkDeleteBtn = document.getElementById('bulkDeleteBtn-' + catName);
+                    var setThumbBtn = document.getElementById('setThumbBtn-' + catName);
+                    var moveImagesBtn = document.getElementById('moveImagesBtn-' + catName);
+                    if (bulkDeleteBtn) bulkDeleteBtn.disabled = selected.length === 0;
+                    if (setThumbBtn) setThumbBtn.disabled = selected.length !== 1;
+                    if (moveImagesBtn) moveImagesBtn.disabled = selected.length === 0;
+                }
+
+                // Optional: Deselect all images when switching category panels
+                document.querySelectorAll('.category-toggle').forEach(function (toggle) {
+                    toggle.addEventListener('click', function () {
+                        var catName = toggle.closest('.category-accordion').getAttribute('data-cat');
+                        document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected')
+                            .forEach(function (img) { img.classList.remove('selected'); });
+                        // Also disable bulk buttons
+                        var bulkDeleteBtn = document.getElementById('bulkDeleteBtn-' + catName);
+                        var setThumbBtn = document.getElementById('setThumbBtn-' + catName);
+                        var moveImagesBtn = document.getElementById('moveImagesBtn-' + catName);
+                        if (bulkDeleteBtn) bulkDeleteBtn.disabled = true;
+                        if (setThumbBtn) setThumbBtn.disabled = true;
+                        if (moveImagesBtn) moveImagesBtn.disabled = true;
+                    });
+                });
+            </script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.querySelectorAll('.image-grid').forEach(function (grid) {
+                        new Sortable(grid, {
+                            animation: 150,
+                            handle: '.img-item',
+                            draggable: '.img-item',
+                            onEnd: function (evt) {
+                                // Save new order to server
+                                const catName = grid.getAttribute('data-cat');
+                                const order = Array.from(grid.querySelectorAll('.img-item')).map(div => div.dataset.filename);
+                                fetch('/reorder-images', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ category: catName, order: JSON.stringify(order) })
+                                })
+                                    .then(res => res.ok ? res.json() : Promise.reject())
+                                    .then(() => {
+                                        // Optionally show a toast or indicator
+                                        const indicator = document.getElementById('saving-indicator');
+                                        if (indicator) {
+                                            indicator.textContent = 'Order saved!';
+                                            indicator.style.opacity = 1;
+                                            setTimeout(() => { indicator.style.opacity = 0; }, 1200);
+                                        }
+                                    })
+                                    .catch(() => {
+                                        const indicator = document.getElementById('saving-indicator');
+                                        if (indicator) {
+                                            indicator.textContent = 'Failed to save order!';
+                                            indicator.style.opacity = 1;
+                                            setTimeout(() => { indicator.style.opacity = 0; }, 2000);
+                                        }
+                                    });
+                            }
                         });
-                    </script>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                            var fileInput = document.getElementById('image');
-                            var preview = document.getElementById('preview');
-                            if (fileInput && preview) {
-                                fileInput.addEventListener('change', function () {
-                                    preview.innerHTML = '';
-                                    if (fileInput.files.length > 0) {
-                                        Array.from(fileInput.files).forEach(function (file) {
-                                            if (file.type.startsWith('image/')) {
-                                                var reader = new FileReader();
-                                                reader.onload = function (e) {
-                                                    var img = document.createElement('img');
-                                                    img.src = e.target.result;
-                                                    img.className = 'preview-thumb';
-                                                    img.style.maxWidth = '80px';
-                                                    img.style.maxHeight = '80px';
-                                                    img.style.margin = '0.25em';
-                                                    preview.appendChild(img);
-                                                };
-                                                reader.readAsDataURL(file);
-                                            }
-                                        });
+                    });
+                });
+            </script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var fileInput = document.getElementById('image');
+                    var preview = document.getElementById('preview');
+                    if (fileInput && preview) {
+                        fileInput.addEventListener('change', function () {
+                            preview.innerHTML = '';
+                            if (fileInput.files.length > 0) {
+                                Array.from(fileInput.files).forEach(function (file) {
+                                    if (file.type.startsWith('image/')) {
+                                        var reader = new FileReader();
+                                        reader.onload = function (e) {
+                                            var img = document.createElement('img');
+                                            img.src = e.target.result;
+                                            img.className = 'preview-thumb';
+                                            img.style.maxWidth = '80px';
+                                            img.style.maxHeight = '80px';
+                                            img.style.margin = '0.25em';
+                                            preview.appendChild(img);
+                                        };
+                                        reader.readAsDataURL(file);
                                     }
                                 });
                             }
                         });
-                    </script>
+                    }
+                });
+            </script>
+            <script>
+                function showToast(msg, timeout = 3500) {
+                    const container = document.getElementById('toast-container');
+                    if (!container) return;
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.textContent = msg;
+                    container.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.animation = 'toast-out 0.4s forwards';
+                        setTimeout(() => toast.remove(), 400);
+                    }, timeout);
+                }
+            </script>
 </body>
 
 </html>

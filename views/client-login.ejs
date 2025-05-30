@@ -15,15 +15,32 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
-        <div class="container">
-            <form class="login-box" action="/client/login" method="POST" autocomplete="off">
-                <h1>Client Gallery Access</h1>
-                <p>Enter your access code and password to view your photo gallery.</p>
-                <% if (error) { %>
-                    <div class="error-message">
-                        <%= error %>
-                    </div>
-                    <% } %>
+        <div id="toast-container" class="toast-container"></div>
+        <script>
+            function showToast(msg, timeout = 3500) {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.animation = 'toast-out 0.4s forwards';
+                    setTimeout(() => toast.remove(), 400);
+                }, timeout);
+            }
+        </script>
+        <% if (typeof error !=='undefined' && error) { %>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showToast(<%= JSON.stringify(error) %>);
+                });
+            </script>
+            <% } %>
+                <div class="container">
+                    <form class="login-box" action="/client/login" method="POST" autocomplete="off">
+                        <h1>Client Gallery Access</h1>
+                        <p>Enter your access code and password to view your photo gallery.</p>
                         <div class="form-group">
                             <label for="accessCode" class="visually-hidden">Access Code</label>
                             <input type="text" name="accessCode" id="accessCode" placeholder="Access Code" required
@@ -35,9 +52,9 @@
                                 autocomplete="current-password">
                         </div>
                         <button type="submit" class="btn btn-primary">Access Gallery</button>
-            </form>
-        </div>
-        <%- include('partials/dark-mode-toggle') %>
+                    </form>
+                </div>
+                <%- include('partials/dark-mode-toggle') %>
 </body>
 
 </html>

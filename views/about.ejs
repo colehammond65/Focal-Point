@@ -12,16 +12,38 @@
 
 <body>
   <%- include('partials/header', { showAdminNav: false, settings }) %>
-    <div class="container about-container">
-      <% if (image) { %>
-        <img src="<%= image %>" alt="About Me Photo" class="about-photo">
-        <% } %>
-          <div class="about-content">
-            <%- aboutHtml %>
-          </div>
-    </div>
-    <%- include('partials/footer') %>
-      <%- include('partials/dark-mode-toggle') %>
+    <div id="toast-container" class="toast-container"></div>
+    <script>
+      function showToast(msg, timeout = 3500) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = msg;
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.style.animation = 'toast-out 0.4s forwards';
+          setTimeout(() => toast.remove(), 400);
+        }, timeout);
+      }
+    </script>
+    <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          showToast(<%= JSON.stringify(req.query.msg) %>);
+        });
+      </script>
+      <% } %>
+        <div class="container about-container">
+          <% if (image) { %>
+            <img src="<%= image %>" alt="About Me Photo" class="about-photo">
+            <% } %>
+              <div class="about-content">
+                <%- aboutHtml %>
+              </div>
+        </div>
+        <%- include('partials/footer') %>
+          <%- include('partials/dark-mode-toggle') %>
 </body>
 
 </html>

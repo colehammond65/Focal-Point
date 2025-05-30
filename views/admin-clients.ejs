@@ -15,16 +15,31 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: true }) %>
-
-        <div class="container">
-            <div class="admin-container">
-                <h1>Client Management</h1>
-
-                <% if (req.query.msg) { %>
-                    <div class="message">
-                        <%= req.query.msg %>
-                    </div>
-                    <% } %>
+        <div id="toast-container" class="toast-container"></div>
+        <script>
+            function showToast(msg, timeout = 3500) {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.animation = 'toast-out 0.4s forwards';
+                    setTimeout(() => toast.remove(), 400);
+                }, timeout);
+            }
+        </script>
+        <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showToast(<%= JSON.stringify(req.query.msg) %>);
+                });
+            </script>
+            <% } %>
+                <div class="container">
+                    <div class="admin-container">
+                        <h1>Client Management</h1>
 
                         <!-- Stats Overview -->
                         <div class="stats-grid">
@@ -54,7 +69,8 @@
                             </div>
                         </div>
 
-                        <a href="/admin/clients/new" class="create-client-btn">+ Create New Client</a>
+                        <a href="/admin/clients/new" class="btn btn-primary" style="margin-bottom:1.5rem;">+ Create New
+                            Client</a>
 
                         <div class="clients-grid">
                             <% if (clients.length===0) { %>
@@ -63,82 +79,76 @@
                                     <p>Create your first client to get started with client galleries.</p>
                                 </div>
                                 <% } else { %>
-                                    <% clients.forEach(client=> {
-                                        const isExpired = new Date(client.expires_at) < new Date(); const
-                                            statusClass=isExpired ? 'status-expired' : (client.is_active
-                                            ? 'status-active' : 'status-inactive' ); const statusText=isExpired
-                                            ? 'Expired' : (client.is_active ? 'Active' : 'Inactive' ); %>
-                                            <div class="client-card">
-                                                <div class="client-header">
-                                                    <div class="client-info">
-                                                        <h3>
-                                                            <%= client.client_name %>
-                                                        </h3>
-                                                        <% if (client.shoot_title) { %>
-                                                            <div class="client-meta"><strong>Shoot:</strong>
-                                                                <%= client.shoot_title %>
-                                                            </div>
-                                                            <% } %>
-                                                                <div class="client-meta"><strong>Access Code:</strong>
-                                                                    <%= client.access_code %>
-                                                                </div>
-                                                                <div class="client-meta"><strong>Created:</strong>
-                                                                    <%= new Date(client.created_at).toLocaleDateString()
-                                                                        %>
-                                                                </div>
-                                                                <div class="client-meta"><strong>Expires:</strong>
-                                                                    <%= new Date(client.expires_at).toLocaleDateString()
-                                                                        %>
-                                                                </div>
-                                                                <% if (client.last_access) { %>
-                                                                    <div class="client-meta"><strong>Last
-                                                                            Access:</strong>
-                                                                        <%= new
-                                                                            Date(client.last_access).toLocaleDateString()
-                                                                            %>
-                                                                    </div>
-                                                                    <% } %>
-                                                    </div>
-                                                    <span class="status-badge <%= statusClass %>">
-                                                        <%= statusText %>
-                                                    </span>
-                                                </div>
-                                                <div class="client-meta"><strong>Photos:</strong>
-                                                    <%= client.image_count || 0 %>
-                                                </div>
-                                                <div class="client-meta"><strong>Downloads:</strong>
-                                                    <%= client.download_count || 0 %>
-                                                </div>
-                                                <% if (client.total_size) { %>
-                                                    <div class="client-meta"><strong>Size:</strong>
-                                                        <%= (client.total_size / 1024 / 1024).toFixed(1) %>MB
-                                                    </div>
-                                                    <% } %>
-                                                        <div class="client-actions">
-                                                            <a href="/admin/clients/<%= client.id %>/upload"
-                                                                class="btn btn-primary btn-small">📷 Manage Photos</a>
-                                                            <form action="/admin/clients/<%= client.id %>/toggle"
-                                                                method="POST" style="display: inline;">
-                                                                <button type="submit"
-                                                                    class="btn btn-secondary btn-small">
-                                                                    <%= client.is_active ? 'Deactivate' : 'Activate' %>
-                                                                </button>
-                                                            </form>
-                                                            <form action="/admin/clients/<%= client.id %>/delete"
-                                                                method="POST" style="display: inline;"
-                                                                onsubmit="return confirm('Delete this client and all their photos? This cannot be undone.')">
-                                                                <button type="submit"
-                                                                    class="btn btn-danger btn-small">Delete</button>
-                                                            </form>
+                                    <% clients.forEach(function(client) { var isExpired=new Date(client.expires_at) <
+                                        new Date(); var statusClass=isExpired ? 'status-expired' : (client.is_active
+                                        ? 'status-active' : 'status-inactive' ); var statusText=isExpired ? 'Expired' :
+                                        (client.is_active ? 'Active' : 'Inactive' ); %>
+                                        <div class="client-card">
+                                            <div class="client-header">
+                                                <div class="client-info">
+                                                    <h3>
+                                                        <%= client.client_name %>
+                                                    </h3>
+                                                    <% if (client.shoot_title) { %>
+                                                        <div class="client-meta"><strong>Shoot:</strong>
+                                                            <%= client.shoot_title %>
                                                         </div>
+                                                        <% } %>
+                                                            <div class="client-meta"><strong>Access Code:</strong>
+                                                                <%= client.access_code %>
+                                                            </div>
+                                                            <div class="client-meta"><strong>Created:</strong>
+                                                                <%= new Date(client.created_at).toLocaleDateString() %>
+                                                            </div>
+                                                            <div class="client-meta"><strong>Expires:</strong>
+                                                                <%= new Date(client.expires_at).toLocaleDateString() %>
+                                                            </div>
+                                                            <% if (client.last_access) { %>
+                                                                <div class="client-meta"><strong>Last Access:</strong>
+                                                                    <%= new
+                                                                        Date(client.last_access).toLocaleDateString() %>
+                                                                </div>
+                                                                <% } %>
+                                                </div>
+                                                <span class="status-badge <%= statusClass %>">
+                                                    <%= statusText %>
+                                                </span>
                                             </div>
-                                            <% }); %>
+                                            <div class="client-meta"><strong>Photos:</strong>
+                                                <%= client.image_count || 0 %>
+                                            </div>
+                                            <div class="client-meta"><strong>Downloads:</strong>
+                                                <%= client.download_count || 0 %>
+                                            </div>
+                                            <% if (client.total_size) { %>
+                                                <div class="client-meta"><strong>Size:</strong>
+                                                    <%= (client.total_size / 1024 / 1024).toFixed(1) %>MB
+                                                </div>
                                                 <% } %>
+                                                    <div class="client-actions">
+                                                        <a href="/admin/clients/<%= client.id %>/upload"
+                                                            class="btn btn-primary btn-small">📷 Manage Photos</a>
+                                                        <form action="/admin/clients/<%= client.id %>/toggle"
+                                                            method="POST" style="display: inline;">
+                                                            <button type="submit" class="btn btn-secondary btn-small">
+                                                                <%= client.is_active ? 'Deactivate' : 'Activate' %>
+                                                            </button>
+                                                        </form>
+                                                        <form action="/admin/clients/<%= client.id %>/delete"
+                                                            method="POST" style="display: inline;"
+                                                            onsubmit="return confirm('Delete this client and all their photos? This cannot be undone.')">
+                                                            <button type="submit"
+                                                                class="btn btn-danger btn-small">Delete</button>
+                                                        </form>
+                                                    </div>
+                                        </div>
+                                        <% }); %>
+                                            <% } %>
                         </div>
-            </div>
-        </div>
+                    </div>
+                </div>
 
-        <%- include('partials/dark-mode-toggle') %>
+                <%- include('partials/dark-mode-toggle') %>
 </body>
 
 </html>

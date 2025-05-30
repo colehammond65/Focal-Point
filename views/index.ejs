@@ -18,6 +18,7 @@
 
 <body>
   <%- include('partials/header', { showAdminNav: false, settings, loggedIn }) %>
+    <div id="toast-container" class="toast-container"></div>
     <div class="container">
       <% var loggedIn=typeof loggedIn !=='undefined' ? loggedIn : false; %>
 
@@ -41,7 +42,7 @@
                         <% } %>
                   </div>
                   <div class="category-name">
-                    <%= cat.name.replace(/-/g, ' ' ).replace(/\b\w/g, c=> c.toUpperCase()) %>
+                    <%= cat.name.replace(/-/g, ' ' ).replace(/\b\w/g, function(c) { return c.toUpperCase(); }) %>
                   </div>
                 </a>
                 <% }); %>
@@ -61,123 +62,152 @@
       <%- include('partials/dark-mode-toggle') %>
 
         <script>
-          var isCategoryGrid = <%= images && images.length ? 'false' : 'true' %>;
-
-          // Lightbox functionality for gallery images
-          document.addEventListener('DOMContentLoaded', function () {
-            const images = document.querySelectorAll('.gallery img');
-            const lightbox = document.getElementById('lightbox');
-            const lightboxImg = document.getElementById('lightboxImg');
-            const closeBtn = document.getElementById('closeBtn');
-            const altBox = document.getElementById('lightboxAlt');
-
-            images.forEach(img => {
-              img.addEventListener('click', (e) => {
-                e.preventDefault();
-                lightboxImg.src = img.src;
-                lightboxImg.alt = img.alt;
-                lightbox.style.display = 'flex';
-                document.body.classList.add('lightbox-open');
-                closeBtn.focus();
-                if (img.alt && img.alt.trim() !== '') {
-                  altBox.textContent = img.alt;
-                  altBox.style.display = '';
-                } else {
-                  altBox.textContent = '';
-                  altBox.style.display = 'none';
-                }
-              });
-            });
-
-            function closeLightbox() {
-              lightbox.style.display = 'none';
-              lightboxImg.src = '';
-              document.body.classList.remove('lightbox-open');
-            }
-
-            closeBtn.addEventListener('click', closeLightbox);
-
-            document.addEventListener('keydown', (e) => {
-              if (e.key === 'Escape') {
-                closeLightbox();
-              }
-            });
-
-            lightbox.addEventListener('click', (e) => {
-              if (e.target === lightbox) {
-                closeLightbox();
-              }
-            });
-
-            // Fade-in effect for lazy-loaded images
-            document.querySelectorAll('.gallery img[loading="lazy"]').forEach(img => {
-              img.addEventListener('load', () => {
-                img.setAttribute('data-loaded', 'true');
-              });
-              if (img.complete) {
-                img.setAttribute('data-loaded', 'true');
-              }
-            });
-
-            // Balance category grid layout
-            function balanceCategoryGrid() {
-              const grid = document.querySelector('.categories');
-              if (!grid) return;
-              const gallery = document.querySelector('.gallery');
-              if (gallery) return; // Only run on homepage
-              const items = grid.children.length;
-              const containerWidth = grid.offsetWidth;
-              const minCardWidth = 220;
-
-              if (window.innerWidth <= 900) {
-                grid.style.display = 'grid';
-                grid.style.gridTemplateColumns = `repeat(1, minmax(${minCardWidth}px, 1fr))`;
-                grid.style.justifyContent = 'center';
-                return;
-              }
-              if (window.innerWidth <= 1250) {
-                grid.style.display = 'grid';
-                grid.style.gridTemplateColumns = `repeat(2, minmax(${minCardWidth}px, 1fr))`;
-                grid.style.justifyContent = 'center';
-                return;
-              }
-
-              // Desktop: balance columns, but enforce min width
-              const minDesktopCardWidth = 350;
-              let bestCols = 1;
-              let bestRows = items;
-              let bestImbalance = Infinity;
-
-              for (let cols = 1; cols <= items; cols++) {
-                const cardWidth = containerWidth / cols;
-                if (cardWidth < minDesktopCardWidth) continue;
-
-                const rows = Math.ceil(items / cols);
-                const lastRowItems = items % cols || cols;
-                if (lastRowItems < 2) continue;
-
-                const imbalance = Math.abs(cols - (items / rows));
-                if (
-                  rows < bestRows ||
-                  (rows === bestRows && imbalance < bestImbalance)
-                ) {
-                  bestCols = cols;
-                  bestRows = rows;
-                  bestImbalance = imbalance;
-                }
-              }
-
-              grid.style.display = 'grid';
-              grid.style.gridTemplateColumns = `repeat(${bestCols}, minmax(${minCardWidth}px, 1fr))`;
-              grid.style.justifyContent = '';
-            }
-
-            window.addEventListener('resize', () => {
-              if (isCategoryGrid) balanceCategoryGrid();
-            });
-            if (isCategoryGrid) balanceCategoryGrid();
-          });
+          function showToast(msg, timeout = 3500) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+              toast.style.animation = 'toast-out 0.4s forwards';
+              setTimeout(() => toast.remove(), 400);
+            }, timeout);
+          }
         </script>
+        <% if (typeof msg !=='undefined' && msg) { %>
+          <script>
+            document.addEventListener('DOMContentLoaded', function () {
+              showToast(<% - JSON.stringify(msg) %>);
+            });
+          </script>
+          <% } %>
+
+            <script>
+              var isCategoryGrid = false;
+            </script>
+            <% if (!(images && images.length)) { %>
+              <script>
+                isCategoryGrid = true;
+              </script>
+              <% } %>
+
+                <script>
+                  // Lightbox functionality for gallery images
+                  document.addEventListener('DOMContentLoaded', function () {
+                    const images = document.querySelectorAll('.gallery img');
+                    const lightbox = document.getElementById('lightbox');
+                    const lightboxImg = document.getElementById('lightboxImg');
+                    const closeBtn = document.getElementById('closeBtn');
+                    const altBox = document.getElementById('lightboxAlt');
+
+                    images.forEach(img => {
+                      img.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        lightboxImg.src = img.src;
+                        lightboxImg.alt = img.alt;
+                        lightbox.style.display = 'flex';
+                        document.body.classList.add('lightbox-open');
+                        closeBtn.focus();
+                        if (img.alt && img.alt.trim() !== '') {
+                          altBox.textContent = img.alt;
+                          altBox.style.display = '';
+                        } else {
+                          altBox.textContent = '';
+                          altBox.style.display = 'none';
+                        }
+                      });
+                    });
+
+                    function closeLightbox() {
+                      lightbox.style.display = 'none';
+                      lightboxImg.src = '';
+                      document.body.classList.remove('lightbox-open');
+                    }
+
+                    closeBtn.addEventListener('click', closeLightbox);
+
+                    document.addEventListener('keydown', (e) => {
+                      if (e.key === 'Escape') {
+                        closeLightbox();
+                      }
+                    });
+
+                    lightbox.addEventListener('click', (e) => {
+                      if (e.target === lightbox) {
+                        closeLightbox();
+                      }
+                    });
+
+                    // Fade-in effect for lazy-loaded images
+                    document.querySelectorAll('.gallery img[loading="lazy"]').forEach(img => {
+                      img.addEventListener('load', () => {
+                        img.setAttribute('data-loaded', 'true');
+                      });
+                      if (img.complete) {
+                        img.setAttribute('data-loaded', 'true');
+                      }
+                    });
+
+                    // Balance category grid layout
+                    function balanceCategoryGrid() {
+                      const grid = document.querySelector('.categories');
+                      if (!grid) return;
+                      const gallery = document.querySelector('.gallery');
+                      if (gallery) return; // Only run on homepage
+                      const items = grid.children.length;
+                      const containerWidth = grid.offsetWidth;
+                      const minCardWidth = 220;
+
+                      if (window.innerWidth <= 900) {
+                        grid.style.display = 'grid';
+                        grid.style.gridTemplateColumns = `repeat(1, minmax(${minCardWidth}px, 1fr))`;
+                        grid.style.justifyContent = 'center';
+                        return;
+                      }
+                      if (window.innerWidth <= 1250) {
+                        grid.style.display = 'grid';
+                        grid.style.gridTemplateColumns = `repeat(2, minmax(${minCardWidth}px, 1fr))`;
+                        grid.style.justifyContent = 'center';
+                        return;
+                      }
+
+                      // Desktop: balance columns, but enforce min width
+                      const minDesktopCardWidth = 350;
+                      let bestCols = 1;
+                      let bestRows = items;
+                      let bestImbalance = Infinity;
+
+                      for (let cols = 1; cols <= items; cols++) {
+                        const cardWidth = containerWidth / cols;
+                        if (cardWidth < minDesktopCardWidth) continue;
+
+                        const rows = Math.ceil(items / cols);
+                        const lastRowItems = items % cols || cols;
+                        if (lastRowItems < 2) continue;
+
+                        const imbalance = Math.abs(cols - (items / rows));
+                        if (
+                          rows < bestRows ||
+                          (rows === bestRows && imbalance < bestImbalance)
+                        ) {
+                          bestCols = cols;
+                          bestRows = rows;
+                          bestImbalance = imbalance;
+                        }
+                      }
+
+                      grid.style.display = 'grid';
+                      grid.style.gridTemplateColumns = `repeat(${bestCols}, minmax(${minCardWidth}px, 1fr))`;
+                      grid.style.justifyContent = '';
+                    }
+
+                    window.addEventListener('resize', () => {
+                      if (isCategoryGrid) balanceCategoryGrid();
+                    });
+                    if (isCategoryGrid) balanceCategoryGrid();
+                  });
+                </script>
 </body>
 
 </html>

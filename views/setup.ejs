@@ -15,14 +15,31 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
-        <div class="container">
-            <form class="login-box" action="/setup" method="POST" autocomplete="off">
-                <h1>Setup Admin Account</h1>
-                <% if (error) { %>
-                    <div class="error-message">
-                        <%= error %>
-                    </div>
-                    <% } %>
+        <div id="toast-container" class="toast-container"></div>
+        <script>
+            function showToast(msg, timeout = 3500) {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.animation = 'toast-out 0.4s forwards';
+                    setTimeout(() => toast.remove(), 400);
+                }, timeout);
+            }
+        </script>
+        <% if (typeof error !=='undefined' && error) { %>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    showToast(<%= JSON.stringify(error) %>);
+                });
+            </script>
+            <% } %>
+                <div class="container">
+                    <form class="login-box" action="/setup" method="POST" autocomplete="off">
+                        <h1>Setup Admin Account</h1>
                         <div class="form-group">
                             <label for="username" class="visually-hidden">Username</label>
                             <input type="text" id="username" name="username" placeholder="Username" required autofocus>
@@ -32,9 +49,9 @@
                             <input type="password" id="password" name="password" placeholder="Password" required>
                         </div>
                         <button type="submit" class="btn btn-primary">Create Admin Account</button>
-            </form>
-        </div>
-        <%- include('partials/dark-mode-toggle') %>
+                    </form>
+                </div>
+                <%- include('partials/dark-mode-toggle') %>
 </body>
 
 </html>

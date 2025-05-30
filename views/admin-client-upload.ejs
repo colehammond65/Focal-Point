@@ -15,201 +15,215 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: true }) %>
-
-        <div class="container">
-            <div class="admin-container">
-                <a href="/admin/clients" class="back-link">← Back to Client Management</a>
-
-                <h1>Manage Photos for <%= clientData.client_name %>
-                </h1>
-
-                <!-- Success Messages -->
-                <% if (req.query.created==='true' ) { %>
-                    <div class="success-message">
-                        Client created successfully! Access Code: <strong>
-                            <%= req.query.code %>
-                        </strong>
-                    </div>
-                    <% } %>
-
-                        <% if (req.query.uploaded) { %>
-                            <div class="success-message">
-                                Successfully uploaded <%= req.query.uploaded %> photo<%= req.query.uploaded !=1 ? 's'
-                                        : '' %>!
-                            </div>
-                            <% } %>
-
-                                <!-- Client Information -->
-                                <div class="client-header">
-                                    <h2>
-                                        <%= clientData.client_name %>
-                                    </h2>
-                                    <% if (clientData.shoot_title) { %>
-                                        <p><strong>Shoot:</strong>
-                                            <%= clientData.shoot_title %>
-                                        </p>
-                                        <% } %>
-                                            <p><strong>Photos:</strong>
-                                                <%= images.length %>
-                                            </p>
-                                            <p><strong>Expires:</strong>
-                                                <%= new Date(clientData.expires_at).toLocaleDateString() %>
-                                            </p>
-                                            <p><strong>Status:</strong>
-                                                <span
-                                                    class="status-badge <%= clientData.is_active ? 'status-active' : 'status-inactive' %>">
-                                                    <%= clientData.is_active ? 'Active' : 'Inactive' %>
-                                                </span>
-                                            </p>
-
-                                            <div class="access-info">
-                                                <h4>Client Access Information</h4>
-                                                <p><strong>Access Code:</strong>
-                                                    <%= clientData.access_code %>
-                                                </p>
-                                                <p><strong>Login URL:</strong> <a href="/client/login"
-                                                        target="_blank">/client/login</a></p>
-                                            </div>
-                                </div>
-
-                                <!-- Upload Section -->
-                                <div class="upload-section">
-                                    <h3>Upload Photos</h3>
-                                    <form action="/admin/clients/<%= clientData.id %>/upload" method="POST"
-                                        enctype="multipart/form-data" id="uploadForm" onsubmit="disableUploadBtn()">
-                                        <div class="file-input-wrapper">
-                                            <label for="imageInput" style="cursor:pointer;">
-                                                📷 Select Photos to Upload
-                                                <input type="file" name="images" id="imageInput" multiple
-                                                    accept="image/*" onchange="handleFileSelect(this)"
-                                                    style="display:none;">
-                                            </label>
-                                        </div>
-                                        <div id="fileList" style="margin-top: 1rem;"></div>
-                                        <button type="submit" id="uploadBtn" style="display: none; margin-top: 1rem;"
-                                            class="btn btn-primary">
-                                            Upload Selected Photos
-                                        </button>
-                                    </form>
-                                </div>
-
-                                <!-- Images Display -->
-                                <div class="images-section">
-                                    <h3>Uploaded Photos (<%= images.length %>)</h3>
-                                    <% if (images.length===0) { %>
-                                        <p>No photos uploaded yet.</p>
-                                        <% } else { %>
-                                            <form id="bulkDeleteForm"
-                                                action="/admin/clients/<%= clientData.id %>/images/bulk-delete"
-                                                method="POST" onsubmit="return confirm('Delete selected photos?');">
-                                                <button type="submit" class="btn btn-danger btn-small"
-                                                    id="bulkDeleteBtn" disabled>Delete Selected</button>
-                                                <input type="hidden" name="imageIds" id="selectedImageIds" value="">
-                                                <div class="gallery-grid">
-                                                    <% images.forEach((img, idx)=> { %>
-                                                        <div class="gallery-thumb bulk-select-img-item" tabindex="0"
-                                                            data-img-id="<%= img.id %>"
-                                                            onclick="toggleImageSelect(this)"
-                                                            onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleImageSelect(this);}">
-                                                            <img src="/admin/client-images/<%= clientData.id %>/<%= img.filename %>"
-                                                                alt="<%= img.original_filename || ('Photo ' + (idx + 1)) %>"
-                                                                loading="lazy" />
-                                                        </div>
-                                                        <% }); %>
-                                                </div>
-                                            </form>
-                                            <% } %>
-                                </div>
-
-            </div>
-        </div>
-
+        <div id="toast-container" class="toast-container"></div>
         <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                // Preview for upload
-                window.handleFileSelect = function (input) {
-                    const fileList = document.getElementById('fileList');
-                    const uploadBtn = document.getElementById('uploadBtn');
-                    fileList.innerHTML = '';
-                    if (input.files.length > 0) {
-                        let html = '<h4>Selected Files:</h4><div class="preview-list">';
-                        Array.from(input.files).forEach(file => {
-                            const size = (file.size / 1024 / 1024).toFixed(1);
-                            if (file.type.startsWith('image/')) {
-                                const reader = new FileReader();
-                                reader.onload = function (e) {
-                                    const imgHtml = `
+            function showToast(msg, timeout = 3500) {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.animation = 'toast-out 0.4s forwards';
+                    setTimeout(() => toast.remove(), 400);
+                }, timeout);
+            }
+        </script>
+        <% if (typeof req !=='undefined' && req.query && req.query.created==='true' && req.query.code) { %>
+            <div id="toast-data" data-msg="<%= 'Client created successfully! Access Code: ' + req.query.code %>"
+                style="display:none;"></div>
+            <% } else if (typeof req !=='undefined' && req.query && req.query.uploaded) { %>
+                <div id="toast-data"
+                    data-msg="<%= 'Successfully uploaded ' + req.query.uploaded + ' photo' + (req.query.uploaded != 1 ? 's' : '') + '!' %>"
+                    style="display:none;"></div>
+                <% } %>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                            var toastDiv = document.getElementById('toast-data');
+                            if (toastDiv && toastDiv.dataset.msg) {
+                                showToast(toastDiv.dataset.msg);
+                            }
+                        });
+                    </script>
+
+                    <div class="container">
+                        <div class="admin-container">
+                            <a href="/admin/clients" class="btn btn-secondary btn-small" style="margin-bottom:1.5rem;">←
+                                Back to Client Management</a>
+
+                            <h1>Manage Photos for <%= clientData.client_name %>
+                            </h1>
+
+                            <!-- Client Information -->
+                            <div class="client-header">
+                                <h2>
+                                    <%= clientData.client_name %>
+                                </h2>
+                                <% if (clientData.shoot_title) { %>
+                                    <p><strong>Shoot:</strong>
+                                        <%= clientData.shoot_title %>
+                                    </p>
+                                    <% } %>
+                                        <p><strong>Photos:</strong>
+                                            <%= images.length %>
+                                        </p>
+                                        <p><strong>Expires:</strong>
+                                            <%= new Date(clientData.expires_at).toLocaleDateString() %>
+                                        </p>
+                                        <p><strong>Status:</strong>
+                                            <span
+                                                class="status-badge <%= clientData.is_active ? 'status-active' : 'status-inactive' %>">
+                                                <%= clientData.is_active ? 'Active' : 'Inactive' %>
+                                            </span>
+                                        </p>
+
+                                        <div class="access-info">
+                                            <h4>Client Access Information</h4>
+                                            <p><strong>Access Code:</strong>
+                                                <%= clientData.access_code %>
+                                            </p>
+                                            <p><strong>Login URL:</strong> <a href="/client/login"
+                                                    target="_blank">/client/login</a></p>
+                                        </div>
+                            </div>
+
+                            <!-- Upload Section -->
+                            <div class="upload-section">
+                                <h3>Upload Photos</h3>
+                                <form action="/admin/clients/<%= clientData.id %>/upload" method="POST"
+                                    enctype="multipart/form-data" id="uploadForm" onsubmit="disableUploadBtn()">
+                                    <div class="file-input-wrapper">
+                                        <label for="imageInput" style="cursor:pointer;">
+                                            📷 Select Photos to Upload
+                                            <input type="file" name="images" id="imageInput" multiple accept="image/*"
+                                                onchange="handleFileSelect(this)" style="display:none;">
+                                        </label>
+                                    </div>
+                                    <div id="fileList" style="margin-top: 1rem;"></div>
+                                    <button type="submit" id="uploadBtn" class="btn btn-primary"
+                                        style="display: none; margin-top: 1rem;">
+                                        Upload Photos
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Images Display -->
+                            <div class="images-section">
+                                <h3>Uploaded Photos (<%= images.length %>)</h3>
+                                <% if (images.length===0) { %>
+                                    <p>No photos uploaded yet.</p>
+                                    <% } else { %>
+                                        <form id="bulkDeleteForm"
+                                            action="/admin/clients/<%= clientData.id %>/images/bulk-delete"
+                                            method="POST" onsubmit="return confirm('Delete selected photos?');">
+                                            <button type="submit" class="btn btn-danger btn-small" id="bulkDeleteBtn"
+                                                disabled>Delete Selected</button>
+                                            <input type="hidden" name="imageIds" id="selectedImageIds" value="">
+                                            <div class="gallery-grid">
+                                                <% images.forEach((img, idx)=> { %>
+                                                    <div class="gallery-thumb bulk-select-img-item" tabindex="0"
+                                                        data-img-id="<%= img.id %>" onclick="toggleImageSelect(this)"
+                                                        onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleImageSelect(this);}">
+                                                        <img src="/admin/client-images/<%= clientData.id %>/<%= img.filename %>"
+                                                            alt="<%= img.original_filename || ('Photo ' + (idx + 1)) %>"
+                                                            loading="lazy" />
+                                                    </div>
+                                                    <% }); %>
+                                            </div>
+                                        </form>
+                                        <% } %>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                            // Preview for upload
+                            window.handleFileSelect = function (input) {
+                                const fileList = document.getElementById('fileList');
+                                const uploadBtn = document.getElementById('uploadBtn');
+                                fileList.innerHTML = '';
+                                if (input.files.length > 0) {
+                                    let html = '<h4>Selected Files:</h4><div class="preview-list">';
+                                    Array.from(input.files).forEach(file => {
+                                        const size = (file.size / 1024 / 1024).toFixed(1);
+                                        if (file.type.startsWith('image/')) {
+                                            const reader = new FileReader();
+                                            reader.onload = function (e) {
+                                                const imgHtml = `
                                         <div class="preview-thumb-wrapper">
                                             <img src="${e.target.result}" class="preview-thumb" alt="${file.name}" style="max-width:70px;max-height:70px;display:block;margin-bottom:0.3em;">
                                             <div class="preview-filename">${file.name} (${size}MB)</div>
                                         </div>
                                     `;
-                                    fileList.insertAdjacentHTML('beforeend', imgHtml);
-                                };
-                                reader.readAsDataURL(file);
-                            } else {
-                                html += `<div>${file.name} (${size}MB)</div>`;
-                            }
+                                                fileList.insertAdjacentHTML('beforeend', imgHtml);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        } else {
+                                            html += `<div>${file.name} (${size}MB)</div>`;
+                                        }
+                                    });
+                                    setTimeout(() => {
+                                        uploadBtn.style.display = 'block';
+                                    }, 200);
+                                } else {
+                                    fileList.innerHTML = '';
+                                    uploadBtn.style.display = 'none';
+                                }
+                            };
+
+                            // Enable/disable bulk delete button
+                            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+                            document.querySelectorAll('.img-checkbox').forEach(cb => {
+                                cb.addEventListener('change', function () {
+                                    const checked = document.querySelectorAll('.img-checkbox:checked').length;
+                                    bulkDeleteBtn.disabled = checked === 0;
+                                });
+                            });
                         });
-                        setTimeout(() => {
-                            uploadBtn.style.display = 'block';
-                        }, 200);
-                    } else {
-                        fileList.innerHTML = '';
-                        uploadBtn.style.display = 'none';
-                    }
-                };
 
-                // Enable/disable bulk delete button
-                const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-                document.querySelectorAll('.img-checkbox').forEach(cb => {
-                    cb.addEventListener('change', function () {
-                        const checked = document.querySelectorAll('.img-checkbox:checked').length;
-                        bulkDeleteBtn.disabled = checked === 0;
-                    });
-                });
-            });
+                        // Multi-select logic for image deletion
+                        function toggleImageSelect(div) {
+                            div.classList.toggle('selected');
+                            updateBulkDeleteState();
+                        }
 
-            // Multi-select logic for image deletion
-            function toggleImageSelect(div) {
-                div.classList.toggle('selected');
-                updateBulkDeleteState();
-            }
+                        function updateBulkDeleteState() {
+                            const selected = Array.from(document.querySelectorAll('.gallery-thumb.selected'));
+                            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+                            const selectedImageIds = document.getElementById('selectedImageIds');
+                            const ids = selected.map(div => div.getAttribute('data-img-id'));
+                            bulkDeleteBtn.disabled = ids.length === 0;
+                            selectedImageIds.value = ids.join(',');
+                        }
 
-            function updateBulkDeleteState() {
-                const selected = Array.from(document.querySelectorAll('.gallery-thumb.selected'));
-                const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
-                const selectedImageIds = document.getElementById('selectedImageIds');
-                const ids = selected.map(div => div.getAttribute('data-img-id'));
-                bulkDeleteBtn.disabled = ids.length === 0;
-                selectedImageIds.value = ids.join(',');
-            }
+                        document.addEventListener('DOMContentLoaded', function () {
+                            // Reset selection on page load
+                            updateBulkDeleteState();
+                        });
+                    </script>
 
-            document.addEventListener('DOMContentLoaded', function () {
-                // Reset selection on page load
-                updateBulkDeleteState();
-            });
-        </script>
+                    <script>
+                        function disableUploadBtn() {
+                            var btn = document.getElementById('uploadBtn');
+                            if (btn) {
+                                btn.disabled = true;
+                                btn.textContent = 'Uploading...';
+                            }
+                            // Optionally clear file input and preview after a short delay
+                            setTimeout(function () {
+                                var fileInput = document.getElementById('imageInput');
+                                var fileList = document.getElementById('fileList');
+                                if (fileInput) fileInput.value = '';
+                                if (fileList) fileList.innerHTML = '';
+                            }, 500);
+                            return true;
+                        }
+                    </script>
 
-        <script>
-            function disableUploadBtn() {
-                var btn = document.getElementById('uploadBtn');
-                if (btn) {
-                    btn.disabled = true;
-                    btn.textContent = 'Uploading...';
-                }
-                // Optionally clear file input and preview after a short delay
-                setTimeout(function () {
-                    var fileInput = document.getElementById('imageInput');
-                    var fileList = document.getElementById('fileList');
-                    if (fileInput) fileInput.value = '';
-                    if (fileList) fileList.innerHTML = '';
-                }, 500);
-                return true;
-            }
-        </script>
-
-        <%- include('partials/dark-mode-toggle') %>
+                    <%- include('partials/dark-mode-toggle') %>
 </body>
 
 </html>
