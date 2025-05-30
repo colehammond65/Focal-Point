@@ -1,7 +1,10 @@
-module.exports = function notFoundPage(siteTitle = "Focal Point ") {
+module.exports = function notFoundPage(siteTitle = "Focal Point") {
   return `
-    <html>
+    <!DOCTYPE html>
+    <html lang="en">
       <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>404 Not Found | ${siteTitle}</title>
         <link rel="stylesheet" href="/styles.css">
       </head>
@@ -9,7 +12,7 @@ module.exports = function notFoundPage(siteTitle = "Focal Point ") {
         <div class="notfound-container">
           <h1>404</h1>
           <p>Sorry, the page you requested could not be found.</p>
-          <a href="/">Back to Home</a>
+          <a href="/" class="btn btn-primary">Back to Home</a>
         </div>
       </body>
     </html>

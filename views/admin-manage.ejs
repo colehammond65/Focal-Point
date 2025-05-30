@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <%= settings.siteTitle || "Focal Point " %>
+        <%= settings.siteTitle || "Focal Point" %> - Manage Images & Categories
     </title>
     <% if (settings.favicon) { %>
         <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
@@ -15,7 +15,7 @@
 </head>
 
 <body>
-    <%- include('partials/header', { showAdminNav: true }) %>
+    <%- include('partials/header', { showAdminNav: true, settings, loggedIn: true }) %>
         <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
             <div class="admin-msg" aria-live="polite">
                 <%= req.query.msg %>
@@ -31,7 +31,8 @@
                                 <label for="image">Choose image(s):</label>
                                 <p class="backup-note">Max 20 images at a time. Max 10MB per image. Supported formats:
                                     JPG, PNG, GIF.</p>
-                                <div id="dropzone" class="dropzone">Drag & drop images here or click to select</div>
+                                <div id="dropzone" class="dropzone" tabindex="0">Drag & drop images here or click to
+                                    select</div>
                                 <input type="file" name="images" id="image" multiple required style="display:none;">
                                 <div id="preview" class="preview"></div>
                                 <% if (categories.length> 0) { %>
@@ -50,8 +51,8 @@
                                             right.
                                         </p>
                                         <% } %>
-                                            <button type="submit" <%=categories.length===0 ? 'disabled' : ''
-                                                %>>Upload</button>
+                                            <button type="submit" class="btn btn-primary" <%=categories.length===0
+                                                ? 'disabled' : '' %>>Upload</button>
                             </form>
                         </section>
 
@@ -62,7 +63,7 @@
                                 <label for="newCategory" class="visually-hidden">New Category Name</label>
                                 <input type="text" id="newCategory" name="newCategory" placeholder="New category name"
                                     required class="flex-1">
-                                <button type="submit">Create</button>
+                                <button type="submit" class="btn btn-primary">Create</button>
                             </form>
                         </section>
                     </div>
@@ -105,7 +106,8 @@
                                                                 <input type="text" name="newName"
                                                                     placeholder="New category name" required
                                                                     minlength="2" maxlength="50" style="flex:1;">
-                                                                <button type="submit">Rename</button>
+                                                                <button type="submit"
+                                                                    class="btn btn-secondary">Rename</button>
                                                             </form>
                                                         </div>
                                                         <div class="image-options-box">
@@ -113,15 +115,16 @@
                                                             <form class="bulk-delete-form"
                                                                 onsubmit="return handleBulkDelete(event, '<%= cat.name %>')">
                                                                 <button type="submit" id="bulkDeleteBtn-<%= cat.name %>"
-                                                                    class="admin-action-btn" disabled>Delete
-                                                                    Selected</button>
+                                                                    class="admin-action-btn btn btn-danger"
+                                                                    disabled>Delete Selected</button>
                                                                 <button type="button" id="setThumbBtn-<%= cat.name %>"
-                                                                    class="admin-action-btn set-thumb-btn" disabled
+                                                                    class="admin-action-btn set-thumb-btn btn btn-secondary"
+                                                                    disabled
                                                                     onclick="handleSetThumbnail('<%= cat.name %>')">
                                                                     Set as Thumbnail
                                                                 </button>
                                                             </form>
-                                                            <!-- Move Images Form (NEW) -->
+                                                            <!-- Move Images Form -->
                                                             <form class="move-images-form"
                                                                 onsubmit="return handleMoveImages(event, '<%= cat.name %>')">
                                                                 <select name="toCategory" required>
@@ -134,7 +137,8 @@
                                                                         </option>
                                                                         <% } }) %>
                                                                 </select>
-                                                                <button type="submit" class="admin-action-btn"
+                                                                <button type="submit"
+                                                                    class="admin-action-btn btn btn-primary"
                                                                     id="moveImagesBtn-<%= cat.name %>"
                                                                     disabled>Move</button>
                                                             </form>
@@ -165,284 +169,169 @@
                                 <p>No categories found.</p>
                                 <% } %>
                     </section>
+                    <div id="toast-container" class="toast-container"></div>
+                    <div id="saving-indicator" class="saving-indicator">Saving...</div>
                 </div>
-                <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-                <script>
-                    // Enable/disable action buttons based on selection
-                    document.querySelectorAll('.image-options-box').forEach(box => {
-                        const grid = box.closest('.category-card').querySelector('.image-grid');
-                        const moveBtn = box.querySelector('.move-images-form button[type="submit"]');
-                        const deleteBtn = box.querySelector('.bulk-delete-form button[type="submit"]');
-                        const setThumbBtn = box.querySelector('.set-thumb-btn');
-                        if (!grid) return;
-
-                        function updateButtons() {
-                            const checked = grid.querySelectorAll('.img-item.selected');
-                            moveBtn && (moveBtn.disabled = checked.length === 0);
-                            deleteBtn && (deleteBtn.disabled = checked.length === 0);
-                            setThumbBtn && (setThumbBtn.disabled = checked.length !== 1);
-                        }
-
-                        // No checkboxes, so just run once
-                        updateButtons();
-                    });
-
-                    // Handle moving images
-                    function handleMoveImages(event, fromCategory) {
-                        event.preventDefault();
-                        const form = event.target;
-                        const toCategory = form.toCategory.value;
-                        const grid = form.closest('.category-card').querySelector('.image-grid');
-                        const checked = Array.from(grid.querySelectorAll('.img-item.selected'));
-                        if (!checked.length) {
-                            alert('Select at least one image to move.');
-                            return false;
-                        }
-                        const filenames = checked.map(item => item.getAttribute('data-filename'));
-                        fetch('/move-image', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ filenames, fromCategory, toCategory })
-                        })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    location.reload();
-                                } else {
-                                    alert(data.error || 'Failed to move images.');
-                                }
-                            });
-                        return false;
-                    }
-
-                    // Handle bulk delete
-                    function handleBulkDelete(event, category) {
-                        event.preventDefault();
-                        const grid = event.target.closest('.category-card').querySelector('.image-grid');
-                        const checked = Array.from(grid.querySelectorAll('.img-item.selected'));
-                        if (!checked.length) {
-                            alert('Select at least one image to delete.');
-                            return false;
-                        }
-                        if (!confirm('Are you sure you want to delete the selected images?')) return false;
-                        const filenames = checked.map(item => item.getAttribute('data-filename'));
-                        fetch('/bulk-delete-images', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ category, filenames })
-                        })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.deleted) {
-                                    deselectAllInGrid(grid);
-                                    location.reload();
-                                } else {
-                                    alert('Failed to delete images.');
-                                }
-                            });
-                        return false;
-                    }
-
-                    // Handle setting thumbnail
-                    function handleSetThumbnail(category) {
-                        // Find the selected image in this category's grid
-                        const grid = document.querySelector(`.image-grid[data-cat="${category}"]`);
-                        if (!grid) return;
-                        const checked = grid.querySelector('.img-item.selected');
-                        if (!checked) return;
-                        const filename = checked.getAttribute('data-filename');
-
-                        fetch('/set-thumbnail', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ category, filename })
-                        })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    location.reload();
-                                } else {
-                                    alert(data.error || 'Failed to set thumbnail.');
-                                }
-                            });
-                    }
-
-                    // Toggle category panel
-                    function toggleCategoryPanel(catName) {
-                        const panel = document.getElementById('cat-' + catName + '-panel');
-                        const toggle = panel && panel.parentElement.querySelector('.category-toggle');
-                        if (!panel) return;
-                        const isOpen = !panel.classList.contains('hidden');
-                        panel.classList.toggle('hidden', isOpen);
-                        if (toggle) {
-                            toggle.setAttribute('aria-expanded', !isOpen);
-                            // Optionally rotate the arrow
-                            const arrow = toggle.querySelector('.accordion-arrow');
-                            if (arrow) arrow.style.transform = !isOpen ? 'rotate(90deg)' : '';
-                        }
-                    }
-
-                    // DRY dropzone setup function (only for upload area)
-                    function setupDropzone(dropzone, input, fileNameSpan, onFiles) {
-                        if (!dropzone || !input) return;
-                        dropzone.addEventListener('click', () => {
-                            input.value = ""; // Always allow re-select
-                            input.click();
-                        });
-                        dropzone.addEventListener('keydown', e => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                input.click();
-                            }
-                        });
-                        dropzone.addEventListener('dragover', function (e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            dropzone.classList.add('dragover');
-                        });
-                        dropzone.addEventListener('dragleave', function (e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            dropzone.classList.remove('dragover');
-                        });
-                        dropzone.addEventListener('drop', function (e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            dropzone.classList.remove('dragover');
-                            if (e.dataTransfer.files.length) {
-                                input.files = e.dataTransfer.files;
-                                if (onFiles) onFiles(e.dataTransfer.files);
-                                if (fileNameSpan) fileNameSpan.textContent = e.dataTransfer.files[0].name;
-                            }
-                        });
-                        input.addEventListener('change', function () {
-                            if (onFiles) onFiles(this.files);
-                            if (fileNameSpan) fileNameSpan.textContent = this.files.length ? this.files[0].name : '';
-                        });
-                    }
-
-                    // Show image previews
-                    function showPreviews(files) {
-                        const preview = document.getElementById('preview');
-                        if (!preview) return;
-                        preview.innerHTML = '';
-                        Array.from(files).forEach(file => {
-                            if (!file.type.startsWith('image/')) return;
-                            const reader = new FileReader();
-                            reader.onload = function (e) {
-                                const img = document.createElement('img');
-                                img.src = e.target.result;
-                                img.style.maxWidth = '120px';
-                                img.style.maxHeight = '120px';
-                                img.style.margin = '0.5rem';
-                                img.alt = file.name;
-                                preview.appendChild(img);
-                            };
-                            reader.readAsDataURL(file);
-                        });
-                    }
-
-                    // Use DRY dropzone for image upload (only for upload area)
-                    setupDropzone(
-                        document.getElementById('dropzone'),
-                        document.getElementById('image'),
-                        null,
-                        showPreviews
-                    );
-
-                    // Deselect all selected images in a grid
-                    function deselectAllInGrid(grid) {
-                        grid.querySelectorAll('.img-item.selected').forEach(item => item.classList.remove('selected'));
-                    }
-
-                    // --- SortableJS for reordering categories and images ---
-                    // Categories
-                    new Sortable(document.getElementById('category-list'), {
-                        animation: 150,
-                        handle: '.category-toggle',
-                        onEnd: function (evt) {
-                            const order = Array.from(document.querySelectorAll('#category-list .category-accordion'))
-                                .map(el => el.getAttribute('data-cat'));
-                            fetch('/reorder-categories', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ order })
-                            }).then(res => res.json()).then(data => {
-                                if (!data.success) alert('Failed to save category order.');
-                            });
-                        }
-                    });
-
-                    // Images in each category
-                    document.querySelectorAll('.image-grid').forEach(grid => {
-                        new Sortable(grid, {
-                            animation: 150,
-                            draggable: '.img-item',
-                            onEnd: function (evt) {
-                                const cat = grid.getAttribute('data-cat');
-                                const order = Array.from(grid.querySelectorAll('.img-item'))
-                                    .map(el => el.getAttribute('data-filename'));
-                                fetch('/reorder-images', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ category: cat, order: JSON.stringify(order) })
-                                }).then(res => {
-                                    if (!res.ok) alert('Failed to save image order.');
+                <%- include('partials/dark-mode-toggle') %>
+                    <script src="/js/admin-manage.js"></script>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                            var dropzone = document.getElementById('dropzone');
+                            var fileInput = document.getElementById('image');
+                            if (dropzone && fileInput) {
+                                dropzone.addEventListener('click', function () {
+                                    fileInput.click();
+                                });
+                                dropzone.addEventListener('keydown', function (e) {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        fileInput.click();
+                                    }
+                                });
+                                // Optional: Add dragover/leave styling
+                                dropzone.addEventListener('dragover', function (e) {
+                                    e.preventDefault();
+                                    dropzone.classList.add('dragover');
+                                });
+                                dropzone.addEventListener('dragleave', function (e) {
+                                    e.preventDefault();
+                                    dropzone.classList.remove('dragover');
+                                });
+                                dropzone.addEventListener('drop', function (e) {
+                                    e.preventDefault();
+                                    dropzone.classList.remove('dragover');
+                                    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                                        fileInput.files = e.dataTransfer.files;
+                                        // Optionally trigger change event for preview
+                                        fileInput.dispatchEvent(new Event('change'));
+                                    }
                                 });
                             }
                         });
-                    });
-
-                    function toggleImageSelect(item) {
-                        item.classList.toggle('selected');
-                        updateImageBulkButtons(item.closest('.image-grid'));
-                    }
-
-                    function updateImageBulkButtons(grid) {
-                        const checked = grid.querySelectorAll('.img-item.selected');
-                        const optionsBox = grid.closest('.category-card').querySelector('.image-options-box');
-                        if (!optionsBox) return;
-                        const moveBtn = optionsBox.querySelector('.move-images-form button[type="submit"]');
-                        const deleteBtn = optionsBox.querySelector('.bulk-delete-form button[type="submit"]');
-                        const setThumbBtn = optionsBox.querySelector('.set-thumb-btn');
-                        moveBtn && (moveBtn.disabled = checked.length === 0);
-                        deleteBtn && (deleteBtn.disabled = checked.length === 0);
-                        setThumbBtn && (setThumbBtn.disabled = checked.length !== 1);
-                    }
-                </script>
-                <script>
-                    function showToast(msg, timeout = 3500) {
-                        const container = document.getElementById('toast-container');
-                        if (!container) return;
-                        const toast = document.createElement('div');
-                        toast.className = 'toast';
-                        toast.textContent = msg;
-                        container.appendChild(toast);
-                        setTimeout(() => {
-                            toast.style.animation = 'toast-out 0.4s forwards';
-                            setTimeout(() => toast.remove(), 400);
-                        }, timeout);
-                    }
-
-                    // Show toast if msg is present in query string
-                    (function () {
-                        const params = new URLSearchParams(window.location.search);
-                        const msg = params.get('msg');
-                        if (msg) {
-                            showToast(msg);
-                            // Remove msg from URL without reloading
-                            if (window.history.replaceState) {
-                                params.delete('msg');
-                                const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-                                window.history.replaceState({}, document.title, newUrl);
-                            }
+                    </script>
+                    <script>
+                        function toggleCategoryPanel(catName) {
+                            var toggle = document.querySelector('.category-accordion[data-cat="' + catName + '"] .category-toggle');
+                            var panel = document.getElementById('cat-' + catName + '-panel');
+                            if (!toggle || !panel) return;
+                            var expanded = panel.classList.toggle('hidden');
+                            toggle.setAttribute('aria-expanded', !expanded);
+                            // Optionally rotate arrow
+                            var arrow = toggle.querySelector('.accordion-arrow');
+                            if (arrow) arrow.style.transform = expanded ? '' : 'rotate(90deg)';
                         }
-                    })();
-                </script>
-                <div id="saving-indicator" class="saving-indicator">
-                    Saving...
-                </div>
-                <%- include('partials/dark-mode-toggle') %>
+
+                        // Optional: Keyboard accessibility for toggles
+                        document.addEventListener('DOMContentLoaded', function () {
+                            document.querySelectorAll('.category-toggle').forEach(function (toggle) {
+                                toggle.addEventListener('keydown', function (e) {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        var catName = toggle.closest('.category-accordion').getAttribute('data-cat');
+                                        toggleCategoryPanel(catName);
+                                    }
+                                });
+                            });
+                        });
+                    </script>
+                    <script>
+                        // Toggle selection for bulk image actions
+                        function toggleImageSelect(imgDiv) {
+                            imgDiv.classList.toggle('selected');
+                            // Enable/disable bulk action buttons based on selection
+                            var catName = imgDiv.closest('.category-accordion').getAttribute('data-cat');
+                            var selected = document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected');
+                            var bulkDeleteBtn = document.getElementById('bulkDeleteBtn-' + catName);
+                            var setThumbBtn = document.getElementById('setThumbBtn-' + catName);
+                            var moveImagesBtn = document.getElementById('moveImagesBtn-' + catName);
+                            if (bulkDeleteBtn) bulkDeleteBtn.disabled = selected.length === 0;
+                            if (setThumbBtn) setThumbBtn.disabled = selected.length !== 1;
+                            if (moveImagesBtn) moveImagesBtn.disabled = selected.length === 0;
+                        }
+
+                        // Optional: Deselect all images when switching category panels
+                        document.querySelectorAll('.category-toggle').forEach(function (toggle) {
+                            toggle.addEventListener('click', function () {
+                                var catName = toggle.closest('.category-accordion').getAttribute('data-cat');
+                                document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected')
+                                    .forEach(function (img) { img.classList.remove('selected'); });
+                                // Also disable bulk buttons
+                                var bulkDeleteBtn = document.getElementById('bulkDeleteBtn-' + catName);
+                                var setThumbBtn = document.getElementById('setThumbBtn-' + catName);
+                                var moveImagesBtn = document.getElementById('moveImagesBtn-' + catName);
+                                if (bulkDeleteBtn) bulkDeleteBtn.disabled = true;
+                                if (setThumbBtn) setThumbBtn.disabled = true;
+                                if (moveImagesBtn) moveImagesBtn.disabled = true;
+                            });
+                        });
+                    </script>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                            document.querySelectorAll('.image-grid').forEach(function (grid) {
+                                new Sortable(grid, {
+                                    animation: 150,
+                                    handle: '.img-item',
+                                    draggable: '.img-item',
+                                    onEnd: function (evt) {
+                                        // Save new order to server
+                                        const catName = grid.getAttribute('data-cat');
+                                        const order = Array.from(grid.querySelectorAll('.img-item')).map(div => div.dataset.filename);
+                                        fetch('/reorder-images', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ category: catName, order: JSON.stringify(order) })
+                                        })
+                                            .then(res => res.ok ? res.json() : Promise.reject())
+                                            .then(() => {
+                                                // Optionally show a toast or indicator
+                                                const indicator = document.getElementById('saving-indicator');
+                                                if (indicator) {
+                                                    indicator.textContent = 'Order saved!';
+                                                    indicator.style.opacity = 1;
+                                                    setTimeout(() => { indicator.style.opacity = 0; }, 1200);
+                                                }
+                                            })
+                                            .catch(() => {
+                                                const indicator = document.getElementById('saving-indicator');
+                                                if (indicator) {
+                                                    indicator.textContent = 'Failed to save order!';
+                                                    indicator.style.opacity = 1;
+                                                    setTimeout(() => { indicator.style.opacity = 0; }, 2000);
+                                                }
+                                            });
+                                    }
+                                });
+                            });
+                        });
+                    </script>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                            var fileInput = document.getElementById('image');
+                            var preview = document.getElementById('preview');
+                            if (fileInput && preview) {
+                                fileInput.addEventListener('change', function () {
+                                    preview.innerHTML = '';
+                                    if (fileInput.files.length > 0) {
+                                        Array.from(fileInput.files).forEach(function (file) {
+                                            if (file.type.startsWith('image/')) {
+                                                var reader = new FileReader();
+                                                reader.onload = function (e) {
+                                                    var img = document.createElement('img');
+                                                    img.src = e.target.result;
+                                                    img.className = 'preview-thumb';
+                                                    img.style.maxWidth = '80px';
+                                                    img.style.maxHeight = '80px';
+                                                    img.style.margin = '0.25em';
+                                                    preview.appendChild(img);
+                                                };
+                                                reader.readAsDataURL(file);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    </script>
 </body>
 
 </html>

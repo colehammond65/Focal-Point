@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= settings.siteTitle || "Focal Point" %> - Client Login
+    </title>
+    <% if (settings.favicon) { %>
+        <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
+        <% } %>
+            <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
+        <div class="container">
+            <form class="login-box" action="/client/login" method="POST" autocomplete="off">
+                <h1>Client Gallery Access</h1>
+                <p>Enter your access code and password to view your photo gallery.</p>
+                <% if (error) { %>
+                    <div class="error-message">
+                        <%= error %>
+                    </div>
+                    <% } %>
+                        <div class="form-group">
+                            <label for="accessCode" class="visually-hidden">Access Code</label>
+                            <input type="text" name="accessCode" id="accessCode" placeholder="Access Code" required
+                                autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="password" class="visually-hidden">Access Password</label>
+                            <input type="password" name="password" id="password" placeholder="Access Password" required
+                                autocomplete="current-password">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Access Gallery</button>
+            </form>
+        </div>
+        <%- include('partials/dark-mode-toggle') %>
+</body>
+
+</html>

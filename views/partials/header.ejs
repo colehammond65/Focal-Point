@@ -3,24 +3,83 @@
         <img src="/uploads/<%= settings.headerImage %>" alt="Site Header" class="header-image-preview">
         <% } else { %>
             <span class="site-title">
-                <%= settings.headerTitle || "Focal Point " %>
+                <%= settings.headerTitle || "Focal Point" %>
             </span>
             <% } %>
                 <nav>
                     <a href="/">Home</a>
                     <a href="/about">About</a>
                     <% if (typeof loggedIn !=='undefined' && loggedIn) { %>
-                        <a href="/admin/manage">Manage Images</a>
-                        <a href="/admin/settings">Site Settings</a>
-                        <a href="/admin/users">Admin Users</a>
-                        <a href="/admin/about">Edit About</a>
+                        <div class="dropdown">
+                            <a href="#" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                                Content <span class="dropdown-arrow">▼</span>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a href="/admin/manage" class="dropdown-item">Manage Images</a>
+                                <a href="/admin/clients" class="dropdown-item">Client Galleries</a>
+                                <a href="/admin/about" class="dropdown-item">Edit About Page</a>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <a href="#" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
+                                Settings <span class="dropdown-arrow">▼</span>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a href="/admin/settings" class="dropdown-item">Site Settings</a>
+                                <a href="/admin/users" class="dropdown-item">Admin Users</a>
+                            </div>
+                        </div>
                         <a href="/logout">Logout</a>
                         <% } else { %>
                             <a href="/login">Login</a>
                             <% } %>
                 </nav>
-                <!-- Dark mode toggle button absolutely positioned in header -->
                 <button id="darkModeToggle" aria-label="Toggle dark mode" class="dark-mode-toggle">
                     <span id="darkModeIcon" aria-hidden="true">🌙</span>
                 </button>
 </header>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle dropdown toggles
+        const dropdowns = document.querySelectorAll('.dropdown');
+        dropdowns.forEach(dropdown => {
+            const toggle = dropdown.querySelector('.dropdown-toggle');
+            toggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Close other dropdowns
+                dropdowns.forEach(otherDropdown => {
+                    if (otherDropdown !== dropdown) {
+                        otherDropdown.classList.remove('active');
+                    }
+                });
+                // Toggle this dropdown
+                dropdown.classList.toggle('active');
+            });
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function () {
+            dropdowns.forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
+        });
+
+        // Prevent dropdown menu clicks from closing the dropdown
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+        });
+
+        // Close dropdowns on escape key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                dropdowns.forEach(dropdown => {
+                    dropdown.classList.remove('active');
+                });
+            }
+        });
+    });
+</script>

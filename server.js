@@ -21,6 +21,20 @@ const bcrypt = require('bcryptjs');
 const backupUtils = require('./utils/backup');
 const Database = require('better-sqlite3');
 const marked = require('marked');
+const {
+  createClient,
+  verifyClient,
+  getClientImages,
+  addClientImage,
+  deleteClientImage,
+  getAllClients,
+  getClientById,
+  deleteClient,
+  toggleClientStatus,
+  incrementDownloadCount,
+  createZipArchive,
+  CLIENT_UPLOADS_DIR
+} = require('./utils/clients');
 
 const {
   getCategoriesWithPreviews,
@@ -242,6 +256,287 @@ if (process.env.NODE_ENV === 'test') {
       });
   }
 }
+
+// Client uploads configuration
+const clientStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const clientDir = path.join(CLIENT_UPLOADS_DIR, req.params.clientId);
+    if (!fs.existsSync(clientDir)) {
+      fs.mkdirSync(clientDir, { recursive: true });
+    }
+    cb(null, clientDir);
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    cb(null, `${timestamp}-${uuidv4()}${ext}`);
+  }
+});
+
+const clientUpload = multer({
+  storage: clientStorage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files allowed'), false);
+    }
+  },
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
+
+// Client middleware
+function requireClientLogin(req, res, next) {
+  if (req.session && req.session.clientLoggedIn) {
+    next();
+  } else {
+    res.redirect('/client/login');
+  }
+}
+
+// Client login page (password only)
+app.get('/client/login', (req, res) => {
+  const settings = getAllSettings();
+  res.render('client-login', {
+    error: null,
+    settings,
+    showAdminNav: false,
+    loggedIn: false
+  });
+});
+
+// Client login handler (access code and password)
+app.post('/client/login', loginLimiter, async (req, res) => {
+  const { accessCode, password } = req.body;
+  const client = verifyClient(accessCode, password);
+
+  if (client) {
+    req.session.clientLoggedIn = true;
+    req.session.clientId = client.id;
+    req.session.clientName = client.client_name;
+    req.session.shootTitle = client.shoot_title;
+    res.redirect('/client/gallery');
+  } else {
+    const settings = getAllSettings();
+    res.render('client-login', {
+      error: 'Invalid access code or password, or access expired',
+      settings,
+      showAdminNav: false,
+      loggedIn: false
+    });
+  }
+});
+
+// Secure client image serving
+app.get('/client-images/:filename', requireClientLogin, (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
+
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Image not found');
+  }
+});
+
+// Admin: Serve client images (for admin upload page)
+app.get('/admin/client-images/:clientId/:filename', requireLogin, (req, res) => {
+  const { clientId, filename } = req.params;
+
+  // Verify the image belongs to this client in the database
+  const image = db.prepare('SELECT * FROM client_images WHERE client_id = ? AND filename = ?')
+    .get(clientId, filename);
+
+  if (!image) {
+    return res.status(404).send('Image not found');
+  }
+
+  const filePath = path.join(CLIENT_UPLOADS_DIR, clientId.toString(), filename);
+
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Image not found');
+  }
+});
+
+// Download single image
+app.get('/client/download/:filename', requireClientLogin, (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
+
+  if (fs.existsSync(filePath)) {
+    const image = db.prepare('SELECT * FROM client_images WHERE filename = ? AND client_id = ?')
+      .get(filename, req.session.clientId);
+
+    if (image) {
+      incrementDownloadCount(req.session.clientId, image.id);
+      res.download(filePath, image.original_filename || filename);
+    } else {
+      res.status(404).send('Image not found');
+    }
+  } else {
+    res.status(404).send('Image not found');
+  }
+});
+
+// Download all images as ZIP
+app.get('/client/download-all', requireClientLogin, (req, res) => {
+  try {
+    const { archive, zipName } = createZipArchive(req.session.clientId);
+    archive.on('error', err => {
+      console.error('Error creating zip:', err);
+      res.status(500).send('Error creating download');
+    });
+    incrementDownloadCount(req.session.clientId);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
+
+    archive.pipe(res);
+  } catch (err) {
+    console.error('Error creating zip:', err);
+    res.status(500).send('Error creating download');
+  }
+});
+
+// Client logout
+app.post('/client/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/client/login');
+  });
+});
+
+// Client gallery (shows their images)
+app.get('/client/gallery', requireClientLogin, async (req, res) => {
+  const clientId = req.session.clientId;
+  const images = getClientImages(clientId);
+  const settings = getAllSettings();
+  res.render('client-gallery', {
+    images,
+    clientName: req.session.clientName,
+    shootTitle: req.session.shootTitle,
+    settings,
+    showAdminNav: false,
+    loggedIn: false
+  });
+});
+
+// Admin: Client management page
+app.get('/admin/clients', requireLogin, (req, res) => {
+  const clients = getAllClients();
+  const settings = getAllSettings();
+
+  res.render('admin-clients', {
+    clients,
+    settings,
+    req,
+    showAdminNav: true,
+    loggedIn: true
+  });
+});
+
+// Admin: Create new client page
+app.get('/admin/clients/new', requireLogin, (req, res) => {
+  const settings = getAllSettings();
+  res.render('admin-client-new', {
+    settings,
+    req,
+    showAdminNav: true,
+    loggedIn: true
+  });
+});
+
+// Admin: Create new client
+app.post('/admin/clients/create', requireLogin, async (req, res) => {
+  const { clientName, shootTitle, password, customExpiry } = req.body;
+
+  if (!clientName || !password) {
+    return res.redirect('/admin/clients/new?error=Name and password required');
+  }
+
+  try {
+    const expiryDate = customExpiry ? new Date(customExpiry) : null;
+    const result = createClient(clientName, shootTitle, password, expiryDate);
+
+    res.redirect(`/admin/clients/${result.id}/upload?created=true&code=${result.accessCode}`);
+  } catch (err) {
+    console.error('Error creating client:', err);
+    res.redirect('/admin/clients/new?error=Failed to create client');
+  }
+});
+
+// Replace this route temporarily for testing:
+app.get('/admin/clients/:clientId/upload', requireLogin, (req, res) => {
+  try {
+    const clientId = req.params.clientId;
+    const clientData = getClientById(clientId);
+
+    if (!clientData) {
+      return res.status(404).send('Client not found');
+    }
+
+    const images = getClientImages(clientId);
+    const settings = getAllSettings();
+
+    res.render('admin-client-upload', {
+      clientData,
+      images,
+      settings,
+      req,
+      showAdminNav: true,
+      loggedIn: true
+    });
+
+  } catch (error) {
+    console.error('Error in route:', error);
+    res.status(500).send('Error: ' + error.message);
+  }
+});
+
+// Admin: Upload images for client
+app.post('/admin/clients/:clientId/upload', requireLogin, clientUpload.array('images', 50), (req, res) => {
+  const clientId = req.params.clientId;
+
+  if (req.files) {
+    req.files.forEach(file => {
+      addClientImage(clientId, file.filename, file.originalname, file.size);
+    });
+  }
+
+  res.redirect(`/admin/clients/${clientId}/upload?uploaded=${req.files ? req.files.length : 0}`);
+});
+
+// Admin: Delete client image
+app.post('/admin/clients/:clientId/images/:imageId/delete', requireLogin, (req, res) => {
+  const { clientId, imageId } = req.params;
+  deleteClientImage(parseInt(clientId), parseInt(imageId));
+  res.redirect(`/admin/clients/${clientId}/upload?deleted=true`);
+});
+
+// Bulk delete client images
+app.post('/admin/clients/:clientId/images/bulk-delete', requireLogin, (req, res) => {
+  const { clientId } = req.params;
+  let imageIds = req.body.imageIds;
+  if (!imageIds) return res.redirect(`/admin/clients/${clientId}/upload?msg=No images selected`);
+  imageIds = imageIds.split(',').filter(Boolean);
+  imageIds.forEach(id => deleteClientImage(parseInt(clientId), parseInt(id)));
+  res.redirect(`/admin/clients/${clientId}/upload?msg=Deleted ${imageIds.length} photo(s)!`);
+});
+
+// Admin: Delete client
+app.post('/admin/clients/:id/delete', requireLogin, (req, res) => {
+  const clientId = req.params.id;
+  deleteClient(clientId);
+  res.redirect('/admin/clients?msg=Client deleted');
+});
+
+// Admin: Toggle client status
+app.post('/admin/clients/:id/toggle', requireLogin, (req, res) => {
+  const clientId = req.params.id;
+  toggleClientStatus(clientId);
+  res.redirect('/admin/clients?msg=Client status updated');
+});
 
 // Homepage: Show all categories with previews
 app.get('/', async (req, res) => {
@@ -565,7 +860,6 @@ app.post('/admin/settings/remove-header-image', requireLogin, (req, res) => {
   // Always clear the setting
   const settings = getAllSettings();
   const headerImage = settings.headerImage;
-  console.log('Removing header image:', headerImage);
   setSetting('headerImage', '');
 
   // Try to delete the file if it exists
@@ -821,6 +1115,12 @@ app.get('/admin/backup', requireLogin, async (req, res) => {
       archive.directory(uploadsDir, 'uploads');
     }
 
+    // Add the client-uploads directory
+    const clientUploadsDir = CLIENT_UPLOADS_DIR;
+    if (fs.existsSync(clientUploadsDir)) {
+      archive.directory(clientUploadsDir, 'client-uploads');
+    }
+
     // Wait for the archive to finish and get the buffer
     const backupBuffer = await new Promise((resolve, reject) => {
       archive.on('end', () => resolve(Buffer.concat(chunks)));
@@ -864,6 +1164,12 @@ app.post('/admin/backup', requireLogin, async (req, res) => {
     const uploadsDir = path.join(__dirname, 'public', 'uploads');
     if (fs.existsSync(uploadsDir)) {
       archive.directory(uploadsDir, 'uploads');
+    }
+
+    // Add the client-uploads directory
+    const clientUploadsDir = CLIENT_UPLOADS_DIR;
+    if (fs.existsSync(clientUploadsDir)) {
+      archive.directory(clientUploadsDir, 'client-uploads');
     }
 
     // Wait for the archive to finish and get the buffer

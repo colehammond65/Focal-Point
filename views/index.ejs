@@ -6,7 +6,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>
-    <%= settings.siteTitle || "Photo Gallery" %>
+    <%= settings.siteTitle || "Focal Point" %> - Home
   </title>
   <% if (settings.favicon) { %>
     <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
@@ -17,7 +17,7 @@
 </head>
 
 <body>
-  <%- include('partials/header', { showAdminNav: false }) %>
+  <%- include('partials/header', { showAdminNav: false, settings, loggedIn }) %>
     <div class="container">
       <% var loggedIn=typeof loggedIn !=='undefined' ? loggedIn : false; %>
 
@@ -56,133 +56,128 @@
                   <div id="lightboxAlt" class="lightbox-alt"></div>
                 </div>
               </div>
-
-              <script>
-                var isCategoryGrid = <%= images && images.length ? 'false' : 'true' %>;
-              </script>
-
-              <script>
-                // Lightbox functionality for gallery images
-                const images = document.querySelectorAll('.gallery img');
-                const lightbox = document.getElementById('lightbox');
-                const lightboxImg = document.getElementById('lightboxImg');
-                const closeBtn = document.getElementById('closeBtn');
-
-                images.forEach(img => {
-                  img.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    lightboxImg.src = img.src;
-                    lightboxImg.alt = img.alt;
-                    lightbox.style.display = 'flex';
-                    document.body.classList.add('lightbox-open');
-                    closeBtn.focus();
-                    const altBox = document.getElementById('lightboxAlt');
-                    if (img.alt && img.alt.trim() !== '') {
-                      altBox.textContent = img.alt;
-                      altBox.style.display = '';
-                    } else {
-                      altBox.textContent = '';
-                      altBox.style.display = 'none';
-                    }
-                  });
-                });
-
-                function closeLightbox() {
-                  lightbox.style.display = 'none';
-                  lightboxImg.src = '';
-                  document.body.classList.remove('lightbox-open');
-                }
-
-                closeBtn.addEventListener('click', closeLightbox);
-
-                document.addEventListener('keydown', (e) => {
-                  if (e.key === 'Escape') {
-                    closeLightbox();
-                  }
-                });
-
-                lightbox.addEventListener('click', (e) => {
-                  if (e.target === lightbox) {
-                    closeLightbox();
-                  }
-                });
-
-                // Fade-in effect for lazy-loaded images
-                document.querySelectorAll('.gallery img[loading="lazy"]').forEach(img => {
-                  img.addEventListener('load', () => {
-                    img.setAttribute('data-loaded', 'true');
-                  });
-                  // If already cached
-                  if (img.complete) {
-                    img.setAttribute('data-loaded', 'true');
-                  }
-                });
-
-                // Balance category grid layout
-                function balanceCategoryGrid() {
-                  const grid = document.querySelector('.categories');
-                  if (!grid) return;
-                  const gallery = document.querySelector('.gallery');
-                  if (gallery) return; // Only run on homepage
-                  const items = grid.children.length;
-                  const containerWidth = grid.offsetWidth;
-                  const minCardWidth = 220; // Minimum width for a card
-
-                  // Responsive breakpoints
-                  if (window.innerWidth <= 900) {
-                    grid.style.display = 'grid';
-                    grid.style.gridTemplateColumns = `repeat(1, minmax(${minCardWidth}px, 1fr))`;
-                    grid.style.justifyContent = 'center';
-                    return;
-                  }
-                  if (window.innerWidth <= 1250) {
-                    grid.style.display = 'grid';
-                    grid.style.gridTemplateColumns = `repeat(2, minmax(${minCardWidth}px, 1fr))`;
-                    grid.style.justifyContent = 'center';
-                    return;
-                  }
-
-                  // Desktop: balance columns, but enforce min width
-                  const minDesktopCardWidth = 350;
-                  let bestCols = 1;
-                  let bestRows = items;
-                  let bestImbalance = Infinity;
-
-                  for (let cols = 1; cols <= items; cols++) {
-                    const cardWidth = containerWidth / cols;
-                    if (cardWidth < minDesktopCardWidth) continue;
-
-                    const rows = Math.ceil(items / cols);
-                    const lastRowItems = items % cols || cols;
-                    if (lastRowItems < 2) continue;
-
-                    const imbalance = Math.abs(cols - (items / rows));
-                    if (
-                      rows < bestRows ||
-                      (rows === bestRows && imbalance < bestImbalance)
-                    ) {
-                      bestCols = cols;
-                      bestRows = rows;
-                      bestImbalance = imbalance;
-                    }
-                  }
-
-                  grid.style.display = 'grid';
-                  grid.style.gridTemplateColumns = `repeat(${bestCols}, minmax(${minCardWidth}px, 1fr))`;
-                  grid.style.justifyContent = '';
-                }
-
-                // Only run balanceCategoryGrid if the .categories grid is present and images are NOT present
-                window.addEventListener('resize', () => {
-                  if (isCategoryGrid) balanceCategoryGrid();
-                });
-                window.addEventListener('DOMContentLoaded', () => {
-                  if (isCategoryGrid) balanceCategoryGrid();
-                });
-              </script>
     </div>
     <%- include('partials/footer') %>
       <%- include('partials/dark-mode-toggle') %>
+
+        <script>
+          var isCategoryGrid = <%= images && images.length ? 'false' : 'true' %>;
+
+          // Lightbox functionality for gallery images
+          document.addEventListener('DOMContentLoaded', function () {
+            const images = document.querySelectorAll('.gallery img');
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightboxImg');
+            const closeBtn = document.getElementById('closeBtn');
+            const altBox = document.getElementById('lightboxAlt');
+
+            images.forEach(img => {
+              img.addEventListener('click', (e) => {
+                e.preventDefault();
+                lightboxImg.src = img.src;
+                lightboxImg.alt = img.alt;
+                lightbox.style.display = 'flex';
+                document.body.classList.add('lightbox-open');
+                closeBtn.focus();
+                if (img.alt && img.alt.trim() !== '') {
+                  altBox.textContent = img.alt;
+                  altBox.style.display = '';
+                } else {
+                  altBox.textContent = '';
+                  altBox.style.display = 'none';
+                }
+              });
+            });
+
+            function closeLightbox() {
+              lightbox.style.display = 'none';
+              lightboxImg.src = '';
+              document.body.classList.remove('lightbox-open');
+            }
+
+            closeBtn.addEventListener('click', closeLightbox);
+
+            document.addEventListener('keydown', (e) => {
+              if (e.key === 'Escape') {
+                closeLightbox();
+              }
+            });
+
+            lightbox.addEventListener('click', (e) => {
+              if (e.target === lightbox) {
+                closeLightbox();
+              }
+            });
+
+            // Fade-in effect for lazy-loaded images
+            document.querySelectorAll('.gallery img[loading="lazy"]').forEach(img => {
+              img.addEventListener('load', () => {
+                img.setAttribute('data-loaded', 'true');
+              });
+              if (img.complete) {
+                img.setAttribute('data-loaded', 'true');
+              }
+            });
+
+            // Balance category grid layout
+            function balanceCategoryGrid() {
+              const grid = document.querySelector('.categories');
+              if (!grid) return;
+              const gallery = document.querySelector('.gallery');
+              if (gallery) return; // Only run on homepage
+              const items = grid.children.length;
+              const containerWidth = grid.offsetWidth;
+              const minCardWidth = 220;
+
+              if (window.innerWidth <= 900) {
+                grid.style.display = 'grid';
+                grid.style.gridTemplateColumns = `repeat(1, minmax(${minCardWidth}px, 1fr))`;
+                grid.style.justifyContent = 'center';
+                return;
+              }
+              if (window.innerWidth <= 1250) {
+                grid.style.display = 'grid';
+                grid.style.gridTemplateColumns = `repeat(2, minmax(${minCardWidth}px, 1fr))`;
+                grid.style.justifyContent = 'center';
+                return;
+              }
+
+              // Desktop: balance columns, but enforce min width
+              const minDesktopCardWidth = 350;
+              let bestCols = 1;
+              let bestRows = items;
+              let bestImbalance = Infinity;
+
+              for (let cols = 1; cols <= items; cols++) {
+                const cardWidth = containerWidth / cols;
+                if (cardWidth < minDesktopCardWidth) continue;
+
+                const rows = Math.ceil(items / cols);
+                const lastRowItems = items % cols || cols;
+                if (lastRowItems < 2) continue;
+
+                const imbalance = Math.abs(cols - (items / rows));
+                if (
+                  rows < bestRows ||
+                  (rows === bestRows && imbalance < bestImbalance)
+                ) {
+                  bestCols = cols;
+                  bestRows = rows;
+                  bestImbalance = imbalance;
+                }
+              }
+
+              grid.style.display = 'grid';
+              grid.style.gridTemplateColumns = `repeat(${bestCols}, minmax(${minCardWidth}px, 1fr))`;
+              grid.style.justifyContent = '';
+            }
+
+            window.addEventListener('resize', () => {
+              if (isCategoryGrid) balanceCategoryGrid();
+            });
+            if (isCategoryGrid) balanceCategoryGrid();
+          });
+        </script>
 </body>
 
 </html>

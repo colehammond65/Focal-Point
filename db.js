@@ -3,8 +3,18 @@ const { Umzug } = require('umzug');
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(__dirname, 'data', 'gallery.db');
-const db = new Database(dbPath);
+// Ensure data directory exists
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+  console.log('Created data directory');
+}
+
+// Create database connection
+const db = new Database(path.join(dataDir, 'gallery.db'));
+
+// Enable foreign keys
+db.pragma('foreign_keys = ON');
 
 const migrationsDir = path.join(__dirname, 'migrations');
 const migrationFiles = fs.readdirSync(migrationsDir)

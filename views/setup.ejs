@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <%= settings.siteTitle || "Focal Point " %>
+        <%= settings.siteTitle || "Focal Point" %> - Setup
     </title>
     <% if (settings.favicon) { %>
         <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
@@ -14,20 +14,24 @@
 </head>
 
 <body>
-    <%- include('partials/header', { showAdminNav: false }) %>
+    <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
         <div class="container">
-            <form class="login-box" action="/setup" method="POST">
-                <h2>Setup Admin Account</h2>
+            <form class="login-box" action="/setup" method="POST" autocomplete="off">
+                <h1>Setup Admin Account</h1>
                 <% if (error) { %>
-                    <div class="error">
+                    <div class="error-message">
                         <%= error %>
                     </div>
                     <% } %>
-                        <label for="username" class="visually-hidden">Username</label>
-                        <input type="text" id="username" name="username" placeholder="Username" required autofocus>
-                        <label for="password" class="visually-hidden">Password</label>
-                        <input type="password" id="password" name="password" placeholder="Password" required>
-                        <button type="submit">Create Admin Account</button>
+                        <div class="form-group">
+                            <label for="username" class="visually-hidden">Username</label>
+                            <input type="text" id="username" name="username" placeholder="Username" required autofocus>
+                        </div>
+                        <div class="form-group">
+                            <label for="password" class="visually-hidden">Password</label>
+                            <input type="password" id="password" name="password" placeholder="Password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Admin Account</button>
             </form>
         </div>
         <%- include('partials/dark-mode-toggle') %>

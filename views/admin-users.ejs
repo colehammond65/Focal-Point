@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <%= settings.siteTitle || "Focal Point " %>
+        <%= settings.siteTitle || "Focal Point" %> - Admin Users
     </title>
     <% if (settings.favicon) { %>
         <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
@@ -14,7 +14,7 @@
 </head>
 
 <body>
-    <%- include('partials/header', { showAdminNav: true }) %>
+    <%- include('partials/header', { showAdminNav: true, settings, loggedIn: true }) %>
         <div class="container">
             <h1>Admin User Management</h1>
             <% if (req.query && req.query.msg) { %>
@@ -29,10 +29,12 @@
                                 <h2>Create New Admin</h2>
                                 <form action="/admin/users/create" method="POST" class="admin-form">
                                     <label for="username">Username:</label>
-                                    <input type="text" name="username" required minlength="3" maxlength="32">
+                                    <input type="text" id="username" name="username" required minlength="3"
+                                        maxlength="32" autocomplete="username">
                                     <label for="password">Password:</label>
-                                    <input type="password" name="password" required minlength="4">
-                                    <button type="submit">Create Admin</button>
+                                    <input type="password" id="password" name="password" required minlength="4"
+                                        autocomplete="new-password">
+                                    <button type="submit" class="btn btn-primary">Create Admin</button>
                                 </form>
                             </section>
                             <section class="admin-card">
@@ -46,7 +48,7 @@
                                             <% if (a.id !==currentAdmin) { %>
                                                 <form action="/admin/users/delete" method="POST" class="inline-form">
                                                     <input type="hidden" name="id" value="<%= a.id %>">
-                                                    <button type="submit"
+                                                    <button type="submit" class="btn btn-danger btn-small"
                                                         onclick="return confirm('Delete this admin?')">Delete</button>
                                                 </form>
                                                 <% } else { %>
@@ -67,7 +69,7 @@
                                     <label for="currentPasswordUsername">Current Password:</label>
                                     <input type="password" id="currentPasswordUsername" name="currentPassword" required
                                         autocomplete="current-password">
-                                    <button type="submit">Change Username</button>
+                                    <button type="submit" class="btn btn-primary">Change Username</button>
                                 </form>
                             </section>
                             <section class="admin-card">
@@ -79,7 +81,7 @@
                                     <label for="newPassword">New Password:</label>
                                     <input type="password" id="newPassword" name="newPassword" required minlength="4"
                                         autocomplete="new-password">
-                                    <button type="submit">Change Password</button>
+                                    <button type="submit" class="btn btn-primary">Change Password</button>
                                 </form>
                             </section>
                         </div>

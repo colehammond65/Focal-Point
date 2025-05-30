@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <%= settings.siteTitle || "Focal Point " %>
+        <%= settings.siteTitle || "Focal Point" %> - Site Settings
     </title>
     <% if (settings.favicon) { %>
         <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
@@ -14,10 +14,11 @@
 </head>
 
 <body>
-    <%- include('partials/header', { showAdminNav: true }) %>
+    <%- include('partials/header', { showAdminNav: true, settings, loggedIn: true }) %>
         <div class="container">
             <h1>Site Settings</h1>
             <div class="settings-flex-row">
+                <!-- Branding Section -->
                 <section class="admin-card">
                     <h2>Branding</h2>
                     <form action="/admin/settings" method="POST" enctype="multipart/form-data" class="admin-form">
@@ -29,13 +30,11 @@
                             <div class="header-type-radio-group">
                                 <label>
                                     <input type="radio" name="headerType" value="text" <%=headerType==='text'
-                                        ? 'checked' : '' %>>
-                                    Text
+                                        ? 'checked' : '' %>> Text
                                 </label>
                                 <label>
                                     <input type="radio" name="headerType" value="image" <%=headerType==='image'
-                                        ? 'checked' : '' %>>
-                                    Image
+                                        ? 'checked' : '' %>> Image
                                 </label>
                             </div>
 
@@ -78,18 +77,19 @@
                                 <% } %>
                                     <img id="faviconPreviewDynamic" alt="Favicon Preview"
                                         style="display:none;max-width:32px;max-height:32px;margin-top:0.5em;" />
-                                    <button type="submit">Save Settings</button>
+                                    <button type="submit" class="btn btn-primary">Save Settings</button>
                     </form>
                     <% if (settings.headerImage) { %>
                         <form action="/admin/settings/remove-header-image" method="POST" class="form-margin-top">
-                            <button type="submit" class="danger-btn">Remove Header Image</button>
+                            <button type="submit" class="btn btn-danger">Remove Header Image</button>
                         </form>
                         <% } %>
                 </section>
+                <!-- Backup & Restore Section -->
                 <section class="admin-card">
                     <h2>Backup & Restore</h2>
                     <form action="/admin/backup" method="POST" class="form-margin-bottom">
-                        <button type="submit">Take Backup</button>
+                        <button type="submit" class="btn btn-secondary">Take Backup</button>
                     </form>
                     <form action="/admin/restore" method="POST" enctype="multipart/form-data"
                         onsubmit="return confirm('This will overwrite your current database and images. Continue?');"
@@ -100,24 +100,24 @@
                                 style="display:none;">
                             <span id="restoreFileName" class="file-name-label"></span>
                         </div>
-                        <button type="submit" id="restoreBtn" disabled>Restore Backup</button>
+                        <button type="submit" id="restoreBtn" class="btn btn-primary" disabled>Restore Backup</button>
                     </form>
                     <p class="backup-note">Backups are ZIP files containing your database and all images.</p>
                     <% if (serverBackups.length) { %>
                         <h3>Server Backups</h3>
                         <form id="backup-bulk-form" method="POST" action="/admin/backup/bulk-action"
                             style="margin-bottom:1rem;">
-                            <button type="button" name="action" value="download" id="download-selected-btn" disabled>
+                            <button type="button" name="action" value="download" id="download-selected-btn"
+                                class="btn btn-secondary" disabled>
                                 Download Selected
                             </button>
                             <button type="submit" name="action" value="delete" id="delete-selected-btn"
-                                class="danger-btn ml-05" disabled
+                                class="btn btn-danger ml-05" disabled
                                 onclick="return confirm('Delete all selected backups?');">Delete Selected</button>
-                            <button type="button" id="restore-selected-btn" class="ml-05" disabled>
+                            <button type="button" id="restore-selected-btn" class="btn btn-primary ml-05" disabled>
                                 Restore Selected
                             </button>
                         </form>
-
                         <div class="admin-list">
                             <% serverBackups.forEach((b, idx)=> { %>
                                 <label class="admin-list-item backup-select-item" for="backup-checkbox-<%= idx %>"
@@ -129,7 +129,6 @@
                                             <%= b.name %>
                                         </span>
                                         <span class="backup-meta" data-backup-date="<%= b.mtime.toISOString() %>">
-                                            <!-- JS will fill this in -->
                                             <%= (b.size/1024/1024).toFixed(2) %> MB
                                         </span>
                                     </div>
@@ -138,15 +137,16 @@
                         </div>
                         <p class="backup-note">
                             Server backup storage limit: <%= (backupLimit/1024/1024).toFixed(0) %> MB.<br>
-                                Current usage: <%= (serverBackups.reduce((a,b)=>
-                                    a+b.size,0)/1024/1024).toFixed(2) %> MB.
+                                Current usage: <%= (serverBackups.reduce((a,b)=> a+b.size,0)/1024/1024).toFixed(2) %>
+                                    MB.
                         </p>
                         <% } %>
                 </section>
             </div>
+            <div id="toast-container" class="toast-container"></div>
         </div>
-        <div id="toast-container" class="toast-container"></div>
         <%- include('partials/dark-mode-toggle') %>
+            <!-- Scripts for dropzones, previews, and bulk actions -->
             <script>
                 // DRY dropzone setup function
                 function setupDropzone(dropzone, input, fileNameSpan, onFiles) {
@@ -216,13 +216,9 @@
                     document.getElementById('headerTextInput').classList.toggle('hidden', checked.value !== 'text');
                     document.getElementById('headerImageInput').classList.toggle('hidden', checked.value !== 'image');
                 }
-
-                // Update on radio change
                 document.querySelectorAll('input[name="headerType"]').forEach(radio => {
                     radio.addEventListener('change', updateHeaderInputVisibility);
                 });
-
-                // Update on page load
                 window.addEventListener('DOMContentLoaded', updateHeaderInputVisibility);
             </script>
             <script>
@@ -244,7 +240,6 @@
                     checked.forEach(cb => {
                         const filename = encodeURIComponent(cb.value);
                         const url = `/admin/backup/download/${filename}`;
-                        // Create a temporary link and click it to trigger download
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = cb.value;
@@ -259,18 +254,15 @@
                     const checked = document.querySelectorAll('.backup-checkbox:checked');
                     if (checked.length !== 1) return;
                     const filename = checked[0].value;
-                    // Create a form and submit it to /admin/restore
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.action = '/admin/restore-selected';
                     form.style.display = 'none';
-
                     const input = document.createElement('input');
                     input.type = 'hidden';
                     input.name = 'backup';
                     input.value = filename;
                     form.appendChild(input);
-
                     document.body.appendChild(form);
                     form.submit();
                 });
@@ -288,14 +280,11 @@
                         setTimeout(() => toast.remove(), 400);
                     }, timeout);
                 }
-
-                // Show toast if msg is present in query string
                 (function () {
                     const params = new URLSearchParams(window.location.search);
                     const msg = params.get('msg');
                     if (msg) {
                         showToast(msg);
-                        // Remove msg from URL without reloading
                         if (window.history.replaceState) {
                             params.delete('msg');
                             const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
@@ -310,9 +299,7 @@
                     var restoreBtn = document.getElementById('restoreBtn');
                     var restoreFileName = document.getElementById('restoreFileName');
                     if (restoreInput && restoreBtn) {
-                        // On page load, ensure button is disabled if no file is selected
                         restoreBtn.disabled = !restoreInput.files.length;
-                        // Also clear the filename label if no file is selected
                         if (restoreFileName && !restoreInput.files.length) {
                             restoreFileName.textContent = '';
                         }
@@ -327,7 +314,7 @@
                     if (restoreBtn) restoreBtn.disabled = true;
                     if (restoreFileName) restoreFileName.textContent = '';
                     if (restoreInput) {
-                        restoreInput.value = ""; // Clear any file selection
+                        restoreInput.value = "";
                     }
                 });
             </script>
@@ -348,7 +335,6 @@
                             }
                         });
                     }
-
                     // Header image preview
                     const headerInput = document.getElementById('headerImage');
                     const headerPreview = document.getElementById('headerImagePreviewDynamic');
@@ -372,9 +358,7 @@
                         const iso = span.getAttribute('data-backup-date');
                         if (iso) {
                             const date = new Date(iso);
-                            // Format as local date and time
                             const formatted = date.toLocaleString();
-                            // Insert at the beginning, keep MB info after
                             span.innerHTML = `${formatted} &mdash; ${span.innerHTML.replace(/^[^&]+&mdash;\s*/, '')}`;
                         }
                     });

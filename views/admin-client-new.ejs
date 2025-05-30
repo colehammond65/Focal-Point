@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= settings.siteTitle || "Focal Point" %> - Create New Client
+    </title>
+    <% if (settings.favicon) { %>
+        <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
+        <% } %>
+            <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <%- include('partials/header', { showAdminNav: true }) %>
+
+        <div class="container">
+            <div class="admin-container">
+                <h1>Create New Client</h1>
+
+                <% if (req.query.error) { %>
+                    <div class="error-message">
+                        <%= req.query.error %>
+                    </div>
+                    <% } %>
+
+                        <div class="form-container">
+                            <form action="/admin/clients/create" method="POST">
+                                <div class="form-group">
+                                    <label for="clientName">Client Name *</label>
+                                    <input type="text" name="clientName" id="clientName" required maxlength="100"
+                                        placeholder="John Smith">
+                                    <small>The client's full name</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="shootTitle">Shoot Title</label>
+                                    <input type="text" name="shootTitle" id="shootTitle" maxlength="100"
+                                        placeholder="Wedding Photos, Portrait Session, etc.">
+                                    <small>Optional description of the photo shoot</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="password">Access Password *</label>
+                                    <input type="text" name="password" id="password" required minlength="4"
+                                        maxlength="50" placeholder="Enter a password">
+                                    <div class="password-generator">
+                                        <button type="button" class="generate-btn" onclick="generatePassword()">Generate
+                                            Random Password</button>
+                                    </div>
+                                    <small>This is what the client will use to log in. Make it memorable but
+                                        secure.</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="customExpiry">Expiry Date</label>
+                                    <input type="datetime-local" name="customExpiry" id="customExpiry">
+                                    <small>Leave blank for default 1-month expiry. After this date, the client cannot
+                                        access their gallery.</small>
+                                </div>
+
+                                <div class="form-actions">
+                                    <a href="/admin/clients" class="btn btn-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">Create Client</button>
+                                </div>
+                            </form>
+                        </div>
+            </div>
+        </div>
+
+        <script>
+            // Set default expiry to 1 month from now
+            window.onload = function () {
+                const expiryField = document.getElementById('customExpiry');
+                if (!expiryField) return;
+                const defaultExpiry = new Date();
+                defaultExpiry.setMonth(defaultExpiry.getMonth() + 1);
+
+                // Format for datetime-local input
+                const year = defaultExpiry.getFullYear();
+                const month = String(defaultExpiry.getMonth() + 1).padStart(2, '0');
+                const day = String(defaultExpiry.getDate()).padStart(2, '0');
+                const hours = String(defaultExpiry.getHours()).padStart(2, '0');
+                const minutes = String(defaultExpiry.getMinutes()).padStart(2, '0');
+
+                expiryField.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            };
+
+            function generatePassword() {
+                const adjectives = ['Happy', 'Sunny', 'Bright', 'Swift', 'Lucky', 'Smart', 'Cool', 'Fresh'];
+                const nouns = ['Photo', 'Smile', 'Memory', 'Moment', 'Light', 'Frame', 'Shot', 'View'];
+                const numbers = Math.floor(Math.random() * 100);
+
+                const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+                const noun = nouns[Math.floor(Math.random() * nouns.length)];
+
+                const password = `${adjective}${noun}${numbers}`;
+                document.getElementById('password').value = password;
+            }
+        </script>
+
+        <%- include('partials/dark-mode-toggle') %>
+</body>
+
+</html>
