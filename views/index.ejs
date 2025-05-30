@@ -11,9 +11,15 @@
   <% if (settings.favicon) { %>
     <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
     <% } %>
-      <link rel="stylesheet" href="/styles.css">
+      <link rel="stylesheet" href="/styles.css?v=<%= encodeURIComponent(settings.accentColor || '') %>">
+      <style>
+        :root {
+          --primary-color: <%=settings.accentColor || '#2ecc71' %>;
+          --primary-hover: <%=settings.accentColor ? (settings.accentColor.replace('#', '%23') + 'cc'): '#27ae60' %>;
+        }
+      </style>
       <link rel="manifest" href="/manifest.json">
-      <meta name="theme-color" content="#22223b">
+      <meta name="theme-color" content="<%= settings.accentColor || '#2ecc71' %>">
 </head>
 
 <body>
@@ -78,7 +84,7 @@
         <% if (typeof msg !=='undefined' && msg) { %>
           <script>
             document.addEventListener('DOMContentLoaded', function () {
-              showToast(<% - JSON.stringify(msg) %>);
+              showToast(<%= JSON.stringify(msg) %>);
             });
           </script>
           <% } %>
