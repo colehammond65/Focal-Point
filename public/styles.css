@@ -294,8 +294,13 @@ header nav a,
     padding: 0.6rem 1.2rem;
     font-size: 1.1rem;
     border-radius: 0;
-    border-bottom: 2px solid transparent;
-    transition: border 0.2s, background 0.2s, color 0.2s;
+    border-bottom: 2px solid transparent !important;
+    box-sizing: border-box;
+    /* Prevents layout shift on border change */
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+    /* Fix: Reserve space for border to prevent header jump */
+    border-bottom-width: 2px;
+    border-bottom-style: solid;
     background: none;
     outline: none;
     display: inline-flex;
@@ -310,7 +315,7 @@ header nav a:focus,
 .dropdown-toggle:hover,
 .dropdown-toggle:focus {
     background: var(--hover-bg);
-    border-bottom: 2px solid var(--primary-color);
+    border-bottom: 2px solid var(--primary-color) !important;
     color: var(--primary-color);
     outline: none;
 }
@@ -539,6 +544,17 @@ h1 {
     border: 1px solid var(--border-color);
 }
 
+.login-box {
+    max-width: 400px;
+    margin: 3rem auto;
+}
+
+.login-box input[type="text"],
+.login-box input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .admin-card {
     margin-top: 1.5rem;
     margin-bottom: 1.5rem;
@@ -723,6 +739,53 @@ img,
     border: 1.5px solid #a0a0a0;
     outline: none;
     background: #f0f0f0;
+}
+
+.admin-form.row-gap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.2rem;
+    width: 100%;
+    padding: 0;
+}
+
+.admin-form.row-gap input[type="text"] {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-bottom: 0;
+    width: 1%;
+    height: 2.5rem;
+    font-size: 1.1rem;
+}
+
+.admin-form.row-gap button {
+    height: 2.5rem;
+    margin-top: 0;
+    align-self: stretch;
+    min-width: 120px;
+    width: auto;
+    white-space: nowrap;
+    box-sizing: border-box;
+    font-size: 1.1rem;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 600px) {
+    .admin-form.row-gap {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+    }
+
+    .admin-form.row-gap button {
+        min-width: 0;
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .dropzone {
@@ -993,8 +1056,8 @@ img,
 
 /* Login Page */
 .login-box {
-    max-width: 900px;
-    margin: 4rem auto;
+    max-width: 400px;
+    margin: 3rem auto;
     background: var(--card-bg);
     border-radius: 0;
     box-shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
@@ -1003,6 +1066,12 @@ img,
     flex-direction: column;
     gap: 1.2rem;
     border: 1px solid var(--border-color);
+}
+
+.login-box input[type="text"],
+.login-box input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 input[type="text"],
