@@ -26,6 +26,7 @@ coding_standards:
   - Use clear, descriptive comments for non-obvious code.
   - EJS templates should be modular and logic-light.
   - CSS should be organized by feature or page.
+  - Everything should be up to date with the latest Node.js and Express best practices.
 
 libraries:
   - express
@@ -51,6 +52,19 @@ dos_and_donts:
     - Ensure all SQLite queries are parameterized.
     - Use appropriate HTTP status codes.
     - Organize static assets in the public directory.
+    - Use EJS for server-side rendering of HTML.
+    - Use CSS for styling; keep it in public/stylesheets.
+    - Use migrations for database schema changes.
+    - Use bcryptjs for password hashing.
+    - Use express-session for session management.
+    - Write unit tests for critical functionality using supertest.
+    - Use async/await for all asynchronous operations.
+    - Use better-sqlite3 for database operations.
+    - Use multer for handling file uploads.
+    - Use Umzug for managing database migrations.
+    - Use dotenv for environment variables.
+    - Use clear, descriptive comments in code.
+    - Use consistent naming conventions across the codebase.
 
   donts:
     - Do not use deprecated Node.js or Express APIs.
@@ -59,10 +73,10 @@ dos_and_donts:
     - Do not expose sensitive data in logs.
     - Do not use any database except SQLite (via better-sqlite3).
     - Do not implement JWT or OAuth authentication.
+    - Do not modify exsisting database migrations, make new ones instead.
 
 examples:
   - "Create a new category": "Add a POST /admin/categories route to accept a name and create a new category in SQLite."
   - "Upload a photo": "Add a POST /admin/images route using multer to handle image upload, save metadata in SQLite, and store the file in public/images."
   - "User authentication": "Use express-session to manage logins and bcryptjs for password hashing. Store the session in-memory."
-
 # End of Copilot instructions file.
