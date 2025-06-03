@@ -1,3 +1,15 @@
+// Utility functions for managing categories in the gallery.
+// Includes functions to get categories, check for safe names, create, delete, and check existence of categories.
+//
+// Exports:
+//   - getCategoriesWithPreviews: Get categories with preview images.
+//   - isSafeCategory: Validate category name safety.
+//   - categoryExists: Check if a category exists.
+//   - createCategory: Create a new category.
+//   - deleteCategory: Delete a category.
+//   - getCategoriesWithImages: Get categories with their images.
+//   - getCategoryIdAndMaxPosition: Get category ID and max image position.
+
 const db = require('../db');
 
 function getCategoriesWithPreviews() {

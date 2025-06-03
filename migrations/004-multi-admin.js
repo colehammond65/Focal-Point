@@ -1,3 +1,5 @@
+// Migration 004: Multi-admin support
+// Ensures the admin table supports multiple admins with unique usernames.
 module.exports = {
   up: async ({ context: db }) => {
     // Add id column and unique constraint if not present

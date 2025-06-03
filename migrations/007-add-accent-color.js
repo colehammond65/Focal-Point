@@ -1,3 +1,5 @@
+// Migration 007: Add accent color setting
+// Adds a default accentColor setting to the settings table if not present.
 module.exports = {
     up: async ({ context: db }) => {
         // Add accentColor default if not present

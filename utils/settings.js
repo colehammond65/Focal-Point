@@ -1,3 +1,11 @@
+// Utility functions for managing site settings in the database.
+// Includes functions to get, set, and retrieve all settings.
+//
+// Exports:
+//   - getSetting: Retrieve a setting value by key.
+//   - setSetting: Set or update a setting value.
+//   - getAllSettings: Retrieve all settings as an object.
+
 const db = require('../db');
 
 function getSetting(key) {

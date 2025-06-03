@@ -1,4 +1,6 @@
 // server.js
+// Main Express server setup for the Focal Point application.
+// Loads environment variables, configures middleware, sets up routes, and initializes the app.
 require('dotenv').config();
 
 if (!process.env.SESSION_SECRET) {
@@ -79,6 +81,7 @@ if (trustProxy !== undefined) {
 const { getCachedCategories, invalidateCategoryCache } = require('./utils/categoryCache');
 
 // --- RATE LIMITERS --- //
+// Login rate limiter to prevent brute force attacks
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,
@@ -87,6 +90,7 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Admin rate limiter to prevent abuse of admin endpoints
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
@@ -210,6 +214,7 @@ async function getFileType(filePath) {
 }
 
 // --- AUTO-CREATE ADMIN FOR TESTS ---
+// Generates a random string for test admin credentials
 function randomString(len = 12) {
   return crypto.randomBytes(len).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, len);
 }

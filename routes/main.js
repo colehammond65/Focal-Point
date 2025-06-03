@@ -1,3 +1,5 @@
+// routes/main.js
+// Main public routes for homepage, gallery, about, login, setup, and error handling.
 const express = require('express');
 const router = express.Router();
 const path = require('path');
@@ -16,6 +18,7 @@ const rateLimit = require('express-rate-limit');
 let categoryCache = null;
 let categoryCacheTime = 0;
 const CATEGORY_CACHE_TTL = 10000; // 10 seconds
+// Returns cached categories or refreshes if expired
 async function getCachedCategories() {
     const now = Date.now();
     if (!categoryCache || now - categoryCacheTime > CATEGORY_CACHE_TTL) {

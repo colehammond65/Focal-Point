@@ -1,3 +1,4 @@
+<!-- admin-client-new.ejs: Page for creating a new client gallery. Includes form, toast notifications, and dark mode toggle. -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -23,6 +24,7 @@
     <%- include('partials/header', { showAdminNav: true }) %>
         <div id="toast-container" class="toast-container"></div>
         <script>
+            // Toast notification function
             function showToast(msg, timeout = 3500) {
                 const container = document.getElementById('toast-container');
                 if (!container) return;
@@ -38,6 +40,7 @@
         </script>
         <% if (typeof req !=='undefined' && req.query && req.query.error) { %>
             <script>
+                // Show error toast if error is present in query
                 document.addEventListener('DOMContentLoaded', function () {
                     showToast(<%= JSON.stringify(req.query.error) %>);
                 });
@@ -93,7 +96,7 @@
                 </div>
 
                 <script>
-                    // Set default expiry to 1 month from now
+                    // Set default expiry to 1 month from now for the expiry field
                     window.onload = function () {
                         const expiryField = document.getElementById('customExpiry');
                         if (!expiryField) return;
@@ -110,6 +113,7 @@
                         expiryField.value = `${year}-${month}-${day}T${hours}:${minutes}`;
                     };
 
+                    // Password generator for client access
                     function generatePassword() {
                         const adjectives = ['Happy', 'Sunny', 'Bright', 'Swift', 'Lucky', 'Smart', 'Cool', 'Fresh'];
                         const nouns = ['Photo', 'Smile', 'Memory', 'Moment', 'Light', 'Frame', 'Shot', 'View'];

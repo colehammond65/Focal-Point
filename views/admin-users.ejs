@@ -1,3 +1,4 @@
+<!-- admin-users.ejs: Page for managing admin users. Includes forms for creating/changing admins and toast notifications. -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -28,6 +29,7 @@
                     <%= req.query.msg %>
                 </div>
                 <script>
+                    // Show toast if msg is present in query
                     document.addEventListener('DOMContentLoaded', function () {
                         showToast(<%= JSON.stringify(req.query.msg) %>);
                     });
@@ -100,6 +102,7 @@
         </div>
         <%- include('partials/dark-mode-toggle') %>
             <script>
+                // Toast notification function
                 function showToast(msg, timeout = 3500) {
                     const container = document.getElementById('toast-container');
                     if (!container) return;

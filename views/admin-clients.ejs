@@ -1,3 +1,4 @@
+<!-- admin-clients.ejs: Page for managing client galleries. Includes stats, client list, and toast notifications. -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -23,6 +24,7 @@
     <%- include('partials/header', { showAdminNav: true }) %>
         <div id="toast-container" class="toast-container"></div>
         <script>
+            // Toast notification function
             function showToast(msg, timeout = 3500) {
                 const container = document.getElementById('toast-container');
                 if (!container) return;
@@ -38,6 +40,7 @@
         </script>
         <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
             <script>
+                // Show toast if msg is present in query
                 document.addEventListener('DOMContentLoaded', function () {
                     showToast(<%= JSON.stringify(req.query.msg) %>);
                 });
@@ -85,10 +88,11 @@
                                     <p>Create your first client to get started with client galleries.</p>
                                 </div>
                                 <% } else { %>
-                                    <% clients.forEach(function(client) { var isExpired=new Date(client.expires_at) <
-                                        new Date(); var statusClass=isExpired ? 'status-expired' : (client.is_active
-                                        ? 'status-active' : 'status-inactive' ); var statusText=isExpired ? 'Expired' :
-                                        (client.is_active ? 'Active' : 'Inactive' ); %>
+                                    <% clients.forEach(function(client) { // Determine client status var isExpired=new
+                                        Date(client.expires_at) < new Date(); var statusClass=isExpired
+                                        ? 'status-expired' : (client.is_active ? 'status-active' : 'status-inactive' );
+                                        var statusText=isExpired ? 'Expired' : (client.is_active ? 'Active' : 'Inactive'
+                                        ); %>
                                         <div class="client-card">
                                             <div class="client-header">
                                                 <div class="client-info">

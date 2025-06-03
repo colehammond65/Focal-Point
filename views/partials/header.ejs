@@ -1,3 +1,4 @@
+<!-- Site header and navigation bar. Shows site title or image, navigation links, and dark mode toggle. -->
 <header>
     <% if (settings.headerType==='image' && settings.headerImage) { %>
         <img src="/uploads/<%= settings.headerImage %>" alt="Site Header" class="header-image-preview">
@@ -10,6 +11,7 @@
                     <a href="/">Home</a>
                     <a href="/about">About</a>
                     <% if (typeof loggedIn !=='undefined' && loggedIn) { %>
+                        <!-- Dropdown for content management -->
                         <div class="dropdown">
                             <a href="#" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
                                 Content <span class="dropdown-arrow">▼</span>
@@ -20,6 +22,7 @@
                                 <a href="/admin/about" class="dropdown-item">Edit About Page</a>
                             </div>
                         </div>
+                        <!-- Dropdown for settings -->
                         <div class="dropdown">
                             <a href="#" class="dropdown-toggle" aria-haspopup="true" aria-expanded="false">
                                 Settings <span class="dropdown-arrow">▼</span>
@@ -34,6 +37,7 @@
                             <a href="/login">Login</a>
                             <% } %>
                 </nav>
+                <!-- Dark mode toggle button -->
                 <button id="darkModeToggle" aria-label="Toggle dark mode" class="dark-mode-toggle">
                     <span id="darkModeIcon" aria-hidden="true">🌙</span>
                 </button>
@@ -41,7 +45,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Handle dropdown toggles
+        // Handle dropdown toggles: open/close on click
         const dropdowns = document.querySelectorAll('.dropdown');
         dropdowns.forEach(dropdown => {
             const toggle = dropdown.querySelector('.dropdown-toggle');

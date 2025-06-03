@@ -1,6 +1,8 @@
 // Handles all admin image/category management JS for /admin/manage
-// --- Dropzone, Preview, and Upload ---
+// Includes: Dropzone upload, image preview, sortable image reordering, category panel toggles, alt text editing, bulk actions, and toast notifications.
+
 document.addEventListener('DOMContentLoaded', function () {
+    // --- Dropzone, Preview, and Upload ---
     var dropzone = document.getElementById('dropzone');
     var fileInput = document.getElementById('image');
     var preview = document.getElementById('preview');
@@ -139,6 +141,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // --- Toggle category panel ---
+// Expands/collapses the category panel for a given category
 function toggleCategoryPanel(catName) {
     var toggle = document.querySelector('.category-accordion[data-cat="' + catName + '"] .category-toggle');
     var panel = document.getElementById('cat-' + catName + '-panel');
@@ -150,6 +153,7 @@ function toggleCategoryPanel(catName) {
 }
 
 // --- Toggle selection for bulk image actions ---
+// Selects/deselects an image for bulk actions
 function toggleImageSelect(imgDiv) {
     imgDiv.classList.toggle('selected');
     var catName = imgDiv.closest('.category-accordion').getAttribute('data-cat');
@@ -163,6 +167,7 @@ function toggleImageSelect(imgDiv) {
 }
 
 // --- Bulk Delete ---
+// Handles bulk deletion of selected images
 function handleBulkDelete(event, catName) {
     event.preventDefault();
     var selected = document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected');
@@ -199,6 +204,7 @@ function handleBulkDelete(event, catName) {
 }
 
 // --- Move Images ---
+// Handles moving selected images to another category
 function handleMoveImages(event, catName) {
     event.preventDefault();
     var form = event.target;
@@ -271,6 +277,7 @@ function handleMoveImages(event, catName) {
 }
 
 // --- Set as Thumbnail ---
+// Sets the selected image as the category thumbnail
 function handleSetThumbnail(catName) {
     var selected = document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected');
     if (selected.length !== 1) return;
@@ -293,6 +300,7 @@ function handleSetThumbnail(catName) {
 }
 
 // --- Toast ---
+// Displays a toast notification
 function showToast(msg, timeout = 3500) {
     const container = document.getElementById('toast-container');
     if (!container) return;

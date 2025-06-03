@@ -1,3 +1,4 @@
+<!-- client-gallery.ejs: Page for clients to view and download their gallery images. Includes gallery grid, lightbox, and toast notifications. -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -23,6 +24,7 @@
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
         <div id="toast-container" class="toast-container"></div>
         <script>
+            // Toast notification function
             function showToast(msg, timeout = 3500) {
                 const container = document.getElementById('toast-container');
                 if (!container) return;
@@ -38,6 +40,7 @@
         </script>
         <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
             <script>
+                // Show toast if msg is present in query
                 document.addEventListener('DOMContentLoaded', function () {
                     showToast(<%= JSON.stringify(req.query.msg) %>);
                 });

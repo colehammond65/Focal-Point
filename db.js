@@ -1,3 +1,5 @@
+// db.js
+// Sets up the SQLite database connection, runs migrations, and exports the db instance.
 const Database = require('better-sqlite3');
 const { Umzug } = require('umzug');
 const path = require('path');
@@ -14,6 +16,7 @@ if (!fs.existsSync(dataDir)) {
 const db = new Database(path.join(dataDir, 'gallery.db'));
 
 // Enable foreign keys
+// Ensures referential integrity for foreign key constraints
 db.pragma('foreign_keys = ON');
 
 const migrationsDir = path.join(__dirname, 'migrations');
@@ -21,6 +24,7 @@ const migrationFiles = fs.readdirSync(migrationsDir)
   .filter(f => f.endsWith('.js'))
   .sort();
 
+// Load migration files for Umzug
 const migrations = migrationFiles.map(filename => ({
   name: filename,
   up: require(path.join(migrationsDir, filename)).up,
@@ -71,6 +75,7 @@ const umzug = new Umzug({
   storage: new BetterSqlite3Storage({ db, tableName: 'migrations' }),
 });
 
+// Run all pending migrations on startup
 const ready = umzug.up();
 
 module.exports = db;

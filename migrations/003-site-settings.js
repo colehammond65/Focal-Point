@@ -1,5 +1,8 @@
+// Migration 003: Add site settings table
+// Creates a settings table for storing key-value site settings and inserts defaults.
 module.exports = {
     up: async ({ context: db }) => {
+        // Create settings table if it doesn't exist
         db.exec(`
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
@@ -18,6 +21,7 @@ module.exports = {
         console.log("003-site-settings migration completed");
     },
     down: async ({ context: db }) => {
+        // Drop settings table for rollback
         db.exec(`DROP TABLE IF EXISTS settings;`);
     }
 };

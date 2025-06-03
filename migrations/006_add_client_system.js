@@ -1,5 +1,8 @@
+// Migration 006: Add client system
+// Creates clients and client_images tables for client gallery and image management.
 module.exports = {
     up: async ({ context: db }) => {
+        // Create clients table for client access and metadata
         db.exec(`
             CREATE TABLE IF NOT EXISTS clients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -15,6 +18,7 @@ module.exports = {
             );
         `);
 
+        // Create client_images table for storing client-uploaded images
         db.exec(`
             CREATE TABLE IF NOT EXISTS client_images (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,6 +35,7 @@ module.exports = {
     },
 
     down: async ({ context: db }) => {
+        // Drop client_images and clients tables for rollback
         db.exec(`DROP TABLE IF EXISTS client_images;`);
         db.exec(`DROP TABLE IF EXISTS clients;`);
         console.log("Client tables dropped");

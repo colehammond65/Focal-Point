@@ -1,3 +1,19 @@
+// utils/backup.js
+// Utility functions for creating, listing, saving, restoring, and deleting backups of the database and images.
+// Handles backup directory management, backup size limits, and ZIP archive operations.
+//
+// Exports:
+//   - ensureBackupDir: Ensures the backup directory exists.
+//   - listBackups: Lists all backup ZIP files with metadata.
+//   - totalBackupSize: Returns the total size of all backups.
+//   - cleanupBackupsForLimit: Deletes oldest backups to maintain size limit.
+//   - saveBackup: Saves a backup buffer to disk, enforcing size limits.
+//   - createBackup: Creates a ZIP backup of the database and images.
+//   - deleteBackup: Deletes a specific backup file.
+//   - bulkDeleteBackups: Deletes multiple backups.
+//   - bulkDownloadBackups: Zips and downloads multiple backups.
+//   - restoreBackup: Restores a backup from a ZIP file.
+
 const fs = require('fs');
 const path = require('path');
 const archiver = require('archiver');
@@ -6,10 +22,12 @@ const unzipper = require('unzipper');
 const BACKUP_DIR = path.join(__dirname, '..', 'data', 'backups');
 const BACKUP_LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
 
+// Ensures the backup directory exists
 function ensureBackupDir() {
     if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 }
 
+// Lists all backup ZIP files with metadata (name, path, size, mtime)
 function listBackups() {
     ensureBackupDir();
     return fs.readdirSync(BACKUP_DIR)
@@ -26,10 +44,12 @@ function listBackups() {
         .sort((a, b) => a.mtime - b.mtime); // oldest first
 }
 
+// Returns the total size of all backup files
 function totalBackupSize() {
     return listBackups().reduce((sum, b) => sum + b.size, 0);
 }
 
+// Deletes oldest backups to maintain the backup size limit
 async function cleanupBackupsForLimit(newFileSize) {
     const backups = listBackups();
     let total = totalBackupSize();
@@ -40,6 +60,7 @@ async function cleanupBackupsForLimit(newFileSize) {
     }
 }
 
+// Saves a backup buffer to disk, enforcing backup size limits
 async function saveBackup(buffer, filename) {
     ensureBackupDir();
     await cleanupBackupsForLimit(buffer.length);
@@ -48,6 +69,7 @@ async function saveBackup(buffer, filename) {
     return filePath;
 }
 
+// Creates a ZIP backup of the database and images
 async function createBackup() {
     ensureBackupDir();
     const dbPath = path.join(__dirname, '..', 'data', 'gallery.db');
@@ -74,6 +96,7 @@ async function createBackup() {
     });
 }
 
+// Deletes a specific backup file by filename
 function deleteBackup(filename) {
     if (!/^[\w.-]+\.zip$/.test(filename)) throw new Error('Invalid filename');
     const filePath = path.join(BACKUP_DIR, filename);
@@ -84,6 +107,7 @@ function deleteBackup(filename) {
     return false;
 }
 
+// Deletes multiple backups by filename array
 function bulkDeleteBackups(filenames) {
     let deleted = 0;
     filenames.forEach(filename => {
@@ -94,6 +118,7 @@ function bulkDeleteBackups(filenames) {
     return deleted;
 }
 
+// Zips and downloads multiple backups as a single archive
 async function bulkDownloadBackups(filenames) {
     ensureBackupDir();
     const archiveName = `backups-bulk-${Date.now()}.zip`;
@@ -116,6 +141,7 @@ async function bulkDownloadBackups(filenames) {
     });
 }
 
+// Restores a backup from a ZIP file, overwriting gallery.db and images
 async function restoreBackup(backupPath) {
     // Overwrite gallery.db and images from the zip
     const extractDir = path.join(__dirname, '..', 'data', 'tmp-restore');

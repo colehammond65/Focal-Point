@@ -1,3 +1,7 @@
+// Renders a 404 Not Found HTML page
+//
+// Exports:
+//   - notFoundPage: Returns a styled 404 HTML string for the site.
 module.exports = function notFoundPage(siteTitle = "Focal Point") {
   return `
     <!DOCTYPE html>

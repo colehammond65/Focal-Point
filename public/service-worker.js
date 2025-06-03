@@ -1,3 +1,5 @@
+// Service Worker for offline support and caching
+// Caches static assets and gallery images for offline use, cleans up old caches, and serves cached content when offline.
 const CACHE_NAME = 'photo-gallery-cache-v1';
 const ASSETS_TO_CACHE = [
     '/',

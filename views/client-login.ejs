@@ -1,3 +1,4 @@
+<!-- client-login.ejs: Page for clients to log in to their gallery. Includes login form and toast notifications. -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -23,6 +24,7 @@
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
         <div id="toast-container" class="toast-container"></div>
         <script>
+            // Toast notification function
             function showToast(msg, timeout = 3500) {
                 const container = document.getElementById('toast-container');
                 if (!container) return;
@@ -38,6 +40,7 @@
         </script>
         <% if (typeof error !=='undefined' && error) { %>
             <script>
+                // Show error toast if error is present
                 document.addEventListener('DOMContentLoaded', function () {
                     showToast(<%= JSON.stringify(error) %>);
                 });

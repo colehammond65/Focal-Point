@@ -1,3 +1,7 @@
+// routes/admin.js
+// Admin routes for managing images, categories, clients, and site settings.
+// Includes middleware for authentication, rate limiting, and helpers for admin operations.
+
 const express = require('express');
 const router = express.Router();
 const path = require('path');
@@ -47,6 +51,7 @@ const {
 } = require('../utils/clients');
 
 // Middleware to protect admin routes (moved from server.js)
+// Ensures the user is logged in as admin
 function requireLogin(req, res, next) {
     if (req.session && req.session.loggedIn) {
         next();

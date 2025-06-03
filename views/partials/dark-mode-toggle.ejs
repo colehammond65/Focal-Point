@@ -1,18 +1,22 @@
+<!-- Dark mode toggle script: toggles dark mode class and icon, persists preference in localStorage -->
 <script>
     (function () {
+        // Get toggle button and icon elements
         const toggle = document.getElementById('darkModeToggle');
         const icon = document.getElementById('darkModeIcon');
+        // Sets dark mode on or off and updates icon/localStorage
         function setDarkMode(on) {
             document.body.classList.toggle('dark-mode', on);
             if (icon) icon.textContent = on ? '☀️' : '🌙';
             localStorage.setItem('darkMode', on ? '1' : '0');
         }
-        // Initial state
+        // Initial state: use saved preference or system preference
         const darkPref = localStorage.getItem('darkMode');
         setDarkMode(
             darkPref === '1' ||
             (darkPref === null && window.matchMedia('(prefers-color-scheme: dark)').matches)
         );
+        // Toggle dark mode on button click
         if (toggle) {
             toggle.onclick = function () {
                 setDarkMode(!document.body.classList.contains('dark-mode'));

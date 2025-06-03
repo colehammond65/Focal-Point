@@ -1,3 +1,8 @@
+// Utility for generating dynamic CSS with a custom accent color.
+//
+// Exports:
+//   - generateDynamicCss: Reads the base CSS and injects the accent color variable.
+//
 // utils/dynamicCss.js
 const fs = require('fs');
 const path = require('path');

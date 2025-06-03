@@ -1,3 +1,5 @@
+// routes/client.js
+// Client routes for secure gallery access, image downloads, and client authentication.
 const express = require('express');
 const router = express.Router();
 const path = require('path');
@@ -12,6 +14,7 @@ const {
 const { getAllSettings } = require('../utils');
 
 // Middleware to protect client routes
+// Ensures the user is logged in as a client
 function requireClientLogin(req, res, next) {
     if (req.session && req.session.clientLoggedIn) {
         next();
@@ -54,6 +57,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Secure client image serving
+// Serves images securely to logged-in clients
 router.get('/images/:filename', requireClientLogin, (req, res) => {
     const filename = req.params.filename;
     const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
@@ -66,6 +70,7 @@ router.get('/images/:filename', requireClientLogin, (req, res) => {
 });
 
 // Download single image
+// Allows clients to download individual images
 router.get('/download/:filename', requireClientLogin, (req, res) => {
     const filename = req.params.filename;
     const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
@@ -79,6 +84,7 @@ router.get('/download/:filename', requireClientLogin, (req, res) => {
 });
 
 // Download all images as ZIP
+// Allows clients to download all their images as a ZIP archive
 router.get('/download-all', requireClientLogin, (req, res) => {
     try {
         const { archive, zipName } = createZipArchive(req.session.clientId);
@@ -99,6 +105,7 @@ router.get('/download-all', requireClientLogin, (req, res) => {
 });
 
 // Client logout
+// Logs out the client and destroys their session
 router.post('/logout', (req, res) => {
     req.session.destroy(() => {
         res.redirect('/client/login');
@@ -106,6 +113,7 @@ router.post('/logout', (req, res) => {
 });
 
 // Client gallery (shows their images)
+// Displays the gallery of images for the logged-in client
 router.get('/gallery', requireClientLogin, (req, res) => {
     const clientId = req.session.clientId;
     const images = getClientImages(clientId);

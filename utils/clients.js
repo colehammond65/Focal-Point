@@ -1,8 +1,28 @@
-const db = require('../db');
-const fs = require('fs');
-const path = require('path');
-const archiver = require('archiver'); // You'll need to: npm install archiver
-const bcrypt = require('bcryptjs'); // Added bcrypt for password hashing
+// Utility functions for managing client galleries and images.
+// Includes functions for client CRUD, image zipping, download tracking, and cleanup of expired clients.
+//
+// Exports:
+//   - generateAccessCode: Generates a random access code for clients.
+//   - createClient: Creates a new client with hashed password and expiry.
+//   - verifyClient: Verifies client credentials and updates last access time.
+//   - getClientImages: Retrieves all images for a client.
+//   - addClientImage: Adds a new image record for a client.
+//   - deleteClientImage: Deletes a client's image from both filesystem and database.
+//   - getAllClients: Retrieves all clients with image count and total size.
+//   - getClientById: Retrieves a single client by ID.
+//   - deleteClient: Deletes a client and all associated images.
+//   - toggleClientStatus: Toggles the active status of a client.
+//   - incrementDownloadCount: Increments download count for a client and optionally an image.
+//   - createZipArchive: Creates a zip archive of all client images.
+//   - cleanupExpiredClients: Cleans up expired clients.
+//   - CLIENT_UPLOADS_DIR: Directory path for client uploads.
+
+// Database and utility imports
+const db = require('../db'); // Database connection
+const fs = require('fs'); // File system module
+const path = require('path'); // Path utilities
+const archiver = require('archiver'); // For zipping files (npm install archiver)
+const bcrypt = require('bcryptjs'); // For password hashing
 
 // Ensure client uploads directory exists
 const CLIENT_UPLOADS_DIR = path.join(__dirname, '..', 'data', 'client-uploads');
@@ -10,6 +30,7 @@ if (!fs.existsSync(CLIENT_UPLOADS_DIR)) {
     fs.mkdirSync(CLIENT_UPLOADS_DIR, { recursive: true });
 }
 
+// Generate a random 6-character access code for clients
 function generateAccessCode() {
     // Generate a simple 6-8 character access code
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -20,6 +41,7 @@ function generateAccessCode() {
     return result;
 }
 
+// Create a new client with hashed password and optional expiry
 function createClient(clientName, shootTitle, password, customExpiry = null) {
     const accessCode = generateAccessCode();
 
@@ -50,6 +72,7 @@ function createClient(clientName, shootTitle, password, customExpiry = null) {
     }
 }
 
+// Verify client credentials and update last access time
 function verifyClient(accessCode, password) {
     const client = db.prepare(`
         SELECT * FROM clients 
@@ -63,6 +86,7 @@ function verifyClient(accessCode, password) {
     return null;
 }
 
+// Get all images for a client, ordered by upload time
 function getClientImages(clientId) {
     return db.prepare(`
         SELECT * FROM client_images 
@@ -71,6 +95,7 @@ function getClientImages(clientId) {
     `).all(clientId);
 }
 
+// Add a new image record for a client
 function addClientImage(clientId, filename, originalFilename, fileSize) {
     return db.prepare(`
         INSERT INTO client_images (client_id, filename, original_filename, file_size)
@@ -78,6 +103,7 @@ function addClientImage(clientId, filename, originalFilename, fileSize) {
     `).run(clientId, filename, originalFilename, fileSize);
 }
 
+// Delete a client's image from both filesystem and database
 function deleteClientImage(clientId, imageId) {
     const image = db.prepare('SELECT filename FROM client_images WHERE id = ? AND client_id = ?').get(imageId, clientId);
     if (image) {
@@ -94,6 +120,7 @@ function deleteClientImage(clientId, imageId) {
     return false;
 }
 
+// Get all clients with image count and total size
 function getAllClients() {
     return db.prepare(`
         SELECT c.*, 
@@ -106,10 +133,12 @@ function getAllClients() {
     `).all();
 }
 
+// Get a single client by ID
 function getClientById(clientId) {
     return db.prepare('SELECT * FROM clients WHERE id = ?').get(clientId);
 }
 
+// Delete a client and all associated images
 function deleteClient(clientId) {
     // Delete all client images from filesystem
     const clientDir = path.join(CLIENT_UPLOADS_DIR, clientId.toString());
@@ -121,10 +150,12 @@ function deleteClient(clientId) {
     db.prepare('DELETE FROM clients WHERE id = ?').run(clientId);
 }
 
+// Toggle the active status of a client
 function toggleClientStatus(clientId) {
     db.prepare('UPDATE clients SET is_active = NOT is_active WHERE id = ?').run(clientId);
 }
 
+// Increment download count for a client and optionally an image
 function incrementDownloadCount(clientId, imageId = null) {
     db.prepare('UPDATE clients SET download_count = download_count + 1 WHERE id = ?').run(clientId);
 
@@ -133,6 +164,7 @@ function incrementDownloadCount(clientId, imageId = null) {
     }
 }
 
+// Create a zip archive of all client images
 function createZipArchive(clientId) {
     const client = getClientById(clientId);
     const images = getClientImages(clientId);
