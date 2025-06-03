@@ -32,6 +32,11 @@ function deleteImage(category, filename) {
     if (!cat) return;
     db.prepare('DELETE FROM images WHERE category_id = ? AND filename = ?').run(cat.id, filename);
 }
+function getMaxImagePosition(categoryName) {
+    const cat = db.prepare('SELECT id FROM categories WHERE name = ?').get(categoryName);
+    if (!cat) return 0;
+    return db.prepare('SELECT MAX(position) as max FROM images WHERE category_id = ?').get(cat.id).max || 0;
+}
 
 module.exports = {
     getOrderedImages,
@@ -39,5 +44,6 @@ module.exports = {
     setCategoryThumbnail,
     updateAltText,
     addImage,
-    deleteImage
+    deleteImage,
+    getMaxImagePosition
 };

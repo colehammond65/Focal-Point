@@ -65,6 +65,7 @@ dos_and_donts:
     - Use dotenv for environment variables.
     - Use clear, descriptive comments in code.
     - Use consistent naming conventions across the codebase.
+    - If I ask to change something that would go against these guidelines, don't do it and explain why.
 
   donts:
     - Do not use deprecated Node.js or Express APIs.

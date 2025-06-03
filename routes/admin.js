@@ -29,7 +29,8 @@ const {
     createCategory,
     deleteCategory,
     deleteImage,
-    addImage
+    addImage,
+    getMaxImagePosition // <-- updated require
 } = require('../utils');
 const {
     getAllClients,
@@ -112,7 +113,7 @@ router.post('/login', adminLimiter, async (req, res) => {
         return res.redirect('/admin/manage');
     } else {
         const settings = getSettingsWithDefaults();
-        return res.render('login', { error: 'Invalid credentials', settings });
+        return res.render('login', { error: 'Invalid credentials', settings, showAdminNav: false, loggedIn: false });
     }
 });
 
@@ -220,6 +221,13 @@ router.post('/settings', requireLogin, settingsUpload.fields([
 
 // Remove header image
 router.post('/settings/remove-header-image', requireLogin, (req, res) => {
+    const currentHeaderImage = getSetting('headerImage');
+    if (currentHeaderImage) {
+        const filePath = path.join(__dirname, '../public/uploads', currentHeaderImage);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+    }
     setSetting('headerImage', '');
     res.redirect('/admin/settings?msg=Header image removed');
 });
@@ -683,6 +691,13 @@ router.post('/move-image', requireLogin, adminLimiter, async (req, res) => {
     }
     const destDir = path.join(__dirname, '../public/images', toCategory);
     fs.mkdirSync(destDir, { recursive: true });
+    let maxPos = 0;
+    try {
+        const result = getMaxImagePosition(toCategory);
+        maxPos = typeof result === 'number' && result >= 0 ? result : 0;
+    } catch (error) {
+        console.error(`Error fetching max image position for category "${toCategory}":`, error);
+    }
     let moved = 0;
     for (const filename of filenames) {
         const srcPath = path.join(__dirname, '../public/images', fromCategory, filename);
@@ -690,8 +705,7 @@ router.post('/move-image', requireLogin, adminLimiter, async (req, res) => {
         if (!fs.existsSync(srcPath)) continue;
         fs.renameSync(srcPath, destPath);
         deleteImage(fromCategory, filename);
-        const { maxPos } = require('../utils').getCategoryIdAndMaxPosition(toCategory);
-        addImage(toCategory, filename, maxPos + 1, '');
+        addImage(toCategory, filename, ++maxPos, '');
         moved++;
     }
     // Optionally invalidate cache if you use one
@@ -788,12 +802,12 @@ router.get('/backup', requireLogin, (req, res) => {
 });
 
 // POST: Create a new backup
-router.post('/backup', requireLogin, (req, res) => {
+router.post('/backup', requireLogin, async (req, res) => {
     try {
-        const backupFile = backupUtils.createBackup();
-        res.redirect('/admin/settings?msg=Backup created: ' + path.basename(backupFile));
+        await backupUtils.createBackup();
+        res.redirect('/admin/settings?msg=Backup created!');
     } catch (err) {
-        res.redirect('/admin/settings?msg=Failed to create backup: ' + err.message);
+        res.redirect('/admin/settings?msg=Backup failed: ' + err.message);
     }
 });
 
@@ -801,7 +815,7 @@ router.post('/backup', requireLogin, (req, res) => {
 router.get('/backup/download/:filename', requireLogin, (req, res) => {
     const { filename } = req.params;
     if (!/^[\w.-]+\.zip$/.test(filename)) return res.status(400).send('Invalid filename');
-    const filePath = path.join(BACKUP_DIR, filename);
+    const filePath = path.join(backupUtils.BACKUP_DIR, filename);
     if (!fs.existsSync(filePath)) return res.status(404).send('Backup not found');
     res.download(filePath, filename);
 });
@@ -809,54 +823,35 @@ router.get('/backup/download/:filename', requireLogin, (req, res) => {
 // POST: Delete a backup file
 router.post('/backup/delete/:filename', requireLogin, (req, res) => {
     const { filename } = req.params;
-    if (!/^[\w.-]+\.zip$/.test(filename)) return res.status(400).send('Invalid filename');
-    const filePath = path.join(BACKUP_DIR, filename);
-    if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        res.redirect('/admin/settings?msg=Backup deleted');
-    } else {
-        res.redirect('/admin/settings?msg=Backup not found');
+    try {
+        if (backupUtils.deleteBackup(filename)) {
+            res.redirect('/admin/settings?msg=Backup deleted');
+        } else {
+            res.redirect('/admin/settings?msg=Backup not found');
+        }
+    } catch {
+        res.redirect('/admin/settings?msg=Invalid filename');
     }
 });
 
 // POST: Bulk backup action (delete or download)
-router.post('/backup/bulk-action', requireLogin, (req, res) => {
+router.post('/backup/bulk-action', requireLogin, async (req, res) => {
     const { action, filenames } = req.body;
     if (!Array.isArray(filenames) || !filenames.length) {
         return res.redirect('/admin/settings?msg=No backups selected');
     }
     if (action === 'delete') {
-        let deleted = 0;
-        filenames.forEach(filename => {
-            if (/^[\w.-]+\.zip$/.test(filename)) {
-                const filePath = path.join(BACKUP_DIR, filename);
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
-                    deleted++;
-                }
-            }
-        });
+        const deleted = backupUtils.bulkDeleteBackups(filenames);
         return res.redirect(`/admin/settings?msg=Deleted ${deleted} backup(s)`);
     } else if (action === 'download') {
-        // Create a zip of selected backups
-        const archiveName = `backups-bulk-${Date.now()}.zip`;
-        const archivePath = path.join(BACKUP_DIR, archiveName);
-        const output = fs.createWriteStream(archivePath);
-        const archive = archiver('zip');
-        archive.pipe(output);
-        filenames.forEach(filename => {
-            if (/^[\w.-]+\.zip$/.test(filename)) {
-                const filePath = path.join(BACKUP_DIR, filename);
-                if (fs.existsSync(filePath)) {
-                    archive.file(filePath, { name: filename });
-                }
-            }
-        });
-        archive.finalize().then(() => {
+        try {
+            const { archivePath, archiveName } = await backupUtils.bulkDownloadBackups(filenames);
             res.download(archivePath, archiveName, err => {
                 fs.unlinkSync(archivePath);
             });
-        });
+        } catch (err) {
+            res.redirect('/admin/settings?msg=Bulk download failed: ' + err.message);
+        }
     } else {
         res.redirect('/admin/settings?msg=Invalid action');
     }
@@ -878,7 +873,7 @@ router.post('/restore', requireLogin, backupUpload.single('backupFile'), async (
 router.post('/restore-selected', requireLogin, async (req, res) => {
     const { filename } = req.body;
     if (!/^[\w.-]+\.zip$/.test(filename)) return res.redirect('/admin/settings?msg=Invalid filename');
-    const filePath = path.join(BACKUP_DIR, filename);
+    const filePath = path.join(backupUtils.BACKUP_DIR, filename);
     if (!fs.existsSync(filePath)) return res.redirect('/admin/settings?msg=Backup not found');
     try {
         await backupUtils.restoreBackup(filePath);

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const fs = require('fs');
+const generateDynamicCss = require('../utils/dynamicCss');
 const notFoundPage = require('../views/partials/notfound');
 const {
     getAllSettings,
@@ -24,6 +24,15 @@ async function getCachedCategories() {
     }
     return categoryCache;
 }
+
+// Serve dynamic styles.css with accent color injection
+router.get('/styles.css', (req, res) => {
+    const settings = getAllSettings();
+    const accentColor = settings.accentColor || '#2ecc71';
+    const css = generateDynamicCss(accentColor);
+    res.setHeader('Content-Type', 'text/css');
+    res.send(css);
+});
 
 // Homepage: Show all categories with previews
 router.get('/', async (req, res) => {
@@ -136,7 +145,7 @@ router.post('/login', adminLimiter, async (req, res) => {
         return res.redirect('/admin/manage');
     } else {
         const settings = getAllSettings();
-        return res.render('login', { error: 'Invalid credentials', settings, showAdminNav: false, loggedIn: false });
+        return res.render('login', { error: String('Invalid credentials'), settings, showAdminNav: false, loggedIn: false });
     }
 });
 

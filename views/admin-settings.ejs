@@ -40,6 +40,12 @@
                                 maxlength="7" style="width:100px" required>
                         </div>
                         <small>Used for buttons and highlights. Example: #2ecc71</small>
+                        <div class="accent-color-reminder">
+                            <strong>Reminder:</strong> Pick a colour that is readable on both <span
+                                style="background:#fff;color:#222;padding:0 2px;border-radius:2px;">light</span> and
+                            <span style="background:#222;color:#fff;padding:0 2px;border-radius:2px;">dark</span> mode
+                            backgrounds.
+                        </div>
 
                         <script>
                             document.addEventListener('DOMContentLoaded', function () {
@@ -196,7 +202,7 @@
                             <% serverBackups.forEach((b, idx)=> { %>
                                 <label class="admin-list-item backup-select-item" for="backup-checkbox-<%= idx %>"
                                     style="cursor:pointer;">
-                                    <input type="checkbox" class="backup-checkbox visually-hidden" name="backups"
+                                    <input type="checkbox" class="backup-checkbox visually-hidden" name="filenames[]"
                                         value="<%= b.name %>" form="backup-bulk-form" id="backup-checkbox-<%= idx %>">
                                     <div class="backup-info">
                                         <span class="backup-filename">
@@ -334,7 +340,7 @@
                     form.style.display = 'none';
                     const input = document.createElement('input');
                     input.type = 'hidden';
-                    input.name = 'backup';
+                    input.name = 'filename'; // <-- FIXED: was 'backup', now 'filename'
                     input.value = filename;
                     form.appendChild(input);
                     document.body.appendChild(form);
