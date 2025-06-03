@@ -27,6 +27,7 @@ coding_standards:
   - EJS templates should be modular and logic-light.
   - CSS should be organized by feature or page.
   - Everything should be up to date with the latest Node.js and Express best practices.
+  - All user data should be stored in the data folder
 
 libraries:
   - express
@@ -66,6 +67,7 @@ dos_and_donts:
     - Use clear, descriptive comments in code.
     - Use consistent naming conventions across the codebase.
     - If I ask to change something that would go against these guidelines, don't do it and explain why.
+    - Store all user data in the data folder.
 
   donts:
     - Do not use deprecated Node.js or Express APIs.
@@ -75,6 +77,7 @@ dos_and_donts:
     - Do not use any database except SQLite (via better-sqlite3).
     - Do not implement JWT or OAuth authentication.
     - Do not modify exsisting database migrations, make new ones instead.
+    - Do not have user data outside the data folder.
 
 examples:
   - "Create a new category": "Add a POST /admin/categories route to accept a name and create a new category in SQLite."

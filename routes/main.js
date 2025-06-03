@@ -2,7 +2,6 @@
 // Main public routes for homepage, gallery, about, login, setup, and error handling.
 const express = require('express');
 const router = express.Router();
-const path = require('path');
 const generateDynamicCss = require('../utils/dynamicCss');
 const notFoundPage = require('../views/partials/notfound');
 const {
@@ -14,19 +13,8 @@ const {
 } = require('../utils');
 const rateLimit = require('express-rate-limit');
 
-// Helper for category cache (copied from server.js)
-let categoryCache = null;
-let categoryCacheTime = 0;
-const CATEGORY_CACHE_TTL = 10000; // 10 seconds
-// Returns cached categories or refreshes if expired
-async function getCachedCategories() {
-    const now = Date.now();
-    if (!categoryCache || now - categoryCacheTime > CATEGORY_CACHE_TTL) {
-        categoryCache = await getCategoriesWithPreviews();
-        categoryCacheTime = now;
-    }
-    return categoryCache;
-}
+// Use shared helper for category cache
+const { getCachedCategories } = require('../utils/categoryCache');
 
 // Serve dynamic styles.css with accent color injection
 router.get('/styles.css', (req, res) => {
@@ -113,6 +101,7 @@ router.get('/about', (req, res) => {
     const about = db.prepare('SELECT * FROM about LIMIT 1').get();
     let aboutHtml = about && about.markdown ? marked.parse(about.markdown) : '';
     let image = about && about.image_path ? about.image_path : null;
+    // No additional processing for the image is required here.
     res.render('about', {
         aboutHtml,
         image,
@@ -161,11 +150,18 @@ router.get('/logout', (req, res) => {
 
 // Setup page (GET)
 router.get('/setup', (req, res) => {
+    const { adminExists } = require('../utils');
+    if (adminExists()) {
+        return res.redirect('/login');
+    }
     res.render('setup', { error: null, showAdminNav: req.session && req.session.loggedIn });
 });
 
 // Setup page (POST)
 router.post('/setup', async (req, res) => {
+    if (require('../utils').adminExists()) {
+        return res.redirect('/login');
+    }
     const { username, password } = req.body;
     if (!username || !password || username.length < 3 || password.length < 4) {
         return res.render('setup', { error: 'Username and password are required (min 3/4 chars).' });

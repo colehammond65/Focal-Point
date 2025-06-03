@@ -73,7 +73,7 @@ async function saveBackup(buffer, filename) {
 async function createBackup() {
     ensureBackupDir();
     const dbPath = path.join(__dirname, '..', 'data', 'gallery.db');
-    const imagesDir = path.join(__dirname, '..', 'public', 'images');
+    const imagesDir = path.join(__dirname, '..', 'data', 'images'); // CHANGED from public/images
     const now = new Date();
     const filename = `backup-${now.toISOString().replace(/[:.]/g, '-')}.zip`;
     const filePath = path.join(BACKUP_DIR, filename);
@@ -91,7 +91,7 @@ async function createBackup() {
         archive.on('error', err => reject(err));
         archive.pipe(output);
         archive.file(dbPath, { name: 'gallery.db' });
-        archive.directory(imagesDir, 'images');
+        archive.directory(imagesDir, 'images'); // CHANGED from public/images
         archive.finalize();
     });
 }
@@ -157,7 +157,7 @@ async function restoreBackup(backupPath) {
     }
     // Move images
     const imagesSrc = path.join(extractDir, 'images');
-    const imagesDest = path.join(__dirname, '..', 'public', 'images');
+    const imagesDest = path.join(__dirname, '..', 'data', 'images'); // CHANGED from public/images
     if (fs.existsSync(imagesSrc)) {
         // Remove old images first
         if (fs.existsSync(imagesDest)) fs.rmSync(imagesDest, { recursive: true, force: true });

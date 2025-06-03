@@ -104,11 +104,26 @@ const adminLimiter = rateLimit({
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Serve static files from /public
+// Serve static files from /public (moved after dynamic routes to avoid overriding)
+
+// Redirect to /setup if admin account doesn't exist and not already on /setup/static assets or public API endpoints
 app.use((req, res, next) => {
-  if (req.path === '/styles.css') express.static(path.join(__dirname, 'public'))(req, res, next);
-  else if (req.path.startsWith('/branding/')) express.static(path.join(__dirname, 'data'))(req, res, next);
-  else next();
+  if (
+    !adminExists() &&
+    req.path !== '/setup' &&
+    req.path !== '/setup/' &&
+    !req.path.startsWith('/public') &&
+    !req.path.startsWith('/styles') &&
+    !req.path.startsWith('/images') &&
+    !req.path.startsWith('/favicon') &&
+    !req.path.startsWith('/branding') &&
+    !req.path.startsWith('/manifest') &&
+    !req.path.startsWith('/api') && // Ensure public API endpoints are not blocked
+    req.method === 'GET'
+  ) {
+    return res.redirect('/setup');
+  }
+  next();
 });
 
 // Inject settings with fallbacks into res.locals for all views
@@ -123,8 +138,25 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static images from /public/images at /images URL
-app.use('/images', express.static(path.join(__dirname, 'public/images')));
+// Serve static images from /data/images at /images URL
+app.use('/images', express.static(path.join(__dirname, 'data/images')));
+// Serve static client images from /data/client-uploads at /client-images URL
+app.use('/client-images', express.static(path.join(__dirname, 'data/client-uploads')));
+
+// Serve the /data directory as /branding
+app.use('/branding', express.static(path.join(__dirname, 'data')));
+
+// Serve client-uploaded images at /uploads/:clientId/:filename
+app.get('/uploads/:clientId/:filename', (req, res) => {
+  const clientId = req.params.clientId;
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, 'data', 'client-uploads', clientId, filename);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Image not found');
+  }
+});
 
 // Parse URL-encoded bodies (for login form, etc.)
 app.use(express.urlencoded({ extended: true }));
@@ -238,6 +270,9 @@ if (process.env.NODE_ENV === 'test') {
       });
   }
 }
+
+// Serve static files from /public (moved earlier to improve response times)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Use client routes
 app.use('/client', clientRoutes);

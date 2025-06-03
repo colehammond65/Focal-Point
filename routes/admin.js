@@ -133,11 +133,17 @@ router.get('/logout', (req, res) => {
 
 // Setup page (GET)
 router.get('/setup', (req, res) => {
+    if (adminExists()) {
+        return res.redirect('/admin/login');
+    }
     res.render('setup', { error: null, showAdminNav: req.session && req.session.loggedIn });
 });
 
 // Setup page (POST)
 router.post('/setup', async (req, res) => {
+    if (adminExists()) {
+        return res.redirect('/admin/login');
+    }
     const { username, password } = req.body;
     if (!username || !password || username.length < 3 || password.length < 4) {
         return res.render('setup', { error: 'Username and password are required (min 3/4 chars).' });
@@ -499,7 +505,10 @@ router.post('/clients/:clientId/upload', requireLogin, clientUpload.array('image
 // Admin: Upload images (multiple files, protected) -- RATE LIMITED
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, '../public/images/tmp'));
+        // Always upload to a temp directory first
+        const tempDir = path.join(__dirname, '../data/tmp');
+        fs.mkdirSync(tempDir, { recursive: true });
+        cb(null, tempDir);
     },
     filename: function (req, file, cb) {
         const ext = path.extname(file.originalname);
@@ -520,10 +529,13 @@ const upload = multer({
 router.post('/upload', requireLogin, adminLimiter, upload.array('images', 20), async (req, res, next) => {
     try {
         const category = req.body.category;
+        if (!category) {
+            return res.status(400).send('No category selected. Please select a category before uploading.');
+        }
         if (!isSafeCategory(category)) {
             return res.status(400).send('Invalid category');
         }
-        const destDir = path.join(__dirname, '../public/images', category);
+        const destDir = path.join(__dirname, '../data/images', category);
         fs.mkdirSync(destDir, { recursive: true });
         const catInfo = getCategoryIdAndMaxPosition(category);
         if (!catInfo) return res.status(400).send('Category not found');
@@ -772,11 +784,12 @@ router.post('/about/bio', requireLogin, (req, res) => {
 });
 
 // About image upload (with multer)
-const aboutUpload = multer({ dest: path.join(__dirname, '../public/uploads/') });
+const aboutUpload = multer({ dest: path.join(__dirname, '../data/') });
 router.post('/about/image', requireLogin, aboutUpload.single('image'), (req, res) => {
     let imagePath = req.body.currentImage;
     if (req.file) {
-        imagePath = '/uploads/' + req.file.filename;
+        // Save only the filename (with extension) in the DB
+        imagePath = req.file.filename;
     }
     const about = db.prepare('SELECT * FROM about LIMIT 1').get();
     db.prepare('UPDATE about SET markdown = ?, image_path = ? WHERE id = 1')

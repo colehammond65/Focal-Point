@@ -9,15 +9,18 @@
         <%= settings.siteTitle || "Focal Point" %> - Client Gallery
     </title>
     <% if (settings.favicon) { %>
-        <link rel="icon" type="image/png" href="/branding/<%= settings.favicon %>">
-        <% } %>
-            <link rel="stylesheet" href="/styles.css?v=<%= encodeURIComponent(settings.accentColor || '') %>">
-            <style>
-                :root {
-                    --primary-color: <%=settings.accentColor || '#2ecc71' %>;
-                    --primary-hover: <%=settings.accentColor ? (settings.accentColor.replace('#', '%23') + 'cc'): '#27ae60' %>;
-                }
-            </style>
+        <% let faviconSrc=(settings.favicon.startsWith('http://') || settings.favicon.startsWith('https://') ||
+            settings.favicon.startsWith('/branding/')) ? settings.favicon : ('/branding/' +
+            settings.favicon.replace(/^\/uploads\//, '' )) %>;
+            <link rel="icon" type="image/png" href="<%= faviconSrc %>">
+            <% } %>
+                <link rel="stylesheet" href="/styles.css?v=<%= encodeURIComponent(settings.accentColor || '') %>">
+                <style>
+                    :root {
+                        --primary-color: <%=settings.accentColor || '#2ecc71' %>;
+                        --primary-hover: <%=settings.accentColor ? (settings.accentColor.replace('#', '%23') + 'cc'): '#27ae60' %>;
+                    }
+                </style>
 </head>
 
 <body>
@@ -40,7 +43,6 @@
         </script>
         <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
             <script>
-                // Show toast if msg is present in query
                 document.addEventListener('DOMContentLoaded', function () {
                     showToast(<%= JSON.stringify(req.query.msg) %>);
                 });
@@ -68,11 +70,24 @@
                         </div>
                     </div>
 
+                    <div class="upload-section" style="margin-bottom:2em;">
+                        <form action="/client/upload" method="POST" enctype="multipart/form-data"
+                            class="client-upload-form">
+                            <label for="clientUploadInput" class="btn btn-primary" tabindex="0"
+                                style="cursor:pointer;">Select Photo(s)</label>
+                            <input type="file" id="clientUploadInput" name="images" multiple accept="image/*"
+                                style="display:none;">
+                            <div id="clientUploadPreview" class="preview" style="margin-top:1em;"></div>
+                            <button type="submit" class="btn btn-success" style="margin-top:1em;">Upload</button>
+                        </form>
+                    </div>
+
                     <div class="gallery-container">
                         <% if (images && images.length> 0) { %>
                             <div class="gallery-grid">
                                 <% images.forEach((image, idx)=> { %>
-                                    <img class="gallery-thumb-img" src="/client-images/<%= image.filename %>"
+                                    <img class="gallery-thumb-img"
+                                        src="/client-images/<%= clientId %>/<%= image.filename %>"
                                         alt="<%= image.original_filename || ('Photo ' + (idx + 1)) %>" loading="lazy" />
                                     <% }); %>
                             </div>
@@ -152,6 +167,44 @@
                                     img.setAttribute('data-loaded', 'true');
                                 }
                             });
+
+                            // Preview functionality for image uploads
+                            const fileInput = document.getElementById('clientUploadInput');
+                            const preview = document.getElementById('clientUploadPreview');
+                            const label = document.querySelector('label[for="clientUploadInput"]');
+                            if (label && fileInput) {
+                                label.addEventListener('keydown', function (e) {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        fileInput.click();
+                                    }
+                                });
+                                label.addEventListener('click', function (e) {
+                                    fileInput.click();
+                                });
+                            }
+                            if (fileInput && preview) {
+                                fileInput.addEventListener('change', function () {
+                                    preview.innerHTML = '';
+                                    if (fileInput.files && fileInput.files.length > 0) {
+                                        Array.from(fileInput.files).forEach(file => {
+                                            if (file.type.startsWith('image/')) {
+                                                const reader = new FileReader();
+                                                reader.onload = function (e) {
+                                                    const img = document.createElement('img');
+                                                    img.src = e.target.result;
+                                                    img.alt = file.name;
+                                                    img.style.maxWidth = '70px';
+                                                    img.style.maxHeight = '70px';
+                                                    img.style.margin = '0.2em';
+                                                    preview.appendChild(img);
+                                                };
+                                                reader.readAsDataURL(file);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
                         });
                     </script>
 </body>

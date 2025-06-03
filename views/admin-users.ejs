@@ -9,15 +9,18 @@
         <%= settings.siteTitle || "Focal Point" %> - Admin Users
     </title>
     <% if (settings.favicon) { %>
-        <link rel="icon" type="image/png" href="/branding/<%= settings.favicon %>">
-        <% } %>
-            <link rel="stylesheet" href="/styles.css?v=<%= encodeURIComponent(settings.accentColor || '') %>">
-            <style>
-                :root {
-                    --primary-color: <%=settings.accentColor || '#2ecc71' %>;
-                    --primary-hover: <%=settings.accentColor ? (settings.accentColor.replace('#', '%23') + 'cc'): '#27ae60' %>;
-                }
-            </style>
+        <% let faviconSrc=(settings.favicon.startsWith('http://') || settings.favicon.startsWith('https://') ||
+            settings.favicon.startsWith('/branding/')) ? settings.favicon : ('/branding/' +
+            settings.favicon.replace(/^\/uploads\//, '' )) %>;
+            <link rel="icon" type="image/png" href="<%= faviconSrc %>">
+            <% } %>
+                <link rel="stylesheet" href="/styles.css?v=<%= encodeURIComponent(settings.accentColor || '') %>">
+                <style>
+                    :root {
+                        --primary-color: <%=settings.accentColor || '#2ecc71' %>;
+                        --primary-hover: <%=settings.accentColor ? (settings.accentColor.replace('#', '%23') + 'cc'): '#27ae60' %>;
+                    }
+                </style>
 </head>
 
 <body>
