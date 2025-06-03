@@ -1,7 +1,7 @@
 <!-- Site header and navigation bar. Shows site title or image, navigation links, and dark mode toggle. -->
 <header>
     <% if (settings.headerType==='image' && settings.headerImage) { %>
-        <img src="/uploads/<%= settings.headerImage %>" alt="Site Header" class="header-image-preview">
+        <img src="/branding/<%= settings.headerImage %>" alt="Site Header" class="header-image-preview">
         <% } else { %>
             <span class="site-title">
                 <%= settings.headerTitle || "Focal Point" %>

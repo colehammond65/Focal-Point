@@ -106,8 +106,9 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Serve static files from /public
 app.use((req, res, next) => {
-  if (req.path === '/styles.css') return next(); // Exclude /styles.css from static serving
-  express.static(path.join(__dirname, 'public'))(req, res, next);
+  if (req.path === '/styles.css') express.static(path.join(__dirname, 'public'))(req, res, next);
+  else if (req.path.startsWith('/branding/')) express.static(path.join(__dirname, 'data'))(req, res, next);
+  else next();
 });
 
 // Inject settings with fallbacks into res.locals for all views

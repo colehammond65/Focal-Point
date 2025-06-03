@@ -92,12 +92,12 @@ router.get('/manifest.json', (req, res) => {
         description: "A simple Focal Point .",
         icons: [
             {
-                src: `/uploads/${base}-192.png`,
+                src: `/branding/${base}-192.png`,
                 sizes: "192x192",
                 type: "image/png"
             },
             {
-                src: `/uploads/${base}-512.png`,
+                src: `/branding/${base}-512.png`,
                 sizes: "512x512",
                 type: "image/png"
             }

@@ -13,7 +13,7 @@
         <%= settings.siteTitle || "Focal Point" %> - Site Settings
     </title>
     <% if (settings.favicon) { %>
-        <link rel="icon" type="image/png" href="/uploads/<%= settings.favicon %>">
+        <link rel="icon" type="image/png" href="/branding/<%= settings.favicon %>">
         <% } %>
             <link rel="stylesheet" href="/styles.css?v=<%= encodeURIComponent(settings.accentColor || '') %>">
             <style>
@@ -139,7 +139,7 @@
                                 </div>
                                 <% if (settings.headerImage) { %>
                                     <div class="header-image-preview-container">
-                                        <img src="/uploads/<%= settings.headerImage %>" alt="Header Image"
+                                        <img src="/branding/<%= settings.headerImage %>" alt="Header Image"
                                             class="header-image-preview">
                                     </div>
                                     <% } %>
@@ -156,7 +156,7 @@
                             <% if (settings.favicon) { %>
                                 <div class="favicon-preview-container">
                                     <span class="favicon-preview-label">Preview</span>
-                                    <img src="/uploads/<%= settings.favicon %>" alt="Current favicon"
+                                    <img src="/branding/<%= settings.favicon %>" alt="Current favicon"
                                         class="favicon-preview">
                                 </div>
                                 <% } %>

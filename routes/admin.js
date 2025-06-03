@@ -87,6 +87,8 @@ const adminLimiter = rateLimit({
     legacyHeaders: false,
 });
 const uploadsDir = path.join(__dirname, '../public/uploads');
+const brandingDir = path.join(__dirname, '../data');
+fs.mkdirSync(brandingDir, { recursive: true });
 
 // Helper to always provide settings with defaults
 function getSettingsWithDefaults() {
@@ -164,7 +166,7 @@ router.get('/settings', requireLogin, (req, res) => {
 // Settings update (protected) with file upload support
 const settingsStorage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, '../public/uploads'));
+        cb(null, brandingDir);
     },
     filename: function (req, file, cb) {
         const ext = path.extname(file.originalname);
@@ -228,7 +230,7 @@ router.post('/settings', requireLogin, settingsUpload.fields([
 router.post('/settings/remove-header-image', requireLogin, (req, res) => {
     const currentHeaderImage = getSetting('headerImage');
     if (currentHeaderImage) {
-        const filePath = path.join(__dirname, '../public/uploads', currentHeaderImage);
+        const filePath = path.join(brandingDir, currentHeaderImage);
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
         }
