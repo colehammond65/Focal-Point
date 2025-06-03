@@ -14,7 +14,6 @@ module.exports = {
                 last_access DATETIME
             );
         `);
-        console.log("Clients table created");
 
         db.exec(`
             CREATE TABLE IF NOT EXISTS client_images (
@@ -28,7 +27,7 @@ module.exports = {
                 FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE
             );
         `);
-        console.log("Client images table created");
+        console.log("006-add-client-system migration completed");
     },
 
     down: async ({ context: db }) => {

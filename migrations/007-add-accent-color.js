@@ -5,6 +5,7 @@ module.exports = {
         if (!exists) {
             db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('accentColor', '#2ecc71');
         }
+        console.log("007-add-accent-color migration completed");
     },
     down: async ({ context: db }) => {
         // Remove accentColor setting if exists

@@ -15,6 +15,7 @@ module.exports = {
         null
       );
     }
+    console.log("005-about migration completed");
   },
   down: async ({ context: db }) => {
     db.exec('DROP TABLE IF EXISTS about;');

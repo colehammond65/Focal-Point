@@ -10,7 +10,7 @@ module.exports = {
             cats.forEach((cat, idx) => {
                 db.prepare('UPDATE categories SET position = ? WHERE id = ?').run(idx, cat.id);
             });
-            console.log("Added 'position' column to categories and initialized values.");
+            console.log("002-add-category-position migration completed");
         } else {
             console.log("'position' column already exists in categories.");
         }

@@ -36,7 +36,7 @@
                         <!-- Upload Images Form -->
                         <section class="admin-card">
                             <h2>Upload Images</h2>
-                            <form action="/upload" method="POST" enctype="multipart/form-data" class="admin-form">
+                            <form action="/admin/upload" method="POST" enctype="multipart/form-data" class="admin-form">
                                 <label for="image">Choose image(s):</label>
                                 <p class="backup-note">Max 20 images at a time. Max 10MB per image. Supported formats:
                                     JPG, PNG, GIF.</p>
@@ -68,7 +68,7 @@
                         <!-- Create Category Form -->
                         <section class="admin-card">
                             <h2>Create Category</h2>
-                            <form action="/create-category" method="POST" class="admin-form row-gap">
+                            <form action="/admin/create-category" method="POST" class="admin-form row-gap">
                                 <label for="newCategory" class="visually-hidden">New Category Name</label>
                                 <input type="text" id="newCategory" name="newCategory" placeholder="New category name"
                                     required class="flex-1">
@@ -99,7 +99,7 @@
                                                     <div class="options-row">
                                                         <div class="category-options-box">
                                                             <div class="category-options-title">Category Options</div>
-                                                            <form action="/delete-category" method="POST"
+                                                            <form action="/admin/delete-category" method="POST"
                                                                 class="no-margin">
                                                                 <input type="hidden" name="category"
                                                                     value="<%= cat.name %>">
@@ -107,7 +107,7 @@
                                                                     aria-label="Delete category"
                                                                     onclick="return confirm('Delete this category and all its images?');">Delete</button>
                                                             </form>
-                                                            <form action="/rename-category" method="POST"
+                                                            <form action="/admin/rename-category" method="POST"
                                                                 class="no-margin row-gap" style="margin-top:0.7rem;"
                                                                 onsubmit="return confirm('Are you sure you want to rename this category?');">
                                                                 <input type="hidden" name="oldName"

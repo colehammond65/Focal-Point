@@ -26,7 +26,7 @@ module.exports = {
                 FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
             );
         `);
-    console.log("Images table created");
+    console.log("001-initial migration completed");
   },
   down: async ({ context: db }) => {
     db.exec(`DROP TABLE IF EXISTS images;`);

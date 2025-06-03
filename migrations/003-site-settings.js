@@ -15,6 +15,7 @@ module.exports = {
         defaults.forEach(({ key, value }) => {
             db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)').run(key, value);
         });
+        console.log("003-site-settings migration completed");
     },
     down: async ({ context: db }) => {
         db.exec(`DROP TABLE IF EXISTS settings;`);
