@@ -130,6 +130,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Set a more permissive CSP for inline scripts for development (customize for production)
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:" // allow data: for previews
+    ].join('; ')
+  );
+  next();
+});
+
 // Serve static images from /data/images at /images URL with cache headers
 app.use('/images', express.static(path.join(__dirname, 'data/images'), {
   maxAge: '30d', // Cache for 30 days
