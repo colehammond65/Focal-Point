@@ -130,13 +130,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static images from /data/images at /images URL
-app.use('/images', express.static(path.join(__dirname, 'data/images')));
-// Serve static client images from /data/client-uploads at /client-images URL
-app.use('/client-images', express.static(path.join(__dirname, 'data/client-uploads')));
-
-// Serve the /data directory as /branding
-app.use('/branding', express.static(path.join(__dirname, 'data')));
+// Serve static images from /data/images at /images URL with cache headers
+app.use('/images', express.static(path.join(__dirname, 'data/images'), {
+  maxAge: '30d', // Cache for 30 days
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+  }
+}));
+// Serve static client images from /data/client-uploads at /client-images URL with cache headers
+app.use('/client-images', express.static(path.join(__dirname, 'data/client-uploads'), {
+  maxAge: '30d',
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+  }
+}));
+// Serve the /data directory as /branding with cache headers
+app.use('/branding', express.static(path.join(__dirname, 'data'), {
+  maxAge: '30d',
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+  }
+}));
 
 // Serve client-uploaded images at /uploads/:clientId/:filename
 app.get('/uploads/:clientId/:filename', (req, res) => {
@@ -270,8 +284,21 @@ if (process.env.NODE_ENV === 'test') {
   }
 }
 
-// Serve static files from /public (moved earlier to improve response times)
-app.use(express.static(path.join(__dirname, 'public')));
+// Centralized cache header middleware
+function setCacheHeaders(res, filePath) {
+  if (filePath.endsWith('service-worker.js')) {
+    // Service worker should never be cached
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  } else {
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+  }
+}
+
+// Serve static files from /public with cache headers
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '30d',
+  setHeaders: setCacheHeaders
+}));
 
 // Use client routes
 app.use('/client', clientRoutes);
