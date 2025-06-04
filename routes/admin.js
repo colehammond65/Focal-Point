@@ -454,7 +454,7 @@ router.post('/clients/create', requireLogin, async (req, res) => {
     let customExpiry = req.body.customExpiry;
     if (customExpiry && !validator.isISO8601(customExpiry)) customExpiry = null;
     if (!clientName || !password) {
-        return res.redirect('/admin/clients/new?error=Name and password required');
+        return res.redirect('/admin/clients/new?msg=Name and password required');
     }
     try {
         const expiryDate = customExpiry ? new Date(customExpiry) : null;
@@ -462,7 +462,7 @@ router.post('/clients/create', requireLogin, async (req, res) => {
         res.redirect(`/admin/clients/${result.id}/upload?created=true&code=${result.accessCode}`);
     } catch (err) {
         console.error('Error creating client:', err);
-        res.redirect('/admin/clients/new?error=Failed to create client');
+        res.redirect('/admin/clients/new?msg=Failed to create client');
     }
 });
 

@@ -27,30 +27,36 @@
   <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
     <div id="toast-container" class="toast-container"></div>
     <script src="/js/toast.js"></script>
-    <% if (typeof error !=='undefined' && error) { let errorMsg=(typeof error==='string' ? error : (error &&
-      error.message) || String(error)); %>
+    <% if (req.query && req.query.msg) { %>
       <script>
-        // Show error toast if error is present
         document.addEventListener('DOMContentLoaded', function () {
-          showToast("<%= errorMsg.replace(/\"/g, '&quot;') %>");
+          showToast("<%= req.query.msg.replace(/\"/g, '&quot;') %>");
         });
       </script>
       <% } %>
-        <div class="container">
-          <form class="login-box" action="/login" method="POST" autocomplete="off">
-            <h1>Admin Login</h1>
-            <div class="form-group">
-              <label for="username" class="visually-hidden">Username</label>
-              <input type="text" id="username" name="username" placeholder="Username" required autofocus>
+        <% if (error) { %>
+          <script src="/js/toast.js"></script>
+          <script>
+            document.addEventListener('DOMContentLoaded', function () {
+              showToast("<%= error.replace(/\"/g, '&quot;') %>");
+            });
+          </script>
+          <% } %>
+            <div class="container">
+              <form class="login-box" action="/login" method="POST" autocomplete="off">
+                <h1>Admin Login</h1>
+                <div class="form-group">
+                  <label for="username" class="visually-hidden">Username</label>
+                  <input type="text" id="username" name="username" placeholder="Username" required autofocus>
+                </div>
+                <div class="form-group">
+                  <label for="password" class="visually-hidden">Password</label>
+                  <input type="password" id="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+              </form>
             </div>
-            <div class="form-group">
-              <label for="password" class="visually-hidden">Password</label>
-              <input type="password" id="password" name="password" placeholder="Password" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Login</button>
-          </form>
-        </div>
-        <%- include('partials/dark-mode-toggle') %>
+            <%- include('partials/dark-mode-toggle') %>
 </body>
 
 </html>

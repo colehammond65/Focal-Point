@@ -172,7 +172,7 @@ router.post('/setup', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password || username.length < 3 || password.length < 8) {
         // Redirect with error in query for toast
-        return res.redirect('/setup?error=' + encodeURIComponent('Username and password are required. Username must be at least 3 characters and password at least 8 characters.'));
+        return res.redirect('/setup?msg=' + encodeURIComponent('Username and password are required. Username must be at least 3 characters and password at least 8 characters.'));
     }
     await createAdmin(username, password);
     res.redirect('/admin/login');

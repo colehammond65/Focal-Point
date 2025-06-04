@@ -31,9 +31,8 @@
 <body>
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
         <div id="toast-container" class="toast-container"></div>
-        <% if (typeof error !=='undefined' && error) { var errorMsg=(typeof error==='string' ? error : (error &&
-            error.message) || String(error)); %>
-            <div id="toast-data" data-msg="<%- errorMsg.replace(/&/g, '&amp;').replace(/\" /g, '&quot;'
+        <% if (req.query && req.query.msg) { %>
+            <div id="toast-data" data-msg="<%- req.query.msg.replace(/&/g, '&amp;').replace(/\" /g, '&quot;'
                 ).replace(/'/g, '&#39;' ).replace(/</g, '&lt;' ).replace( />/g, '&gt;') %>" style="display:none;"></div>
             <% } %>
                 <script src="/js/toast.js"></script>
