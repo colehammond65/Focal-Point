@@ -11,7 +11,7 @@
   <% if (settings.favicon) { %>
     <% let faviconSrc=(settings.favicon.startsWith('http://') || settings.favicon.startsWith('https://') ||
       settings.favicon.startsWith('/branding/')) ? settings.favicon : ('/branding/' +
-      settings.favicon.replace(/^\/uploads\//, '' )) %>;
+      settings.favicon.replace(/^\/uploads\//, '' )) %>
       <link rel="icon" type="image/png" href="<%= faviconSrc %>">
       <% } %>
         <link rel="stylesheet" href="/styles.css?v=<%= encodeURIComponent(settings.accentColor || '') %>">

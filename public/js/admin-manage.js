@@ -100,6 +100,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         toggle.addEventListener('click', function () {
             var catName = toggle.closest('.category-accordion').getAttribute('data-cat');
+            toggleCategoryPanel(catName); // <-- Fix: actually toggle the panel on click
+            // Reset bulk action buttons
             document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected')
                 .forEach(function (img) { img.classList.remove('selected'); });
             var bulkDeleteBtn = document.getElementById('bulkDeleteBtn-' + catName);
