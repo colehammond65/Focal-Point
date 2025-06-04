@@ -5,6 +5,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const validator = require('validator');
+const FileType = require('file-type');
 const {
     verifyClient,
     getClientImages,
@@ -22,6 +23,13 @@ function requireClientLogin(req, res, next) {
     } else {
         res.redirect('/client/login');
     }
+}
+
+// Helper to validate uploaded file is a real image
+async function isRealImage(filePath) {
+    const type = await FileType.fromFile(filePath);
+    if (!type) return false;
+    return ['image/png', 'image/jpeg', 'image/gif'].includes(type.mime);
 }
 
 // Client login page (password only)
@@ -76,11 +84,9 @@ router.get('/images/:filename', requireClientLogin, (req, res) => {
     if (!/^[\w.-]+$/.test(filename)) return res.status(400).send('Invalid filename');
     const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
 
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('Image not found');
-    }
+    fs.promises.access(filePath, fs.constants.F_OK)
+        .then(() => res.sendFile(filePath))
+        .catch(() => res.status(404).send('Image not found'));
 });
 
 // Download single image
@@ -90,12 +96,9 @@ router.get('/download/:filename', requireClientLogin, (req, res) => {
     if (!/^[\w.-]+$/.test(filename)) return res.status(400).send('Invalid filename');
     const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
 
-    if (fs.existsSync(filePath)) {
-        // You may want to fetch the original filename from DB if needed
-        res.download(filePath, filename);
-    } else {
-        res.status(404).send('Image not found');
-    }
+    fs.promises.access(filePath, fs.constants.F_OK)
+        .then(() => res.download(filePath, filename))
+        .catch(() => res.status(404).send('Image not found'));
 });
 
 // Download all images as ZIP

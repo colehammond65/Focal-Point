@@ -17,6 +17,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const validator = require('validator');
 const _ = require('lodash');
+const FileType = require('file-type');
 const {
     getCategoriesWithImages,
     adminExists,
@@ -92,6 +93,13 @@ const adminLimiter = rateLimit({
 const uploadsDir = path.join(__dirname, '../public/uploads');
 const brandingDir = path.join(__dirname, '../data');
 fs.mkdirSync(brandingDir, { recursive: true });
+
+// Helper to validate uploaded file is a real image
+async function isRealImage(filePath) {
+    const type = await FileType.fromFile(filePath);
+    if (!type) return false;
+    return ['image/png', 'image/jpeg', 'image/gif'].includes(type.mime);
+}
 
 // --- AUTH & SETUP ROUTES (moved from server.js) --- //
 
@@ -240,13 +248,21 @@ router.post('/settings', requireLogin, settingsUpload.fields([
 });
 
 // Remove header image
-router.post('/settings/remove-header-image', requireLogin, (req, res) => {
+router.post('/settings/remove-header-image', requireLogin, async (req, res) => {
     const currentHeaderImage = getSetting('headerImage');
     if (currentHeaderImage) {
         const filePath = path.join(brandingDir, currentHeaderImage);
-        if (fs.existsSync(filePath)) {
+        try {
+            await fs.promises.access(filePath);
             fs.unlinkSync(filePath);
+        } catch (err) {
+            // Ignore error if file does not exist
         }
+        fs.unlink(filePath, (unlinkErr) => {
+            if (unlinkErr) {
+                // Handle unlink error if needed
+            }
+        });
     }
     setSetting('headerImage', '');
     res.redirect('/admin/settings?msg=Header image removed');
@@ -516,12 +532,17 @@ router.get('/clients/:clientId/upload', requireLogin, (req, res) => {
     }
 });
 
-router.post('/clients/:clientId/upload', requireLogin, clientUpload.array('images', 50), (req, res) => {
+router.post('/clients/:clientId/upload', requireLogin, clientUpload.array('images', 50), async (req, res) => {
     const clientId = req.params.clientId;
     if (req.files) {
-        req.files.forEach(file => {
+        for (const file of req.files) {
+            const isImage = await isRealImage(file.path);
+            if (!isImage) {
+                fs.unlinkSync(file.path);
+                return res.status(400).send('Invalid file type uploaded.');
+            }
             addClientImage(clientId, file.filename, file.originalname, file.size);
-        });
+        }
     }
     res.redirect(`/admin/clients/${clientId}/upload?uploaded=${req.files ? req.files.length : 0}`);
 });
@@ -562,15 +583,18 @@ router.post('/upload', requireLogin, adminLimiter, upload.array('images', 20), a
         const destDir = path.join(__dirname, '../data/images', category);
         fs.mkdirSync(destDir, { recursive: true });
         const catInfo = getCategoryIdAndMaxPosition(category);
-        if (!catInfo) return res.status(400).send('Category not found');
-        let maxPos = catInfo.maxPos;
+        let maxPos = catInfo ? catInfo.maxPos : 0;
         for (const file of req.files) {
+            const isImage = await isRealImage(file.path);
+            if (!isImage) {
+                fs.unlinkSync(file.path);
+                return res.status(400).send('Invalid file type uploaded.');
+            }
             const tmpPath = file.path;
             const destPath = path.join(destDir, file.filename);
             fs.renameSync(tmpPath, destPath);
             addImage(category, file.filename, ++maxPos, '');
         }
-        // Optionally invalidate cache if you use one
         return res.redirect('/admin/manage?msg=Upload successful!');
     } catch (err) {
         next(err);

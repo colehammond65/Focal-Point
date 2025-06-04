@@ -8,6 +8,7 @@ if (!process.env.SESSION_SECRET) {
 }
 
 const express = require('express');
+const helmet = require('helmet');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -64,20 +65,10 @@ const clientRoutes = require('./routes/client');
 const mainRoutes = require('./routes/main');
 const app = express();
 
+app.use(helmet());
+
 // Set trust proxy from environment variable (default: 0/false)
-const trustProxy = process.env.TRUST_PROXY;
-if (trustProxy !== undefined) {
-  // If it's a number, use as number; if "true", use true; if "false", use false
-  if (trustProxy === "true") {
-    app.set('trust proxy', true);
-  } else if (trustProxy === "false" || trustProxy === "0") {
-    app.set('trust proxy', false);
-  } else if (!isNaN(Number(trustProxy))) {
-    app.set('trust proxy', Number(trustProxy));
-  } else {
-    app.set('trust proxy', trustProxy); // fallback for advanced trust proxy settings
-  }
-}
+app.set('trust proxy', process.env.TRUST_PROXY === '1');
 
 const { getCachedCategories, invalidateCategoryCache } = require('./utils/categoryCache');
 
@@ -179,7 +170,8 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // only over HTTPS in prod
-    sameSite: 'lax'
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
   }
 }));
 
