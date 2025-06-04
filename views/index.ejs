@@ -41,7 +41,7 @@
           <!-- Gallery view for a category -->
           <div class="gallery">
             <% images.forEach(img=> { %>
-              <img src="/images/<%= category %>/<%= img.filename %>" alt="<%= img.alt_text %>" loading="lazy">
+              <img src="/images/<%= category %>/<%= img.filename %>?w=900" alt="<%= img.alt_text %>" loading="lazy">
               <% }); %>
           </div>
           <% } else { %>
@@ -51,7 +51,7 @@
                 <a class="category" href="/gallery/<%= cat.name %>">
                   <div class="category-image-wrapper">
                     <% if (cat.preview) { %>
-                      <img src="/images/<%= cat.name %>/<%= cat.preview %>" alt="<%= cat.preview %>">
+                      <img src="/images/<%= cat.name %>/<%= cat.preview %>?w=300" alt="<%= cat.preview %>">
                       <% } else { %>
                         <div class="no-image">No image</div>
                         <% } %>

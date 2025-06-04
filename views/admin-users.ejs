@@ -28,114 +28,115 @@
         <div class="container">
             <h1>Admin User Management</h1>
             <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
-                <div class="admin-msg">
-                    <%= req.query.msg.replace(/"/g, '&quot;' ) %>
+                <div id="toast-data" data-msg="<%- req.query.msg.replace(/&/g, '&amp;').replace(/" /g, '&quot;'
+                    ).replace(/'/g, '&#39;' ).replace(/</g, '&lt;' ).replace( />/g, '&gt;') %>" style="display:none;">
+        </div>
+        <% } %>
+            <div id="toast-container" class="toast-container"></div>
+            <div class="admin-flex-row">
+                <div class="flex-1" style="min-width:300px;">
+                    <section class="admin-card">
+                        <h2>Create New Admin</h2>
+                        <form id="adminUserForm" action="/admin/users/create" method="POST" autocomplete="off"
+                            class="admin-form">
+                            <label for="username">Username:</label>
+                            <input type="text" id="username" name="username" pattern="[A-Za-z0-9_\-]{3,32}"
+                                maxlength="32" required autocomplete="off">
+                            <label for="password">Password:</label>
+                            <input type="password" id="password" name="password" minlength="8" maxlength="64" required
+                                autocomplete="off">
+                            <button type="submit" class="btn btn-primary">Create Admin</button>
+                        </form>
+                    </section>
+                    <section class="admin-card">
+                        <h2>All Admins</h2>
+                        <div class="admin-list">
+                            <% admins.forEach(a=> { %>
+                                <div class="admin-list-item">
+                                    <span>
+                                        <%= _.escape(a.username) %>
+                                    </span>
+                                    <% if (a.id !==currentAdmin) { %>
+                                        <form action="/admin/users/delete" method="POST" class="inline-form">
+                                            <input type="hidden" name="id" value="<%= _.escape(a.id) %>">
+                                            <button type="submit" class="btn btn-danger btn-small"
+                                                onclick="return confirm('Delete this admin?')">Delete</button>
+                                        </form>
+                                        <% } else { %>
+                                            <span class="admin-current-user">(Current User)</span>
+                                            <% } %>
+                                </div>
+                                <% }) %>
+                        </div>
+                    </section>
                 </div>
+                <div class="flex-1" style="min-width:300px;">
+                    <section class="admin-card">
+                        <h2>Change Your Username</h2>
+                        <form action="/admin/users/change-username" method="POST" class="admin-form">
+                            <label for="newUsername">New Username:</label>
+                            <input type="text" id="newUsername" name="newUsername" pattern="[A-Za-z0-9_\-]{3,32}"
+                                maxlength="32" required autocomplete="username">
+                            <label for="currentPasswordUsername">Current Password:</label>
+                            <input type="password" id="currentPasswordUsername" name="currentPassword" required
+                                autocomplete="current-password">
+                            <button type="submit" class="btn btn-primary">Change Username</button>
+                        </form>
+                    </section>
+                    <section class="admin-card">
+                        <h2>Change Your Password</h2>
+                        <form action="/admin/users/change-password" method="POST" class="admin-form">
+                            <label for="currentPasswordPassword">Current Password:</label>
+                            <input type="password" id="currentPasswordPassword" name="currentPassword" required
+                                autocomplete="current-password">
+                            <label for="newPassword">New Password:</label>
+                            <input type="password" id="newPassword" name="newPassword" required minlength="8"
+                                maxlength="64" autocomplete="new-password">
+                            <button type="submit" class="btn btn-primary">Change Password</button>
+                        </form>
+                    </section>
+                </div>
+            </div>
+            </div>
+            <%- include('partials/dark-mode-toggle') %>
+                <script src="/js/toast.js"></script>
                 <script>
-                    // Show toast if msg is present in query
                     document.addEventListener('DOMContentLoaded', function () {
-                        showToast("<%= (req.query.msg + '').replace(/\"/g, '&quot;') %>");
+                        var toastDiv = document.getElementById('toast-data');
+                        if (toastDiv && toastDiv.dataset.msg) {
+                            showToast(toastDiv.dataset.msg);
+                        }
+                    });
+
+                    // Show toast if msg is present in query string
+                    (function () {
+                        const params = new URLSearchParams(window.location.search);
+                        const msg = params.get('msg');
+                        if (msg) {
+                            showToast(msg);
+                            // Remove msg from URL without reloading
+                            if (window.history.replaceState) {
+                                params.delete('msg');
+                                const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                                window.history.replaceState({}, document.title, newUrl);
+                            }
+                        }
+                    })();
+
+                    // Client-side validation for admin user form
+                    document.getElementById('adminUserForm')?.addEventListener('submit', function (e) {
+                        const username = this.username.value.trim();
+                        const password = this.password.value;
+                        if (!/^[A-Za-z0-9_\-]{3,32}$/.test(username)) {
+                            alert('Username must be 3-32 characters, letters, numbers, _ or - only.');
+                            e.preventDefault();
+                        }
+                        if (password.length < 8) {
+                            alert('Password must be at least 8 characters.');
+                            e.preventDefault();
+                        }
                     });
                 </script>
-                <% } %>
-                    <div id="toast-container" class="toast-container"></div>
-                    <div class="admin-flex-row">
-                        <div class="flex-1" style="min-width:300px;">
-                            <section class="admin-card">
-                                <h2>Create New Admin</h2>
-                                <form id="adminUserForm" action="/admin/users/create" method="POST" autocomplete="off"
-                                    class="admin-form">
-                                    <label for="username">Username:</label>
-                                    <input type="text" id="username" name="username" pattern="[A-Za-z0-9_\-]{3,32}"
-                                        maxlength="32" required autocomplete="off">
-                                    <label for="password">Password:</label>
-                                    <input type="password" id="password" name="password" minlength="8" maxlength="64"
-                                        required autocomplete="off">
-                                    <button type="submit" class="btn btn-primary">Create Admin</button>
-                                </form>
-                            </section>
-                            <section class="admin-card">
-                                <h2>All Admins</h2>
-                                <div class="admin-list">
-                                    <% admins.forEach(a=> { %>
-                                        <div class="admin-list-item">
-                                            <span>
-                                                <%= _.escape(a.username) %>
-                                            </span>
-                                            <% if (a.id !==currentAdmin) { %>
-                                                <form action="/admin/users/delete" method="POST" class="inline-form">
-                                                    <input type="hidden" name="id" value="<%= _.escape(a.id) %>">
-                                                    <button type="submit" class="btn btn-danger btn-small"
-                                                        onclick="return confirm('Delete this admin?')">Delete</button>
-                                                </form>
-                                                <% } else { %>
-                                                    <span class="admin-current-user">(Current User)</span>
-                                                    <% } %>
-                                        </div>
-                                        <% }) %>
-                                </div>
-                            </section>
-                        </div>
-                        <div class="flex-1" style="min-width:300px;">
-                            <section class="admin-card">
-                                <h2>Change Your Username</h2>
-                                <form action="/admin/users/change-username" method="POST" class="admin-form">
-                                    <label for="newUsername">New Username:</label>
-                                    <input type="text" id="newUsername" name="newUsername"
-                                        pattern="[A-Za-z0-9_\-]{3,32}" maxlength="32" required autocomplete="username">
-                                    <label for="currentPasswordUsername">Current Password:</label>
-                                    <input type="password" id="currentPasswordUsername" name="currentPassword" required
-                                        autocomplete="current-password">
-                                    <button type="submit" class="btn btn-primary">Change Username</button>
-                                </form>
-                            </section>
-                            <section class="admin-card">
-                                <h2>Change Your Password</h2>
-                                <form action="/admin/users/change-password" method="POST" class="admin-form">
-                                    <label for="currentPasswordPassword">Current Password:</label>
-                                    <input type="password" id="currentPasswordPassword" name="currentPassword" required
-                                        autocomplete="current-password">
-                                    <label for="newPassword">New Password:</label>
-                                    <input type="password" id="newPassword" name="newPassword" required minlength="8"
-                                        maxlength="64" autocomplete="new-password">
-                                    <button type="submit" class="btn btn-primary">Change Password</button>
-                                </form>
-                            </section>
-                        </div>
-                    </div>
-        </div>
-        <%- include('partials/dark-mode-toggle') %>
-            <script src="/js/toast.js"></script>
-            <script>
-                // Show toast if msg is present in query string
-                (function () {
-                    const params = new URLSearchParams(window.location.search);
-                    const msg = params.get('msg');
-                    if (msg) {
-                        showToast(msg);
-                        // Remove msg from URL without reloading
-                        if (window.history.replaceState) {
-                            params.delete('msg');
-                            const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-                            window.history.replaceState({}, document.title, newUrl);
-                        }
-                    }
-                })();
-
-                // Client-side validation for admin user form
-                document.getElementById('adminUserForm')?.addEventListener('submit', function (e) {
-                    const username = this.username.value.trim();
-                    const password = this.password.value;
-                    if (!/^[A-Za-z0-9_\-]{3,32}$/.test(username)) {
-                        alert('Username must be 3-32 characters, letters, numbers, _ or - only.');
-                        e.preventDefault();
-                    }
-                    if (password.length < 8) {
-                        alert('Password must be at least 8 characters.');
-                        e.preventDefault();
-                    }
-                });
-            </script>
 </body>
 
 </html>

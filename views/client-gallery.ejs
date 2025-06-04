@@ -26,15 +26,19 @@
 <body>
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
         <div id="toast-container" class="toast-container"></div>
-        <script src="/js/toast.js"></script>
         <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
-            <script>
-                // Show toast if msg is present in query
-                document.addEventListener('DOMContentLoaded', function () {
-                    showToast("<%- JSON.stringify(req.query.msg) %>");
-                });
-            </script>
+            <div id="toast-data" data-msg="<%- req.query.msg.replace(/&/g, '&amp;').replace(/" /g, '&quot;'
+                ).replace(/'/g, '&#39;' ).replace(/</g, '&lt;' ).replace( />/g, '&gt;') %>" style="display:none;"></div>
             <% } %>
+                <script src="/js/toast.js"></script>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var toastDiv = document.getElementById('toast-data');
+                        if (toastDiv && toastDiv.dataset.msg) {
+                            showToast(toastDiv.dataset.msg);
+                        }
+                    });
+                </script>
 
                 <div class="container">
                     <div class="client-header">
@@ -75,7 +79,7 @@
                             <div class="gallery-grid">
                                 <% images.forEach((image, idx)=> { %>
                                     <img class="gallery-thumb-img"
-                                        src="/client-images/<%= clientId %>/<%= image.filename %>"
+                                        src="/client-images/<%= clientId %>/<%= image.filename %>?w=300"
                                         alt="<%= image.original_filename || ('Photo ' + (idx + 1)) %>" loading="lazy" />
                                     <% }); %>
                             </div>

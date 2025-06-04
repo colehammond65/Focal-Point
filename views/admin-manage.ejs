@@ -250,7 +250,7 @@
                                                                 data-filename="<%= img.filename %>" tabindex="0"
                                                                 onclick="toggleImageSelect(this)"
                                                                 onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleImageSelect(this);}">
-                                                                <img src="/images/<%= cat.name %>/<%= img.filename %>"
+                                                                <img src="/images/<%= cat.name %>/<%= img.filename %>?w=150"
                                                                     alt="<%= img.alt_text %>">
                                                                 <input type="text" class="alt-text-input ml-05"
                                                                     value="<%= img.alt_text %>" placeholder="Alt text"

@@ -29,7 +29,8 @@
         <div id="toast-container" class="toast-container"></div>
         <script src="/js/toast.js"></script>
         <% if (typeof req !=='undefined' && req.query && req.query.created==='true' && req.query.code) { %>
-            <div id="toast-data" data-msg="<%= 'Client created successfully! Access Code: ' + req.query.code %>"
+            <div id="toast-data"
+                data-msg="<%= 'Client created successfully! Access Code: ' + _.escape(req.query.code) %>"
                 style="display:none;"></div>
             <% } else if (typeof req !=='undefined' && req.query && req.query.uploaded) { %>
                 <div id="toast-data"
@@ -123,7 +124,7 @@
                                                     <div class="gallery-thumb bulk-select-img-item" tabindex="0"
                                                         data-img-id="<%= img.id %>" onclick="toggleImageSelect(this)"
                                                         onkeydown="if(event.key===' '||event.key==='Enter'){event.preventDefault();toggleImageSelect(this);}">
-                                                        <img src="/admin/client-images/<%= clientData.id %>/<%= img.filename %>"
+                                                        <img src="/admin/client-images/<%= clientData.id %>/<%= img.filename %>?w=150"
                                                             alt="<%= img.original_filename || ('Photo ' + (idx + 1)) %>"
                                                             loading="lazy" />
                                                     </div>
