@@ -30,6 +30,7 @@
     <%- include('partials/header', { showAdminNav: true, settings, loggedIn: true }) %>
         <div class="container">
             <div id="toast-container" class="toast-container"></div>
+            <script src="/js/toast.js"></script>
             <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
                 <script>
                     document.addEventListener('DOMContentLoaded', function () {

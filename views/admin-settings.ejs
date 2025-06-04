@@ -237,6 +237,7 @@
                 </section>
             </div>
             <div id="toast-container" class="toast-container"></div>
+            <script src="/js/toast.js"></script>
         </div>
         <%- include('partials/dark-mode-toggle') %>
             <!-- Scripts for dropzones, previews, and bulk actions -->
@@ -361,18 +362,6 @@
                 });
             </script>
             <script>
-                function showToast(msg, timeout = 3500) {
-                    const container = document.getElementById('toast-container');
-                    if (!container) return;
-                    const toast = document.createElement('div');
-                    toast.className = 'toast';
-                    toast.textContent = msg;
-                    container.appendChild(toast);
-                    setTimeout(() => {
-                        toast.style.animation = 'toast-out 0.4s forwards';
-                        setTimeout(() => toast.remove(), 400);
-                    }, timeout);
-                }
                 (function () {
                     const params = new URLSearchParams(window.location.search);
                     const msg = params.get('msg');

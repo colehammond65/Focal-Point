@@ -26,26 +26,12 @@
 <body>
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
         <div id="toast-container" class="toast-container"></div>
-        <script>
-            // Toast notification function
-            function showToast(msg, timeout = 3500) {
-                const container = document.getElementById('toast-container');
-                if (!container) return;
-                const toast = document.createElement('div');
-                toast.className = 'toast';
-                toast.textContent = msg;
-                container.appendChild(toast);
-                setTimeout(() => {
-                    toast.style.animation = 'toast-out 0.4s forwards';
-                    setTimeout(() => toast.remove(), 400);
-                }, timeout);
-            }
-        </script>
+        <script src="/js/toast.js"></script>
         <% if (typeof error !=='undefined' && error) { %>
             <script>
                 // Show error toast if error is present
                 document.addEventListener('DOMContentLoaded', function () {
-                    showToast(<%= JSON.stringify(error) %>);
+                    showToast("<%- (error + '').replace(/\"/g, '&quot;') %>");
                 });
             </script>
             <% } %>

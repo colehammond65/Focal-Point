@@ -105,21 +105,8 @@
                     </div>
         </div>
         <%- include('partials/dark-mode-toggle') %>
+            <script src="/js/toast.js"></script>
             <script>
-                // Toast notification function
-                function showToast(msg, timeout = 3500) {
-                    const container = document.getElementById('toast-container');
-                    if (!container) return;
-                    const toast = document.createElement('div');
-                    toast.className = 'toast';
-                    toast.textContent = msg;
-                    container.appendChild(toast);
-                    setTimeout(() => {
-                        toast.style.animation = 'toast-out 0.4s forwards';
-                        setTimeout(() => toast.remove(), 400);
-                    }, timeout);
-                }
-
                 // Show toast if msg is present in query string
                 (function () {
                     const params = new URLSearchParams(window.location.search);

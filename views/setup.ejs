@@ -30,25 +30,14 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
-        <!-- Removed duplicate toast-container -->
+        <div id="toast-container" class="toast-container"></div>
         <% if (typeof error !=='undefined' && error) { var errorMsg=(typeof error==='string' ? error : (error &&
             error.message) || String(error)); %>
             <div id="toast-data" data-msg="<%- errorMsg.replace(/&/g, '&amp;').replace(/\" /g, '&quot;'
                 ).replace(/'/g, '&#39;' ).replace(/</g, '&lt;' ).replace( />/g, '&gt;') %>" style="display:none;"></div>
             <% } %>
+                <script src="/js/toast.js"></script>
                 <script>
-                    function showToast(msg, timeout = 3500) {
-                        const container = document.getElementById('toast-container');
-                        if (!container) return;
-                        const toast = document.createElement('div');
-                        toast.className = 'toast';
-                        toast.textContent = msg;
-                        container.appendChild(toast);
-                        setTimeout(() => {
-                            toast.style.animation = 'toast-out 0.4s forwards';
-                            setTimeout(() => toast.remove(), 400);
-                        }, timeout);
-                    }
                     document.addEventListener('DOMContentLoaded', function () {
                         var toastDiv = document.getElementById('toast-data');
                         if (toastDiv && toastDiv.dataset.msg) {

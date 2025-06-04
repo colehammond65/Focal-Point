@@ -27,20 +27,7 @@
 <body>
     <%- include('partials/header', { showAdminNav: true }) %>
         <div id="toast-container" class="toast-container"></div>
-        <script>
-            function showToast(msg, timeout = 3500) {
-                const container = document.getElementById('toast-container');
-                if (!container) return;
-                const toast = document.createElement('div');
-                toast.className = 'toast';
-                toast.textContent = msg;
-                container.appendChild(toast);
-                setTimeout(() => {
-                    toast.style.animation = 'toast-out 0.4s forwards';
-                    setTimeout(() => toast.remove(), 400);
-                }, timeout);
-            }
-        </script>
+        <script src="/js/toast.js"></script>
         <% if (typeof req !=='undefined' && req.query && req.query.created==='true' && req.query.code) { %>
             <div id="toast-data" data-msg="<%= 'Client created successfully! Access Code: ' + req.query.code %>"
                 style="display:none;"></div>
