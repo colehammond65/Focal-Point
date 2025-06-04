@@ -11,6 +11,7 @@
 //   - getCategoryIdAndMaxPosition: Get category ID and max image position.
 
 const db = require('../db');
+const validator = require('validator');
 
 function getCategoriesWithPreviews() {
     const cats = db.prepare('SELECT * FROM categories ORDER BY position ASC').all();
@@ -26,16 +27,19 @@ function getCategoriesWithPreviews() {
     });
 }
 function isSafeCategory(category) {
+    if (typeof category !== 'string') return false;
+    category = validator.trim(category);
+    if (!/^[\w-]+$/.test(category)) return false;
     const reserved = ['con', 'aux', 'nul', 'prn', 'com1', 'lpt1', 'tmp'];
-    return typeof category === 'string'
-        && /^[\w-]+$/.test(category)
-        && !reserved.includes(category.toLowerCase())
-        && category.length <= 50;
+    return !reserved.includes(category.toLowerCase()) && category.length <= 50;
 }
 function categoryExists(name) {
     return !!db.prepare('SELECT 1 FROM categories WHERE name = ?').get(name);
 }
 function createCategory(name) {
+    name = validator.trim(name);
+    name = validator.escape(name).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 50);
+    if (!isSafeCategory(name)) throw new Error('Invalid category name');
     const maxPos = db.prepare('SELECT MAX(position) as max FROM categories').get().max || 0;
     db.prepare('INSERT INTO categories (name, position) VALUES (?, ?)').run(name, maxPos + 1);
 }

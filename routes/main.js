@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const generateDynamicCss = require('../utils/dynamicCss');
 const notFoundPage = require('../views/partials/notfound');
+const validator = require('validator');
 const {
     getAllSettings,
     getOrderedImages,
@@ -41,7 +42,11 @@ router.get('/', async (req, res) => {
 
 // Gallery page: Show all images in a category
 router.get('/gallery/:category', async (req, res) => {
-    const category = req.params.category;
+    let category = req.params.category;
+    category = validator.trim(category);
+    if (!/^[\w-]+$/.test(category)) {
+        return res.status(400).send('Invalid category');
+    }
     const categories = await getCachedCategories();
     let images = [];
     try {
@@ -159,15 +164,17 @@ router.get('/setup', (req, res) => {
 
 // Setup page (POST)
 router.post('/setup', async (req, res) => {
-    if (require('../utils').adminExists()) {
-        return res.redirect('/login');
+    const { adminExists } = require('../utils');
+    if (adminExists()) {
+        return res.redirect('/admin/login');
     }
     const { username, password } = req.body;
-    if (!username || !password || username.length < 3 || password.length < 4) {
-        return res.render('setup', { error: 'Username and password are required (min 3/4 chars).' });
+    if (!username || !password || username.length < 3 || password.length < 8) {
+        // Redirect with error in query for toast
+        return res.redirect('/setup?error=' + encodeURIComponent('Username and password are required. Username must be at least 3 characters and password at least 8 characters.'));
     }
     await createAdmin(username, password);
-    res.redirect('/login');
+    res.redirect('/admin/login');
 });
 
 // 404 handler (should be last)

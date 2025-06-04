@@ -21,6 +21,7 @@ const bcrypt = require('bcryptjs');
 const backupUtils = require('./utils/backup');
 const Database = require('better-sqlite3');
 const marked = require('marked');
+const logger = require('./utils/logger');
 const {
   createClient,
   verifyClient,
@@ -164,6 +165,12 @@ app.use(express.urlencoded({ extended: true }));
 // Parse JSON bodies (for AJAX, API, etc.)
 app.use(express.json());
 
+// Log all requests
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.originalUrl} - ${req.ip}`);
+  next();
+});
+
 // Session middleware for login state
 app.use(session({
   secret: process.env.SESSION_SECRET,
@@ -285,15 +292,15 @@ app.use('/', mainRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  if (req.xhr || (req.headers.accept && req.headers.accept.indexOf('json') > -1)) {
-    res.status(500).json({ error: 'Something went wrong. Please try again.' });
-  } else {
-    res.status(500).send(`
-      <h1>Server Error</h1>
-      <p>Something broke! Please try again later.</p>
-      <a href="/">Back to Home</a>
-    `);
+  logger.error(err.stack || err.toString());
+  res.status(500);
+  const isDev = process.env.NODE_ENV !== 'production';
+  const errorMessage = err.message || err.toString();
+  const errorStack = isDev ? (err.stack || '') : null;
+  try {
+    res.render('error', { error: errorMessage, stack: errorStack });
+  } catch (e) {
+    res.type('text').send('Server Error: ' + errorMessage + (isDev && errorStack ? '\n' + errorStack : ''));
   }
 });
 

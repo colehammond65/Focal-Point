@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
+const validator = require('validator');
 const {
     verifyClient,
     getClientImages,
@@ -36,7 +37,19 @@ router.get('/login', (req, res) => {
 
 // Client login handler (access code and password)
 router.post('/login', async (req, res) => {
-    const { accessCode, password } = req.body;
+    let accessCode = typeof req.body.accessCode === 'string' ? validator.trim(req.body.accessCode) : '';
+    accessCode = validator.escape(accessCode).slice(0, 16);
+    let password = typeof req.body.password === 'string' ? req.body.password : '';
+    password = validator.stripLow(password, true).slice(0, 64);
+    if (!accessCode || !password) {
+        const settings = getAllSettings();
+        return res.render('client-login', {
+            error: 'Access code and password are required',
+            settings,
+            showAdminNav: false,
+            loggedIn: false
+        });
+    }
     const client = verifyClient(accessCode, password);
 
     if (client) {
@@ -60,6 +73,7 @@ router.post('/login', async (req, res) => {
 // Serves images securely to logged-in clients
 router.get('/images/:filename', requireClientLogin, (req, res) => {
     const filename = req.params.filename;
+    if (!/^[\w.-]+$/.test(filename)) return res.status(400).send('Invalid filename');
     const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
 
     if (fs.existsSync(filePath)) {
@@ -73,6 +87,7 @@ router.get('/images/:filename', requireClientLogin, (req, res) => {
 // Allows clients to download individual images
 router.get('/download/:filename', requireClientLogin, (req, res) => {
     const filename = req.params.filename;
+    if (!/^[\w.-]+$/.test(filename)) return res.status(400).send('Invalid filename');
     const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
 
     if (fs.existsSync(filePath)) {

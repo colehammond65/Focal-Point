@@ -16,7 +16,7 @@
     <% if (settings.favicon) { %>
         <% let faviconSrc=(settings.favicon.startsWith('http://') || settings.favicon.startsWith('https://') ||
             settings.favicon.startsWith('/branding/')) ? settings.favicon : ('/branding/' +
-            settings.favicon.replace(/^\/uploads\//, '' )) %>;
+            settings.favicon.replace(/^\/uploads\//, '' )) %>
             <link rel="icon" type="image/png" href="<%= faviconSrc %>">
             <% } %>
                 <link rel="stylesheet" href="/styles.css?v=<%= encodeURIComponent(settings.accentColor || '') %>">
@@ -30,28 +30,32 @@
 
 <body>
     <%- include('partials/header', { showAdminNav: false, settings, loggedIn: false }) %>
-        <div id="toast-container" class="toast-container"></div>
-        <script>
-            function showToast(msg, timeout = 3500) {
-                const container = document.getElementById('toast-container');
-                if (!container) return;
-                const toast = document.createElement('div');
-                toast.className = 'toast';
-                toast.textContent = msg;
-                container.appendChild(toast);
-                setTimeout(() => {
-                    toast.style.animation = 'toast-out 0.4s forwards';
-                    setTimeout(() => toast.remove(), 400);
-                }, timeout);
-            }
-        </script>
-        <% if (typeof error !=='undefined' && error) { %>
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    showToast(<%= JSON.stringify(error) %>);
-                });
-            </script>
+        <!-- Removed duplicate toast-container -->
+        <% if (typeof error !=='undefined' && error) { var errorMsg=(typeof error==='string' ? error : (error &&
+            error.message) || String(error)); %>
+            <div id="toast-data" data-msg="<%- errorMsg.replace(/&/g, '&amp;').replace(/\" /g, '&quot;'
+                ).replace(/'/g, '&#39;' ).replace(/</g, '&lt;' ).replace( />/g, '&gt;') %>" style="display:none;"></div>
             <% } %>
+                <script>
+                    function showToast(msg, timeout = 3500) {
+                        const container = document.getElementById('toast-container');
+                        if (!container) return;
+                        const toast = document.createElement('div');
+                        toast.className = 'toast';
+                        toast.textContent = msg;
+                        container.appendChild(toast);
+                        setTimeout(() => {
+                            toast.style.animation = 'toast-out 0.4s forwards';
+                            setTimeout(() => toast.remove(), 400);
+                        }, timeout);
+                    }
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var toastDiv = document.getElementById('toast-data');
+                        if (toastDiv && toastDiv.dataset.msg) {
+                            showToast(toastDiv.dataset.msg);
+                        }
+                    });
+                </script>
                 <div class="container">
                     <form class="login-box" action="/setup" method="POST" autocomplete="off">
                         <h1>Setup Admin Account</h1>

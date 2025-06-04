@@ -29,12 +29,12 @@
             <h1>Admin User Management</h1>
             <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
                 <div class="admin-msg">
-                    <%= req.query.msg %>
+                    <%= req.query.msg.replace(/"/g, '&quot;' ) %>
                 </div>
                 <script>
                     // Show toast if msg is present in query
                     document.addEventListener('DOMContentLoaded', function () {
-                        showToast(<%= JSON.stringify(req.query.msg) %>);
+                        showToast("<%= (req.query.msg + '').replace(/\"/g, '&quot;') %>");
                     });
                 </script>
                 <% } %>
@@ -43,13 +43,14 @@
                         <div class="flex-1" style="min-width:300px;">
                             <section class="admin-card">
                                 <h2>Create New Admin</h2>
-                                <form action="/admin/users/create" method="POST" class="admin-form">
+                                <form id="adminUserForm" action="/admin/users/create" method="POST" autocomplete="off"
+                                    class="admin-form">
                                     <label for="username">Username:</label>
-                                    <input type="text" id="username" name="username" required minlength="3"
-                                        maxlength="32" autocomplete="username">
+                                    <input type="text" id="username" name="username" pattern="[A-Za-z0-9_\-]{3,32}"
+                                        maxlength="32" required autocomplete="off">
                                     <label for="password">Password:</label>
-                                    <input type="password" id="password" name="password" required minlength="4"
-                                        autocomplete="new-password">
+                                    <input type="password" id="password" name="password" minlength="8" maxlength="64"
+                                        required autocomplete="off">
                                     <button type="submit" class="btn btn-primary">Create Admin</button>
                                 </form>
                             </section>
@@ -59,11 +60,11 @@
                                     <% admins.forEach(a=> { %>
                                         <div class="admin-list-item">
                                             <span>
-                                                <%= a.username %>
+                                                <%= _.escape(a.username) %>
                                             </span>
                                             <% if (a.id !==currentAdmin) { %>
                                                 <form action="/admin/users/delete" method="POST" class="inline-form">
-                                                    <input type="hidden" name="id" value="<%= a.id %>">
+                                                    <input type="hidden" name="id" value="<%= _.escape(a.id) %>">
                                                     <button type="submit" class="btn btn-danger btn-small"
                                                         onclick="return confirm('Delete this admin?')">Delete</button>
                                                 </form>
@@ -80,8 +81,8 @@
                                 <h2>Change Your Username</h2>
                                 <form action="/admin/users/change-username" method="POST" class="admin-form">
                                     <label for="newUsername">New Username:</label>
-                                    <input type="text" id="newUsername" name="newUsername" required minlength="3"
-                                        maxlength="32" autocomplete="username">
+                                    <input type="text" id="newUsername" name="newUsername"
+                                        pattern="[A-Za-z0-9_\-]{3,32}" maxlength="32" required autocomplete="username">
                                     <label for="currentPasswordUsername">Current Password:</label>
                                     <input type="password" id="currentPasswordUsername" name="currentPassword" required
                                         autocomplete="current-password">
@@ -95,8 +96,8 @@
                                     <input type="password" id="currentPasswordPassword" name="currentPassword" required
                                         autocomplete="current-password">
                                     <label for="newPassword">New Password:</label>
-                                    <input type="password" id="newPassword" name="newPassword" required minlength="4"
-                                        autocomplete="new-password">
+                                    <input type="password" id="newPassword" name="newPassword" required minlength="8"
+                                        maxlength="64" autocomplete="new-password">
                                     <button type="submit" class="btn btn-primary">Change Password</button>
                                 </form>
                             </section>
@@ -133,6 +134,20 @@
                         }
                     }
                 })();
+
+                // Client-side validation for admin user form
+                document.getElementById('adminUserForm')?.addEventListener('submit', function (e) {
+                    const username = this.username.value.trim();
+                    const password = this.password.value;
+                    if (!/^[A-Za-z0-9_\-]{3,32}$/.test(username)) {
+                        alert('Username must be 3-32 characters, letters, numbers, _ or - only.');
+                        e.preventDefault();
+                    }
+                    if (password.length < 8) {
+                        alert('Password must be at least 8 characters.');
+                        e.preventDefault();
+                    }
+                });
             </script>
 </body>
 

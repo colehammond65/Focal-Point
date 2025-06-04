@@ -48,7 +48,8 @@
                                     JPG, PNG, GIF.</p>
                                 <div id="dropzone" class="dropzone" tabindex="0">Drag & drop images here or click to
                                     select</div>
-                                <input type="file" name="images" id="image" multiple required style="display:none;">
+                                <input type="file" name="images" id="image" multiple required style="display:none;"
+                                    accept="image/png,image/jpeg,image/gif" onchange="validateImages(this)">
                                 <div id="preview" class="preview"></div>
                                 <script>
                                     document.addEventListener('DOMContentLoaded', function () {
@@ -107,6 +108,30 @@
                                             });
                                         }
                                     });
+
+                                    function validateImages(input) {
+                                        const maxFiles = 20;
+                                        const maxSize = 10 * 1024 * 1024; // 10MB
+                                        const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+                                        if (input.files.length > maxFiles) {
+                                            alert('You can upload up to 20 images at a time.');
+                                            input.value = '';
+                                            return false;
+                                        }
+                                        for (let file of input.files) {
+                                            if (!allowedTypes.includes(file.type)) {
+                                                alert('Invalid file type: ' + file.type);
+                                                input.value = '';
+                                                return false;
+                                            }
+                                            if (file.size > maxSize) {
+                                                alert('File too large: ' + file.name);
+                                                input.value = '';
+                                                return false;
+                                            }
+                                        }
+                                        return true;
+                                    }
                                 </script>
                                 <% if (categories.length> 0) { %>
                                     <label for="category">Select a category:</label>
@@ -135,7 +160,8 @@
                             <form action="/admin/create-category" method="POST" class="admin-form row-gap">
                                 <label for="newCategory" class="visually-hidden">New Category Name</label>
                                 <input type="text" id="newCategory" name="newCategory" placeholder="New category name"
-                                    required class="flex-1">
+                                    required class="flex-1" maxlength="32" pattern="[A-Za-z0-9_\- ]{3,32}"
+                                    autocomplete="off">
                                 <button type="submit" class="btn btn-primary">Create</button>
                             </form>
                         </section>

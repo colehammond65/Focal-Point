@@ -41,11 +41,13 @@
 
                         <label for="accentColor">Accent Colour (HEX):</label>
                         <div style="display:flex;align-items:center;gap:0.5em;">
-                            <input type="color" id="accentColorPicker" value="<%= settings.accentColor || '#2ecc71' %>"
+                            <input type="color" id="accentColorPicker"
+                                value="<%= settings.accentColor ? settings.accentColor.replace(/[^#A-Fa-f0-9]/g, '') : '#2ecc71' %>"
                                 style="width:40px;height:32px;padding:0;border:none;background:none;">
                             <input type="text" id="accentColor" name="accentColor"
-                                value="<%= settings.accentColor || '#2ecc71' %>" pattern="#?[A-Fa-f0-9]{6,7}"
-                                maxlength="7" style="width:100px" required>
+                                value="<%= settings.accentColor ? settings.accentColor.replace(/[^#A-Fa-f0-9]/g, '') : '#2ecc71' %>"
+                                pattern="#?[A-Fa-f0-9]{6,7}" maxlength="7" style="width:100px" required
+                                autocomplete="off">
                         </div>
                         <small>Used for buttons and highlights. Example: #2ecc71</small>
                         <div class="accent-color-reminder">
@@ -128,15 +130,17 @@
                             <div id="headerTextInput" class="<%= headerType === 'image' ? 'hidden' : '' %>">
                                 <label for="headerTitle" class="label-bottom-gap">Header Title:</label>
                                 <input type="text" id="headerTitle" name="headerTitle"
-                                    value="<%= settings.headerTitle %>">
+                                    value="<%= (settings.headerTitle || '').replace(/[^\w\s\-\.,!]/g, '') %>"
+                                    maxlength="60" required autocomplete="off">
                             </div>
 
                             <div id="headerImageInput" class="<%= headerType === 'image' ? '' : 'hidden' %>">
                                 <div id="headerImageDropzone" class="dropzone dropzone-flex" tabindex="0">
                                     <span id="headerImageDropzoneText">Drag & drop header image here or click to
                                         select</span>
-                                    <input type="file" id="headerImage" name="headerImage" accept="image/*"
-                                        style="display:none;">
+                                    <input type="file" id="headerImage" name="headerImage"
+                                        accept="image/png,image/jpeg,image/gif" style="display:none;"
+                                        onchange="validateImageFile(this, 5)">
                                     <span id="headerImageFileName" class="file-name-label"></span>
                                 </div>
                                 <% if (settings.headerImage) { %>
@@ -152,7 +156,9 @@
                             <label for="favicon">Favicon (image, optional):</label>
                             <div id="faviconDropzone" class="dropzone dropzone-flex" tabindex="0">
                                 <span id="faviconDropzoneText">Drag & drop favicon here or click to select</span>
-                                <input type="file" id="favicon" name="favicon" accept="image/*" style="display:none;">
+                                <input type="file" id="favicon" name="favicon"
+                                    accept="image/png,image/x-icon,image/svg+xml" style="display:none;"
+                                    onchange="validateImageFile(this, 1)">
                                 <span id="faviconFileName" class="file-name-label"></span>
                             </div>
                             <% if (settings.favicon) { %>
@@ -450,6 +456,24 @@
                         }
                     });
                 });
+            </script>
+            <script>
+                function validateImageFile(input, maxMB) {
+                    if (!input.files.length) return;
+                    const file = input.files[0];
+                    const allowedTypes = input.accept.split(',');
+                    if (!allowedTypes.includes(file.type)) {
+                        alert('Invalid file type. Allowed: ' + allowedTypes.join(', '));
+                        input.value = '';
+                        return false;
+                    }
+                    if (file.size > maxMB * 1024 * 1024) {
+                        alert('File too large. Max ' + maxMB + 'MB allowed.');
+                        input.value = '';
+                        return false;
+                    }
+                    return true;
+                }
             </script>
 </body>
 

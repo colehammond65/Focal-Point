@@ -15,6 +15,8 @@ const backupUtils = require('../utils/backup');
 const db = require('../db');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
+const validator = require('validator');
+const _ = require('lodash');
 const {
     getCategoriesWithImages,
     adminExists,
@@ -34,7 +36,7 @@ const {
     deleteCategory,
     deleteImage,
     addImage,
-    getMaxImagePosition // <-- updated require
+    getMaxImagePosition
 } = require('../utils');
 const {
     getAllClients,
@@ -47,7 +49,7 @@ const {
     incrementDownloadCount,
     createZipArchive,
     CLIENT_UPLOADS_DIR,
-    createClient // <-- ensure this is included
+    createClient
 } = require('../utils/clients');
 
 // Middleware to protect admin routes (moved from server.js)
@@ -145,8 +147,8 @@ router.post('/setup', async (req, res) => {
         return res.redirect('/admin/login');
     }
     const { username, password } = req.body;
-    if (!username || !password || username.length < 3 || password.length < 4) {
-        return res.render('setup', { error: 'Username and password are required (min 3/4 chars).' });
+    if (!username || !password || username.length < 3 || password.length < 8) {
+        return res.render('setup', { error: 'Username and password are required. Username must be at least 3 characters and password at least 8 characters.' });
     }
     await createAdmin(username, password);
     res.redirect('/admin/login');
@@ -194,32 +196,48 @@ router.post('/settings', requireLogin, settingsUpload.fields([
     { name: 'favicon', maxCount: 1 },
     { name: 'headerImage', maxCount: 1 }
 ]), (req, res) => {
-    setSetting('siteTitle', (typeof req.body.siteTitle === 'string' && req.body.siteTitle.trim()) ? req.body.siteTitle.trim() : 'Focal Point');
+    // Sanitize and validate input
+    let siteTitle = typeof req.body.siteTitle === 'string' ? validator.trim(req.body.siteTitle) : '';
+    siteTitle = validator.escape(siteTitle).slice(0, 60);
+    if (!siteTitle) siteTitle = 'Focal Point';
+
+    let headerTitle = typeof req.body.headerTitle === 'string' ? validator.trim(req.body.headerTitle) : '';
+    headerTitle = validator.escape(headerTitle).slice(0, 60);
+    if (!headerTitle) headerTitle = 'Focal Point';
+
+    let accentColor = typeof req.body.accentColor === 'string' ? validator.trim(req.body.accentColor) : '#2ecc71';
+    accentColor = accentColor.replace(/[^#A-Fa-f0-9]/g, '');
+    if (!/^#?[A-Fa-f0-9]{6,7}$/.test(accentColor)) accentColor = '#2ecc71';
+    if (!accentColor.startsWith('#')) accentColor = '#' + accentColor;
+
     let headerType = 'text';
     if (typeof req.body.headerType === 'string') {
         headerType = req.body.headerType === 'image' ? 'image' : 'text';
     } else if (typeof req.body.headerTypeHidden === 'string') {
         headerType = req.body.headerTypeHidden === 'image' ? 'image' : 'text';
     }
-    setSetting('headerType', headerType);
-    setSetting('headerTitle', (typeof req.body.headerTitle === 'string' && req.body.headerTitle.trim()) ? req.body.headerTitle.trim() : 'Focal Point');
-    setSetting('accentColor', (typeof req.body.accentColor === 'string' && req.body.accentColor.trim()) ? req.body.accentColor.trim() : '#2ecc71');
 
     // Handle file uploads
+    let favicon = '';
     if (req.files && req.files.favicon && req.files.favicon[0]) {
-        setSetting('favicon', req.files.favicon[0].filename);
+        favicon = req.files.favicon[0].filename;
     } else if (typeof req.body.favicon === 'string') {
-        setSetting('favicon', req.body.favicon);
-    } else {
-        setSetting('favicon', '');
+        favicon = validator.escape(req.body.favicon);
     }
+
+    let headerImage = '';
     if (req.files && req.files.headerImage && req.files.headerImage[0]) {
-        setSetting('headerImage', req.files.headerImage[0].filename);
+        headerImage = req.files.headerImage[0].filename;
     } else if (typeof req.body.headerImage === 'string') {
-        setSetting('headerImage', req.body.headerImage);
-    } else {
-        setSetting('headerImage', '');
+        headerImage = validator.escape(req.body.headerImage);
     }
+
+    setSetting('siteTitle', siteTitle);
+    setSetting('headerType', headerType);
+    setSetting('headerTitle', headerTitle);
+    setSetting('accentColor', accentColor);
+    setSetting('favicon', favicon);
+    setSetting('headerImage', headerImage);
 
     // Ensure all settings keys are present after update
     const settings = getAllSettings() || {};
@@ -269,15 +287,19 @@ router.get('/users', requireLogin, (req, res) => {
         req,
         settings,
         showAdminNav: req.session && req.session.loggedIn,
-        loggedIn: req.session && req.session.loggedIn
+        loggedIn: req.session && req.session.loggedIn,
+        _: _ // Pass lodash to template
     });
 });
 
 // Create new admin
 router.post('/users/create', requireLogin, async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password || username.length < 3 || password.length < 4) {
-        return res.redirect('/admin/users?msg=Username and password required (min 3/4 chars)');
+    let username = typeof req.body.username === 'string' ? validator.trim(req.body.username) : '';
+    username = validator.escape(username).slice(0, 32);
+    let password = typeof req.body.password === 'string' ? req.body.password : '';
+    password = validator.stripLow(password, true).slice(0, 64);
+    if (!username || !password || username.length < 3 || password.length < 8) {
+        return res.redirect('/admin/users?msg=Username and password required (min 3/8 chars)');
     }
     try {
         db.prepare('INSERT INTO admin (username, hash) VALUES (?, ?)').run(
@@ -295,11 +317,14 @@ router.post('/users/create', requireLogin, async (req, res) => {
 
 // Change own credentials
 router.post('/users/change-credentials', requireLogin, async (req, res) => {
-    const { newUsername, currentPassword, newPassword } = req.body;
+    let newUsername = typeof req.body.newUsername === 'string' ? validator.trim(req.body.newUsername) : '';
+    newUsername = validator.escape(newUsername).slice(0, 32);
+    let currentPassword = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
+    let newPassword = typeof req.body.newPassword === 'string' ? req.body.newPassword : '';
     if (!newUsername || !currentPassword || !newPassword) {
         return res.redirect('/admin/users?msg=All fields are required');
     }
-    if (newUsername.length < 3 || newPassword.length < 4) {
+    if (newUsername.length < 3 || newPassword.length < 8) {
         return res.redirect('/admin/users?msg=Username or password too short');
     }
     const admin = db.prepare('SELECT * FROM admin WHERE id = ?').get(req.session.adminId);
@@ -322,7 +347,9 @@ router.post('/users/change-credentials', requireLogin, async (req, res) => {
 
 // Change own username
 router.post('/users/change-username', requireLogin, async (req, res) => {
-    const { newUsername, currentPassword } = req.body;
+    let newUsername = typeof req.body.newUsername === 'string' ? validator.trim(req.body.newUsername) : '';
+    newUsername = validator.escape(newUsername).slice(0, 32);
+    let currentPassword = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
     if (!newUsername || !currentPassword) {
         return res.redirect('/admin/users?msg=All fields are required');
     }
@@ -349,11 +376,12 @@ router.post('/users/change-username', requireLogin, async (req, res) => {
 
 // Change own password
 router.post('/users/change-password', requireLogin, async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
+    let currentPassword = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
+    let newPassword = typeof req.body.newPassword === 'string' ? req.body.newPassword : '';
     if (!currentPassword || !newPassword) {
         return res.redirect('/admin/users?msg=All fields are required');
     }
-    if (newPassword.length < 4) {
+    if (newPassword.length < 8) {
         return res.redirect('/admin/users?msg=Password too short');
     }
     const admin = db.prepare('SELECT * FROM admin WHERE id = ?').get(req.session.adminId);
@@ -428,7 +456,14 @@ router.get('/clients/new', requireLogin, (req, res) => {
 
 // Admin: Create new client
 router.post('/clients/create', requireLogin, async (req, res) => {
-    const { clientName, shootTitle, password, customExpiry } = req.body;
+    let clientName = typeof req.body.clientName === 'string' ? validator.trim(req.body.clientName) : '';
+    clientName = validator.escape(clientName).slice(0, 100);
+    let shootTitle = typeof req.body.shootTitle === 'string' ? validator.trim(req.body.shootTitle) : '';
+    shootTitle = validator.escape(shootTitle).slice(0, 100);
+    let password = typeof req.body.password === 'string' ? req.body.password : '';
+    password = validator.stripLow(password, true).slice(0, 50);
+    let customExpiry = req.body.customExpiry;
+    if (customExpiry && !validator.isISO8601(customExpiry)) customExpiry = null;
     if (!clientName || !password) {
         return res.redirect('/admin/clients/new?error=Name and password required');
     }

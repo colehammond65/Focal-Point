@@ -1,0 +1,24 @@
+<!-- error.ejs: Generic error page for server errors -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Server Error</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Server Error</h1>
+        <p>
+            <%= error && error.message ? error.message : 'An unexpected error occurred.' %>
+        </p>
+        <% if (error && error.stack) { %>
+            <pre style="color:#888;font-size:0.9em;"><%= error.stack %></pre>
+            <% } %>
+                <a href="/">Return Home</a>
+    </div>
+</body>
+
+</html>

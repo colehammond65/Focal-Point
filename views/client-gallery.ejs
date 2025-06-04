@@ -42,9 +42,10 @@
             }
         </script>
         <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
+            <div id="toast-container" class="toast-container"></div>
             <script>
                 document.addEventListener('DOMContentLoaded', function () {
-                    showToast(<%= JSON.stringify(req.query.msg) %>);
+                    showToast("<%= (req.query.msg + '').replace(/\"/g, '&quot;') %>");
                 });
             </script>
             <% } %>
@@ -75,8 +76,9 @@
                             class="client-upload-form">
                             <label for="clientUploadInput" class="btn btn-primary" tabindex="0"
                                 style="cursor:pointer;">Select Photo(s)</label>
-                            <input type="file" id="clientUploadInput" name="images" multiple accept="image/*"
-                                style="display:none;">
+                            <input type="file" id="clientUploadInput" name="images" multiple
+                                accept="image/png,image/jpeg,image/gif" style="display:none;"
+                                onchange="validateClientImages(this)">
                             <div id="clientUploadPreview" class="preview" style="margin-top:1em;"></div>
                             <button type="submit" class="btn btn-success" style="margin-top:1em;">Upload</button>
                         </form>
@@ -206,6 +208,31 @@
                                 });
                             }
                         });
+
+                        // Client-side validation for image uploads
+                        function validateClientImages(input) {
+                            const maxFiles = 20;
+                            const maxSize = 10 * 1024 * 1024; // 10MB
+                            const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
+                            if (input.files.length > maxFiles) {
+                                alert('You can upload up to 20 images at a time.');
+                                input.value = '';
+                                return false;
+                            }
+                            for (let file of input.files) {
+                                if (!allowedTypes.includes(file.type)) {
+                                    alert('Invalid file type: ' + file.type);
+                                    input.value = '';
+                                    return false;
+                                }
+                                if (file.size > maxSize) {
+                                    alert('File too large: ' + file.name);
+                                    input.value = '';
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }
                     </script>
 </body>
 
