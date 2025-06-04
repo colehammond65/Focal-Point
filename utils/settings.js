@@ -5,6 +5,7 @@
 //   - getSetting: Retrieve a setting value by key.
 //   - setSetting: Set or update a setting value.
 //   - getAllSettings: Retrieve all settings as an object.
+//   - getSettingsWithDefaults: Retrieve all settings with defaults.
 
 const db = require('../db');
 
@@ -22,8 +23,20 @@ function getAllSettings() {
     return settings;
 }
 
+function getSettingsWithDefaults() {
+    const settings = getAllSettings();
+    settings.siteTitle = settings.siteTitle || 'Focal Point';
+    settings.headerTitle = settings.headerTitle || 'Focal Point';
+    settings.favicon = typeof settings.favicon === 'string' ? settings.favicon : '';
+    settings.accentColor = settings.accentColor || '#2ecc71';
+    settings.headerType = settings.headerType || 'text';
+    settings.headerImage = typeof settings.headerImage === 'string' ? settings.headerImage : '';
+    return settings;
+}
+
 module.exports = {
     getSetting,
     setSetting,
-    getAllSettings
+    getAllSettings,
+    getSettingsWithDefaults
 };

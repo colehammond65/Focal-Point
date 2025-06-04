@@ -26,6 +26,7 @@ const {
     getAllSettings,
     setSetting,
     getSetting,
+    getSettingsWithDefaults,
     updateAltText,
     setCategoryThumbnail,
     saveImageOrder,
@@ -91,18 +92,6 @@ const adminLimiter = rateLimit({
 const uploadsDir = path.join(__dirname, '../public/uploads');
 const brandingDir = path.join(__dirname, '../data');
 fs.mkdirSync(brandingDir, { recursive: true });
-
-// Helper to always provide settings with defaults
-function getSettingsWithDefaults() {
-    let settings = getAllSettings() || {};
-    settings.siteTitle = settings.siteTitle || 'Focal Point';
-    settings.headerTitle = settings.headerTitle || 'Focal Point';
-    settings.favicon = typeof settings.favicon === 'string' ? settings.favicon : '';
-    settings.accentColor = settings.accentColor || '#2ecc71';
-    settings.headerType = settings.headerType || 'text';
-    settings.headerImage = typeof settings.headerImage === 'string' ? settings.headerImage : '';
-    return settings;
-}
 
 // --- AUTH & SETUP ROUTES (moved from server.js) --- //
 

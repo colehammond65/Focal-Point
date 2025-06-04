@@ -7,6 +7,7 @@ const notFoundPage = require('../views/partials/notfound');
 const validator = require('validator');
 const {
     getAllSettings,
+    getSettingsWithDefaults,
     getOrderedImages,
     getCategoriesWithPreviews,
     verifyAdmin,
@@ -19,7 +20,7 @@ const { getCachedCategories } = require('../utils/categoryCache');
 
 // Serve dynamic styles.css with accent color injection
 router.get('/styles.css', (req, res) => {
-    const settings = getAllSettings();
+    const settings = getSettingsWithDefaults();
     const accentColor = settings.accentColor || '#2ecc71';
     const css = generateDynamicCss(accentColor);
     res.setHeader('Content-Type', 'text/css');
@@ -29,7 +30,7 @@ router.get('/styles.css', (req, res) => {
 // Homepage: Show all categories with previews
 router.get('/', async (req, res) => {
     const categories = await getCachedCategories();
-    const settings = getAllSettings();
+    const settings = getSettingsWithDefaults();
     res.render('index', {
         categories,
         images: null,
@@ -54,7 +55,7 @@ router.get('/gallery/:category', async (req, res) => {
     } catch (err) {
         console.error(err);
     }
-    const settings = getAllSettings();
+    const settings = getSettingsWithDefaults();
     res.render('index', {
         categories,
         category,
@@ -67,7 +68,7 @@ router.get('/gallery/:category', async (req, res) => {
 
 // Manifest route
 router.get('/manifest.json', (req, res) => {
-    const settings = getAllSettings();
+    const settings = getSettingsWithDefaults();
     let base = 'favicon-192.png';
     if (settings.favicon && settings.favicon.startsWith('favicon-')) {
         base = settings.favicon.replace(/-32\.png$/, '');
@@ -102,7 +103,7 @@ router.get('/manifest.json', (req, res) => {
 router.get('/about', (req, res) => {
     const db = require('../db');
     const marked = require('marked');
-    const settings = getAllSettings();
+    const settings = getSettingsWithDefaults();
     const about = db.prepare('SELECT * FROM about LIMIT 1').get();
     let aboutHtml = about && about.markdown ? marked.parse(about.markdown) : '';
     let image = about && about.image_path ? about.image_path : null;
@@ -128,7 +129,7 @@ const adminLimiter = rateLimit({
 
 // Login page (GET)
 router.get('/login', (req, res) => {
-    const settings = getAllSettings();
+    const settings = getSettingsWithDefaults();
     res.render('login', { error: null, settings, showAdminNav: req.session && req.session.loggedIn });
 });
 
@@ -141,7 +142,7 @@ router.post('/login', adminLimiter, async (req, res) => {
         req.session.adminId = admin.id;
         return res.redirect('/admin/manage');
     } else {
-        const settings = getAllSettings();
+        const settings = getSettingsWithDefaults();
         return res.render('login', { error: String('Invalid credentials'), settings, showAdminNav: false, loggedIn: false });
     }
 });
@@ -179,7 +180,7 @@ router.post('/setup', async (req, res) => {
 
 // 404 handler (should be last)
 router.use((req, res) => {
-    const settings = getAllSettings();
+    const settings = getSettingsWithDefaults();
     res.status(404).send(notFoundPage(settings.siteTitle || "Focal Point ", req.session && req.session.loggedIn));
 });
 

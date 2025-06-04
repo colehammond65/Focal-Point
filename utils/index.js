@@ -8,5 +8,5 @@ module.exports = {
     ...require('./admin'),
     ...require('./categories'),
     ...require('./images'),
-    ...require('./settings')
+    ...require('./settings') // getSettingsWithDefaults now exported
 };
