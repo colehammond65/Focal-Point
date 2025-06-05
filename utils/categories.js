@@ -10,21 +10,27 @@
 //   - getCategoriesWithImages: Get categories with their images.
 //   - getCategoryIdAndMaxPosition: Get category ID and max image position.
 
-const db = require('../db');
+const { getDb, ready } = require('../db');
 const validator = require('validator');
 
-function getCategoriesWithPreviews() {
-    const cats = db.prepare('SELECT * FROM categories ORDER BY position ASC').all();
-    return cats.map(cat => {
-        let thumb = db.prepare('SELECT filename FROM images WHERE category_id = ? AND is_thumbnail = 1').get(cat.id);
-        if (!thumb) {
-            thumb = db.prepare('SELECT filename FROM images WHERE category_id = ? ORDER BY position ASC LIMIT 1').get(cat.id);
-        }
-        return {
-            name: cat.name,
-            preview: thumb ? thumb.filename : null
-        };
-    });
+async function getCategoriesWithPreviews() {
+    await ready;
+    const db = getDb();
+    const query = `
+        SELECT 
+            c.name, 
+            COALESCE(
+                (SELECT filename FROM images WHERE category_id = c.id AND is_thumbnail = 1 LIMIT 1),
+                (SELECT filename FROM images WHERE category_id = c.id ORDER BY position ASC LIMIT 1)
+            ) AS preview
+        FROM categories c
+        ORDER BY c.position ASC
+    `;
+    const cats = await db.prepare(query).all();
+    return cats.map(cat => ({
+        name: cat.name,
+        preview: cat.preview
+    }));
 }
 function isSafeCategory(category) {
     if (typeof category !== 'string') return false;
@@ -33,34 +39,44 @@ function isSafeCategory(category) {
     const reserved = ['con', 'aux', 'nul', 'prn', 'com1', 'lpt1', 'tmp'];
     return !reserved.includes(category.toLowerCase()) && category.length <= 50;
 }
-function categoryExists(name) {
-    return !!db.prepare('SELECT 1 FROM categories WHERE name = ?').get(name);
+async function categoryExists(name) {
+    await ready;
+    const db = getDb();
+    return !!(await db.prepare('SELECT 1 FROM categories WHERE name = ?').get(name));
 }
-function createCategory(name) {
+async function createCategory(name) {
+    await ready;
+    const db = getDb();
     name = validator.trim(name);
     name = validator.escape(name).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 50);
-    if (!isSafeCategory(name)) throw new Error('Invalid category name');
-    const maxPos = db.prepare('SELECT MAX(position) as max FROM categories').get().max || 0;
-    db.prepare('INSERT INTO categories (name, position) VALUES (?, ?)').run(name, maxPos + 1);
+    if (!(await isSafeCategory(name))) throw new Error('Invalid category name');
+    const maxPos = (await db.prepare('SELECT MAX(position) as max FROM categories').get()).max || 0;
+    await db.prepare('INSERT INTO categories (name, position) VALUES (?, ?)').run(name, maxPos + 1);
 }
-function deleteCategory(name) {
-    const cat = db.prepare('SELECT id FROM categories WHERE name = ?').get(name);
+async function deleteCategory(name) {
+    await ready;
+    const db = getDb();
+    const cat = await db.prepare('SELECT id FROM categories WHERE name = ?').get(name);
     if (cat) {
-        db.prepare('DELETE FROM images WHERE category_id = ?').run(cat.id);
-        db.prepare('DELETE FROM categories WHERE id = ?').run(cat.id);
+        await db.prepare('DELETE FROM images WHERE category_id = ?').run(cat.id);
+        await db.prepare('DELETE FROM categories WHERE id = ?').run(cat.id);
     }
 }
-function getCategoriesWithImages() {
-    const cats = getCategoriesWithPreviews();
-    return cats.map(cat => ({
+async function getCategoriesWithImages() {
+    await ready;
+    const db = getDb();
+    const cats = await getCategoriesWithPreviews();
+    return await Promise.all(cats.map(async cat => ({
         ...cat,
-        images: getOrderedImages(cat.name)
-    }));
+        images: await getOrderedImages(cat.name)
+    })));
 }
-function getCategoryIdAndMaxPosition(categoryName) {
-    const cat = db.prepare('SELECT id FROM categories WHERE name = ?').get(categoryName);
+async function getCategoryIdAndMaxPosition(categoryName) {
+    await ready;
+    const db = getDb();
+    const cat = await db.prepare('SELECT id FROM categories WHERE name = ?').get(categoryName);
     if (!cat) return null;
-    const maxPos = db.prepare('SELECT MAX(position) as max FROM images WHERE category_id = ?').get(cat.id).max || 0;
+    const maxPos = (await db.prepare('SELECT MAX(position) as max FROM images WHERE category_id = ?').get(cat.id)).max || 0;
     return { id: cat.id, maxPos };
 }
 

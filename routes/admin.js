@@ -12,7 +12,6 @@ const sharp = require('sharp');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const backupUtils = require('../utils/backup');
-const db = require('../db');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const validator = require('validator');
@@ -53,6 +52,7 @@ const {
     CLIENT_UPLOADS_DIR,
     createClient
 } = require('../utils/clients');
+const { getAbout, updateAbout, updateAboutImage, deleteAboutImage } = require('../utils/about');
 
 // Middleware to protect admin routes (moved from server.js)
 // Ensures the user is logged in as admin
@@ -65,18 +65,24 @@ function requireLogin(req, res, next) {
 }
 
 // Redirect to /setup if admin account doesn't exist and not already on /setup (moved from server.js)
-function adminSetupRedirect(req, res, next) {
-    if (
-        !adminExists() &&
-        req.path !== '/setup' &&
-        req.path !== '/setup/' &&
-        !req.path.startsWith('/public') &&
-        !req.path.startsWith('/styles') &&
-        !req.path.startsWith('/images')
-    ) {
-        return res.redirect('/setup');
+async function adminSetupRedirect(req, res, next) {
+    try {
+        const adminExistsResult = await adminExists();
+        if (
+            !adminExistsResult &&
+            req.path !== '/setup' &&
+            req.path !== '/setup/' &&
+            !req.path.startsWith('/public') &&
+            !req.path.startsWith('/styles') &&
+            !req.path.startsWith('/images')
+        ) {
+            return res.redirect('/setup');
+        }
+        next();
+    } catch (error) {
+        console.error('Error in adminSetupRedirect middleware:', error);
+        res.status(500).send('Internal Server Error');
     }
-    next();
 }
 
 // Apply adminSetupRedirect to all admin routes
@@ -101,13 +107,13 @@ async function isRealImage(filePath) {
     return ['image/png', 'image/jpeg', 'image/gif'].includes(type.mime);
 }
 
-// --- AUTH & SETUP ROUTES (moved from server.js) --- //
-
-// Login page (GET)
-router.get('/login', (req, res) => {
-    const settings = getSettingsWithDefaults();
+router.get('/login', async (req, res) => {
+    const settings = await getSettingsWithDefaults();
     res.render('login', { error: null, settings, showAdminNav: req.session && req.session.loggedIn });
 });
+
+// Login page (GET)
+// Removed duplicate definition to avoid conflicts
 
 // Handle login form (POST) -- RATE LIMITED
 router.post('/login', adminLimiter, async (req, res) => {
@@ -126,19 +132,19 @@ router.post('/login', adminLimiter, async (req, res) => {
 // Logout: destroy session and redirect to login
 router.get('/logout', (req, res) => {
     req.session.destroy(() => {
-        res.redirect('/');
+        res.redirect('/login');
     });
 });
 
-// Setup page (GET)
-router.get('/setup', (req, res) => {
+// Setup routes
+router.get('/setup', async (req, res) => {
     if (adminExists()) {
         return res.redirect('/admin/login');
     }
-    res.render('setup', { error: null, showAdminNav: req.session && req.session.loggedIn });
+    const settings = await getSettingsWithDefaults();
+    res.render('setup', { error: null, settings, showAdminNav: req.session && req.session.loggedIn });
 });
 
-// Setup page (POST)
 router.post('/setup', async (req, res) => {
     if (adminExists()) {
         return res.redirect('/admin/login');
@@ -149,23 +155,6 @@ router.post('/setup', async (req, res) => {
     }
     await createAdmin(username, password);
     res.redirect('/admin/login');
-});
-
-// --- ADMIN ROUTES --- //
-
-// Settings page
-router.get('/settings', requireLogin, (req, res) => {
-    const settings = getSettingsWithDefaults();
-    const serverBackups = backupUtils.listBackups();
-    const backupLimit = backupUtils.BACKUP_LIMIT_BYTES;
-    res.render('admin-settings', {
-        req,
-        settings,
-        serverBackups,
-        backupLimit,
-        showAdminNav: req.session && req.session.loggedIn,
-        loggedIn: req.session && req.session.loggedIn
-    });
 });
 
 // Settings update (protected) with file upload support
@@ -263,15 +252,13 @@ router.post('/settings/remove-header-image', requireLogin, async (req, res) => {
                 // Handle unlink error if needed
             }
         });
-    }
-    setSetting('headerImage', '');
-    res.redirect('/admin/settings?msg=Header image removed');
-});
+    });
+        });
 
-// Image & Category Management page
-router.get('/manage', requireLogin, (req, res) => {
+// Move the following route definitions outside of the `/settings/remove-header-image` handler
+router.get('/manage', requireLogin, async (req, res) => {
     const categories = getCategoriesWithImages();
-    const settings = getSettingsWithDefaults();
+    const settings = await getSettingsWithDefaults();
     res.render('admin-manage', {
         categories,
         req,
@@ -281,24 +268,31 @@ router.get('/manage', requireLogin, (req, res) => {
     });
 });
 
-// List all admins
 router.get('/users', requireLogin, (req, res) => {
-    const admins = db.prepare('SELECT id, username FROM admin').all();
-    const currentAdmin = req.session.adminId;
-    const settings = getSettingsWithDefaults();
-    res.render('admin-users', {
-        admins,
-        currentAdmin,
-        req,
-        settings,
-        showAdminNav: req.session && req.session.loggedIn,
-        loggedIn: req.session && req.session.loggedIn,
-        _: _ // Pass lodash to template
-    });
+    const { getDb, ready } = require('../db');
+    (async () => {
+        await ready;
+        const db = getDb();
+        const admins = db.prepare('SELECT id, username FROM admin').all();
+        const currentAdmin = req.session.adminId;
+        const settings = getSettingsWithDefaults();
+        res.render('admin-users', {
+            admins,
+            currentAdmin,
+            req,
+            settings,
+            showAdminNav: req.session && req.session.loggedIn,
+            loggedIn: req.session && req.session.loggedIn,
+            _: _ // Pass lodash to template
+        });
+    })();
 });
 
 // Create new admin
 router.post('/users/create', requireLogin, async (req, res) => {
+    const { getDb, ready } = require('../db');
+    await ready;
+    const db = getDb();
     let username = typeof req.body.username === 'string' ? validator.trim(req.body.username) : '';
     username = validator.escape(username).slice(0, 32);
     let password = typeof req.body.password === 'string' ? req.body.password : '';
@@ -322,6 +316,9 @@ router.post('/users/create', requireLogin, async (req, res) => {
 
 // Change own credentials
 router.post('/users/change-credentials', requireLogin, async (req, res) => {
+    const { getDb, ready } = require('../db');
+    await ready;
+    const db = getDb();
     let newUsername = typeof req.body.newUsername === 'string' ? validator.trim(req.body.newUsername) : '';
     newUsername = validator.escape(newUsername).slice(0, 32);
     let currentPassword = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
@@ -352,6 +349,9 @@ router.post('/users/change-credentials', requireLogin, async (req, res) => {
 
 // Change own username
 router.post('/users/change-username', requireLogin, async (req, res) => {
+    const { getDb, ready } = require('../db');
+    await ready;
+    const db = getDb();
     let newUsername = typeof req.body.newUsername === 'string' ? validator.trim(req.body.newUsername) : '';
     newUsername = validator.escape(newUsername).slice(0, 32);
     let currentPassword = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
@@ -381,6 +381,9 @@ router.post('/users/change-username', requireLogin, async (req, res) => {
 
 // Change own password
 router.post('/users/change-password', requireLogin, async (req, res) => {
+    const { getDb, ready } = require('../db');
+    await ready;
+    const db = getDb();
     let currentPassword = typeof req.body.currentPassword === 'string' ? req.body.currentPassword : '';
     let newPassword = typeof req.body.newPassword === 'string' ? req.body.newPassword : '';
     if (!currentPassword || !newPassword) {
@@ -406,33 +409,43 @@ router.post('/users/change-password', requireLogin, async (req, res) => {
 
 // Optional: Delete another admin (prevent deleting self)
 router.post('/users/delete', requireLogin, (req, res) => {
-    const { id } = req.body;
-    if (!id || Number(id) === req.session.adminId) {
-        return res.redirect('/admin/users?msg=Cannot delete your own account');
-    }
-    db.prepare('DELETE FROM admin WHERE id = ?').run(id);
-    res.redirect('/admin/users?msg=Admin deleted');
+    const { getDb, ready } = require('../db');
+    (async () => {
+        await ready;
+        const db = getDb();
+        const { id } = req.body;
+        if (!id || Number(id) === req.session.adminId) {
+            return res.redirect('/admin/users?msg=Cannot delete your own account');
+        }
+        db.prepare('DELETE FROM admin WHERE id = ?').run(id);
+        res.redirect('/admin/users?msg=Admin deleted');
+    })();
 });
 
 // Admin: Serve client images (for admin upload page)
 router.get('/client-images/:clientId/:filename', requireLogin, (req, res) => {
-    const { clientId, filename } = req.params;
+    const { getDb, ready } = require('../db');
+    (async () => {
+        await ready;
+        const db = getDb();
+        const { clientId, filename } = req.params;
 
-    // Verify the image belongs to this client in the database
-    const image = db.prepare('SELECT * FROM client_images WHERE client_id = ? AND filename = ?')
-        .get(clientId, filename);
+        // Verify the image belongs to this client in the database
+        const image = db.prepare('SELECT * FROM client_images WHERE client_id = ? AND filename = ?')
+            .get(clientId, filename);
 
-    if (!image) {
-        return res.status(404).send('Image not found');
-    }
+        if (!image) {
+            return res.status(404).send('Image not found');
+        }
 
-    const filePath = path.join(CLIENT_UPLOADS_DIR, clientId.toString(), filename);
+        const filePath = path.join(CLIENT_UPLOADS_DIR, clientId.toString(), filename);
 
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('Image not found');
-    }
+        if (fs.existsSync(filePath)) {
+            res.sendFile(filePath);
+        } else {
+            res.status(404).send('Image not found');
+        }
+    })();
 });
 
 // Admin: Client management page
@@ -681,6 +694,9 @@ router.post('/rename-category', requireLogin, adminLimiter, async (req, res) => 
         return res.redirect('/admin/manage?msg=Category name already exists!');
     }
     // Update category name in DB
+    const { getDb, ready } = require('../db');
+    await ready;
+    const db = getDb();
     db.prepare('UPDATE categories SET name = ? WHERE name = ?').run(newName, oldName);
     // Rename folder on disk if exists
     const oldDir = path.join(__dirname, '../public/images', oldName);
@@ -712,6 +728,9 @@ router.post('/reorder-images', requireLogin, adminLimiter, async (req, res) => {
 router.post('/reorder-categories', requireLogin, adminLimiter, async (req, res) => {
     const { order } = req.body; // order is an array of category names
     if (!Array.isArray(order)) return res.status(400).json({ error: 'Invalid order' });
+    const { getDb, ready } = require('../db');
+    await ready;
+    const db = getDb();
     order.forEach((catName, idx) => {
         db.prepare('UPDATE categories SET position = ? WHERE name = ?').run(idx, catName);
     });
@@ -812,8 +831,8 @@ router.post('/bulk-delete-images', requireLogin, adminLimiter, async (req, res) 
 });
 
 // Admin About editor (GET)
-router.get('/about', requireLogin, (req, res) => {
-    const about = db.prepare('SELECT * FROM about LIMIT 1').get();
+router.get('/about', requireLogin, async (req, res) => {
+    const about = await getAbout();
     const settings = getSettingsWithDefaults();
     res.render('admin-about', {
         about,
@@ -825,28 +844,26 @@ router.get('/about', requireLogin, (req, res) => {
 });
 
 // Update About bio (markdown only)
-router.post('/about/bio', requireLogin, (req, res) => {
+router.post('/about/bio', requireLogin, async (req, res) => {
     const markdown = req.body.markdown || '';
-    db.prepare('UPDATE about SET markdown = ? WHERE id = 1').run(markdown);
+    await updateAbout(markdown);
     res.redirect('/admin/about?msg=Bio saved!');
 });
 
 // About image upload (with multer)
 const aboutUpload = multer({ dest: path.join(__dirname, '../data/') });
-router.post('/about/image', requireLogin, aboutUpload.single('image'), (req, res) => {
+router.post('/about/image', requireLogin, aboutUpload.single('image'), async (req, res) => {
     let imagePath = req.body.currentImage;
     if (req.file) {
-        // Save only the filename (with extension) in the DB
         imagePath = req.file.filename;
     }
-    const about = db.prepare('SELECT * FROM about LIMIT 1').get();
-    db.prepare('UPDATE about SET markdown = ?, image_path = ? WHERE id = 1')
-        .run(about.markdown || '', imagePath);
+    const about = await getAbout();
+    await updateAbout(about.markdown || '', imagePath);
     res.redirect('/admin/about?msg=Image saved!');
 });
 
-router.post('/about/delete-image', requireLogin, (req, res) => {
-    db.prepare('UPDATE about SET image_path = NULL WHERE id = 1').run();
+router.post('/about/delete-image', requireLogin, async (req, res) => {
+    await deleteAboutImage();
     res.redirect('/admin/about?msg=Image deleted!');
 });
 

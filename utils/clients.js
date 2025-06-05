@@ -18,17 +18,22 @@
 //   - CLIENT_UPLOADS_DIR: Directory path for client uploads.
 
 // Database and utility imports
-const db = require('../db'); // Database connection
-const fs = require('fs'); // File system module
+const { getDb, ready } = require('../db'); // Use getDb and ready
+const fsSync = require('fs'); // File system module (synchronous)
+const fsAsync = require('fs').promises; // File system module (promise-based)
 const path = require('path'); // Path utilities
 const archiver = require('archiver'); // For zipping files (npm install archiver)
 const bcrypt = require('bcryptjs'); // For password hashing
 
 // Ensure client uploads directory exists
 const CLIENT_UPLOADS_DIR = path.join(__dirname, '..', 'data', 'client-uploads');
-if (!fs.existsSync(CLIENT_UPLOADS_DIR)) {
-    fs.mkdirSync(CLIENT_UPLOADS_DIR, { recursive: true });
-}
+(async () => {
+    try {
+        await fsAsync.mkdir(CLIENT_UPLOADS_DIR, { recursive: true });
+    } catch (err) {
+        if (err.code !== 'EEXIST') throw err;
+    }
+})();
 
 // Generate a random 6-character access code for clients
 function generateAccessCode() {
@@ -42,11 +47,13 @@ function generateAccessCode() {
 }
 
 // Create a new client with hashed password and optional expiry
-function createClient(clientName, shootTitle, password, customExpiry = null) {
+async function createClient(clientName, shootTitle, password, customExpiry = null) {
+    await ready;
+    const db = getDb();
     const accessCode = generateAccessCode();
 
     // Hash the password for security
-    const hashedPassword = bcrypt.hashSync(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Default expiry: 1 month from now
     const expiresAt = customExpiry || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -59,8 +66,10 @@ function createClient(clientName, shootTitle, password, customExpiry = null) {
 
         // Create client's image directory
         const clientDir = path.join(CLIENT_UPLOADS_DIR, result.lastInsertRowid.toString());
-        if (!fs.existsSync(clientDir)) {
-            fs.mkdirSync(clientDir, { recursive: true });
+        try {
+            await fsAsync.mkdir(clientDir, { recursive: true });
+        } catch (err) {
+            if (err.code !== 'EEXIST') throw err;
         }
 
         return { id: result.lastInsertRowid, accessCode };
@@ -73,13 +82,15 @@ function createClient(clientName, shootTitle, password, customExpiry = null) {
 }
 
 // Verify client credentials and update last access time
-function verifyClient(accessCode, password) {
+async function verifyClient(accessCode, password) {
+    await ready;
+    const db = getDb();
     const client = db.prepare(`
         SELECT * FROM clients 
         WHERE access_code = ? AND is_active = 1 AND expires_at > datetime('now')
     `).get(accessCode);
 
-    if (client && bcrypt.compareSync(password, client.password)) {
+    if (client && await bcrypt.compare(password, client.password)) {
         db.prepare('UPDATE clients SET last_access = datetime(\'now\') WHERE id = ?').run(client.id);
         return client;
     }
@@ -87,7 +98,9 @@ function verifyClient(accessCode, password) {
 }
 
 // Get all images for a client, ordered by upload time
-function getClientImages(clientId) {
+async function getClientImages(clientId) {
+    await ready;
+    const db = getDb();
     return db.prepare(`
         SELECT * FROM client_images 
         WHERE client_id = ? 
@@ -97,6 +110,7 @@ function getClientImages(clientId) {
 
 // Add a new image record for a client
 function addClientImage(clientId, filename, originalFilename, fileSize) {
+    const db = getDb();
     return db.prepare(`
         INSERT INTO client_images (client_id, filename, original_filename, file_size)
         VALUES (?, ?, ?, ?)
@@ -104,14 +118,16 @@ function addClientImage(clientId, filename, originalFilename, fileSize) {
 }
 
 // Delete a client's image from both filesystem and database
-function deleteClientImage(clientId, imageId) {
+async function deleteClientImage(clientId, imageId) {
+    await ready;
+    const db = getDb();
     const image = db.prepare('SELECT filename FROM client_images WHERE id = ? AND client_id = ?').get(imageId, clientId);
     if (image) {
         // Delete file from filesystem
         const filePath = path.join(CLIENT_UPLOADS_DIR, clientId.toString(), image.filename);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
+        try {
+            await fsAsync.unlink(filePath);
+        } catch { }
 
         // Delete from database
         db.prepare('DELETE FROM client_images WHERE id = ? AND client_id = ?').run(imageId, clientId);
@@ -122,6 +138,7 @@ function deleteClientImage(clientId, imageId) {
 
 // Get all clients with image count and total size
 function getAllClients() {
+    const db = getDb();
     return db.prepare(`
         SELECT c.*, 
                COUNT(ci.id) as image_count,
@@ -135,16 +152,19 @@ function getAllClients() {
 
 // Get a single client by ID
 function getClientById(clientId) {
+    const db = getDb();
     return db.prepare('SELECT * FROM clients WHERE id = ?').get(clientId);
 }
 
 // Delete a client and all associated images
-function deleteClient(clientId) {
+async function deleteClient(clientId) {
+    await ready;
+    const db = getDb();
     // Delete all client images from filesystem
     const clientDir = path.join(CLIENT_UPLOADS_DIR, clientId.toString());
-    if (fs.existsSync(clientDir)) {
-        fs.rmSync(clientDir, { recursive: true, force: true });
-    }
+    try {
+        await fsAsync.rm(clientDir, { recursive: true, force: true });
+    } catch { }
 
     // Delete from database (CASCADE will handle client_images)
     db.prepare('DELETE FROM clients WHERE id = ?').run(clientId);
@@ -152,11 +172,13 @@ function deleteClient(clientId) {
 
 // Toggle the active status of a client
 function toggleClientStatus(clientId) {
+    const db = getDb();
     db.prepare('UPDATE clients SET is_active = NOT is_active WHERE id = ?').run(clientId);
 }
 
 // Increment download count for a client and optionally an image
 function incrementDownloadCount(clientId, imageId = null) {
+    const db = getDb();
     db.prepare('UPDATE clients SET download_count = download_count + 1 WHERE id = ?').run(clientId);
 
     if (imageId) {
@@ -166,6 +188,7 @@ function incrementDownloadCount(clientId, imageId = null) {
 
 // Create a zip archive of all client images
 function createZipArchive(clientId) {
+    const db = getDb();
     const client = getClientById(clientId);
     const images = getClientImages(clientId);
     const clientDir = path.join(CLIENT_UPLOADS_DIR, clientId.toString());
@@ -188,15 +211,17 @@ function createZipArchive(clientId) {
 }
 
 // Clean up expired clients (run this periodically)
-function cleanupExpiredClients() {
+async function cleanupExpiredClients() {
+    await ready;
+    const db = getDb();
     const expiredClients = db.prepare(`
         SELECT id FROM clients 
         WHERE expires_at < datetime('now')
     `).all();
 
-    expiredClients.forEach(client => {
-        deleteClient(client.id);
-    });
+    for (const client of expiredClients) {
+        await deleteClient(client.id);
+    }
 
     return expiredClients.length;
 }

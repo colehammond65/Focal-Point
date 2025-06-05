@@ -7,24 +7,30 @@
 //   - getAllSettings: Retrieve all settings as an object.
 //   - getSettingsWithDefaults: Retrieve all settings with defaults.
 
-const db = require('../db');
+const { getDb, ready } = require('../db');
 
-function getSetting(key) {
+async function getSetting(key) {
+    await ready;
+    const db = getDb();
     const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
     return row ? row.value : null;
 }
-function setSetting(key, value) {
+async function setSetting(key, value) {
+    await ready;
+    const db = getDb();
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
 }
-function getAllSettings() {
+async function getAllSettings() {
+    await ready;
+    const db = getDb();
     const rows = db.prepare('SELECT key, value FROM settings').all();
     const settings = {};
     rows.forEach(row => settings[row.key] = row.value);
     return settings;
 }
 
-function getSettingsWithDefaults() {
-    const settings = getAllSettings();
+async function getSettingsWithDefaults() {
+    const settings = await getAllSettings();
     settings.siteTitle = settings.siteTitle || 'Focal Point';
     settings.headerTitle = settings.headerTitle || 'Focal Point';
     settings.favicon = typeof settings.favicon === 'string' ? settings.favicon : '';

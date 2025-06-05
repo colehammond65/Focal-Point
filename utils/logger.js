@@ -1,13 +1,13 @@
 // utils/logger.js
 // Winston logger with daily rotation, logs to data/log/
-const fs = require('fs');
+const fsSync = require('fs');
 const path = require('path');
 const winston = require('winston');
 require('winston-daily-rotate-file');
 
 const logDir = path.join(__dirname, '..', 'data', 'log');
-if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
+if (!fsSync.existsSync(logDir)) {
+    fsSync.mkdirSync(logDir, { recursive: true });
 }
 
 const transport = new winston.transports.DailyRotateFile({

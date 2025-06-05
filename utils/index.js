@@ -3,6 +3,7 @@
 // Exports:
 //   - All exports from admin.js, categories.js, images.js, and settings.js.
 //
+// This file aggregates and re-exports utility modules.
 
 module.exports = {
     ...require('./admin'),

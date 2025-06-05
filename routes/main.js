@@ -19,10 +19,10 @@ const rateLimit = require('express-rate-limit');
 const { getCachedCategories } = require('../utils/categoryCache');
 
 // Serve dynamic styles.css with accent color injection
-router.get('/styles.css', (req, res) => {
-    const settings = getSettingsWithDefaults();
+router.get('/styles.css', async (req, res) => {
+    const settings = await getSettingsWithDefaults();
     const accentColor = settings.accentColor || '#2ecc71';
-    const css = generateDynamicCss(accentColor);
+    const css = await generateDynamicCss(accentColor);
     res.setHeader('Content-Type', 'text/css');
     res.send(css);
 });
@@ -30,7 +30,7 @@ router.get('/styles.css', (req, res) => {
 // Homepage: Show all categories with previews
 router.get('/', async (req, res) => {
     const categories = await getCachedCategories();
-    const settings = getSettingsWithDefaults();
+    const settings = await getSettingsWithDefaults();
     res.render('index', {
         categories,
         images: null,
@@ -51,11 +51,11 @@ router.get('/gallery/:category', async (req, res) => {
     const categories = await getCachedCategories();
     let images = [];
     try {
-        images = getOrderedImages(category);
+        images = await getOrderedImages(category);
     } catch (err) {
         console.error(err);
     }
-    const settings = getSettingsWithDefaults();
+    const settings = await getSettingsWithDefaults();
     res.render('index', {
         categories,
         category,
@@ -67,8 +67,8 @@ router.get('/gallery/:category', async (req, res) => {
 });
 
 // Manifest route
-router.get('/manifest.json', (req, res) => {
-    const settings = getSettingsWithDefaults();
+router.get('/manifest.json', async (req, res) => {
+    const settings = await getSettingsWithDefaults();
     let base = 'favicon-192.png';
     if (settings.favicon && settings.favicon.startsWith('favicon-')) {
         base = settings.favicon.replace(/-32\.png$/, '');
@@ -100,10 +100,11 @@ router.get('/manifest.json', (req, res) => {
 });
 
 // Public About page
-router.get('/about', (req, res) => {
-    const db = require('../db');
+router.get('/about', async (req, res) => {
+    const { db, ready } = require('../db');
     const marked = require('marked');
-    const settings = getSettingsWithDefaults();
+    const settings = await getSettingsWithDefaults();
+    await ready;
     const about = db.prepare('SELECT * FROM about LIMIT 1').get();
     let aboutHtml = about && about.markdown ? marked.parse(about.markdown) : '';
     let image = about && about.image_path ? about.image_path : null;
@@ -128,8 +129,8 @@ const adminLimiter = rateLimit({
 });
 
 // Login page (GET)
-router.get('/login', (req, res) => {
-    const settings = getSettingsWithDefaults();
+router.get('/login', async (req, res) => {
+    const settings = await getSettingsWithDefaults();
     res.render('login', { error: null, settings, showAdminNav: req.session && req.session.loggedIn });
 });
 
@@ -155,9 +156,9 @@ router.get('/logout', (req, res) => {
 });
 
 // Setup page (GET)
-router.get('/setup', (req, res) => {
+router.get('/setup', async (req, res) => {
     const { adminExists } = require('../utils');
-    if (adminExists()) {
+    if (await adminExists()) {
         return res.redirect('/login');
     }
     res.render('setup', { error: null, showAdminNav: req.session && req.session.loggedIn });
@@ -166,7 +167,7 @@ router.get('/setup', (req, res) => {
 // Setup page (POST)
 router.post('/setup', async (req, res) => {
     const { adminExists } = require('../utils');
-    if (adminExists()) {
+    if (await adminExists()) {
         return res.redirect('/admin/login');
     }
     const { username, password } = req.body;
