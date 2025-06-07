@@ -1,7 +1,16 @@
 {
   "ignore": [
-    "public/",
+    "public/images/",
+    "public/uploads/",
     "data/",
-    "temp/"
+    "temp/",
+    ".github/",
+    ".dockerignore",
+    ".gitignore",
+    ".gitattributes",
+    ".docker-compose.yml.example",
+    "Dockerfile",
+    "LICENSE",
+    "README.md"
   ]
 }
