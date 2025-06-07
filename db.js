@@ -111,4 +111,4 @@ exportsObj.getDb = function getDb() {
 module.exports = exportsObj;
 
 // Re-export the database instance as the default export for backward compatibility
-module.exports.default = exportsObj.getDb();
+module.exports.default = exportsObj;

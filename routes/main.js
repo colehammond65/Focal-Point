@@ -161,7 +161,7 @@ router.get('/setup', async (req, res) => {
     if (await adminExists()) {
         return res.redirect('/login');
     }
-    res.render('setup', { error: null, showAdminNav: req.session && req.session.loggedIn });
+    res.render('setup', { error: null, showAdminNav: req.session && req.session.loggedIn, req });
 });
 
 // Setup page (POST)

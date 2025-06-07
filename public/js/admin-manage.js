@@ -56,6 +56,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     // --- SortableJS for image reordering ---
+    if (!window.Sortable) {
+        console.error('Sortable is NOT defined!');
+    } else {
+        console.log('Sortable is defined:', window.Sortable);
+    }
     document.querySelectorAll('.image-grid').forEach(function (grid) {
         new Sortable(grid, {
             animation: 150,
@@ -64,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
             onEnd: function (evt) {
                 const catName = grid.getAttribute('data-cat');
                 const order = Array.from(grid.querySelectorAll('.img-item')).map(div => div.dataset.filename);
-                fetch('/reorder-images', {
+                fetch('/admin/reorder-images', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ category: catName, order: JSON.stringify(order) })
@@ -90,16 +95,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
     // --- Category panel toggles ---
+    function slugify(catName) {
+        return catName.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+    }
     document.querySelectorAll('.category-toggle').forEach(function (toggle) {
         toggle.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                var catName = toggle.closest('.category-accordion').getAttribute('data-cat');
+                var catName = slugify(toggle.closest('.category-accordion').getAttribute('data-cat'));
                 toggleCategoryPanel(catName);
             }
         });
         toggle.addEventListener('click', function () {
-            var catName = toggle.closest('.category-accordion').getAttribute('data-cat');
+            var catName = slugify(toggle.closest('.category-accordion').getAttribute('data-cat'));
             toggleCategoryPanel(catName); // <-- Fix: actually toggle the panel on click
             // Reset bulk action buttons
             document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected')

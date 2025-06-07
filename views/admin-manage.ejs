@@ -23,7 +23,6 @@
                     --primary-hover: <%=settings.accentColor ? (settings.accentColor.replace('#', '%23') + 'cc'): '#27ae60' %>;
                 }
             </style>
-            <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 
 <body>
@@ -52,88 +51,7 @@
                                 <input type="file" name="images" id="image" multiple required style="display:none;"
                                     accept="image/png,image/jpeg,image/gif" onchange="validateImages(this)">
                                 <div id="preview" class="preview"></div>
-                                <script>
-                                    document.addEventListener('DOMContentLoaded', function () {
-                                        const dropzone = document.getElementById('dropzone');
-                                        const fileInput = document.getElementById('image');
-                                        const preview = document.getElementById('preview');
-                                        if (dropzone && fileInput) {
-                                            dropzone.addEventListener('click', function () {
-                                                fileInput.click();
-                                            });
-                                            dropzone.addEventListener('keydown', function (e) {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault();
-                                                    fileInput.click();
-                                                }
-                                            });
-                                            dropzone.addEventListener('dragover', function (e) {
-                                                e.preventDefault();
-                                                dropzone.classList.add('dragover');
-                                            });
-                                            dropzone.addEventListener('dragleave', function (e) {
-                                                e.preventDefault();
-                                                dropzone.classList.remove('dragover');
-                                            });
-                                            dropzone.addEventListener('drop', function (e) {
-                                                e.preventDefault();
-                                                dropzone.classList.remove('dragover');
-                                                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                                                    // Create a new DataTransfer to assign files
-                                                    const dt = new DataTransfer();
-                                                    Array.from(e.dataTransfer.files).forEach(file => dt.items.add(file));
-                                                    fileInput.files = dt.files;
-                                                    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-                                                }
-                                            });
-                                            // Add preview logic
-                                            fileInput.addEventListener('change', function () {
-                                                preview.innerHTML = '';
-                                                if (fileInput.files && fileInput.files.length > 0) {
-                                                    Array.from(fileInput.files).forEach(file => {
-                                                        if (file.type.startsWith('image/')) {
-                                                            const reader = new FileReader();
-                                                            reader.onload = function (e) {
-                                                                const img = document.createElement('img');
-                                                                img.src = e.target.result;
-                                                                img.alt = file.name;
-                                                                img.style.maxWidth = '70px';
-                                                                img.style.maxHeight = '70px';
-                                                                img.style.margin = '0.2em';
-                                                                preview.appendChild(img);
-                                                            };
-                                                            reader.readAsDataURL(file);
-                                                        }
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-
-                                    function validateImages(input) {
-                                        const maxFiles = 20;
-                                        const maxSize = 10 * 1024 * 1024; // 10MB
-                                        const allowedTypes = ['image/png', 'image/jpeg', 'image/gif'];
-                                        if (input.files.length > maxFiles) {
-                                            alert('You can upload up to 20 images at a time.');
-                                            input.value = '';
-                                            return false;
-                                        }
-                                        for (let file of input.files) {
-                                            if (!allowedTypes.includes(file.type)) {
-                                                alert('Invalid file type: ' + file.type);
-                                                input.value = '';
-                                                return false;
-                                            }
-                                            if (file.size > maxSize) {
-                                                alert('File too large: ' + file.name);
-                                                input.value = '';
-                                                return false;
-                                            }
-                                        }
-                                        return true;
-                                    }
-                                </script>
+                                <!-- Removed inline preview script to prevent duplicate previews -->
                                 <% if (categories.length> 0) { %>
                                     <label for="category">Select a category:</label>
                                     <select name="category" id="category" required>
@@ -169,21 +87,22 @@
                     </div>
 
                     <!-- Categories Section -->
+                    <% function slugify(catName) { return catName.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase(); } %>
                     <section class="admin-card admin-card-categories">
                         <h2>Categories</h2>
                         <% if (categories.length> 0) { %>
                             <div id="category-list">
-                                <% categories.forEach(cat=> { %>
-                                    <section class="admin-card category-accordion" data-cat="<%= cat.name %>">
+                                <% categories.forEach(cat=> { const catSlug = slugify(cat.name); %>
+                                    <section class="admin-card category-accordion" data-cat="<%= catSlug %>">
                                         <div class="category-toggle" tabindex="0" draggable="true" aria-expanded="false"
-                                            aria-controls="cat-<%= cat.name %>-panel">
+                                            aria-controls="cat-<%= catSlug %>-panel">
                                             <span class="category-title">
                                                 <%= cat.name.replace(/-/g, ' ' ).replace(/\b\w/g, c=> c.toUpperCase())
                                                     %>
                                             </span>
                                             <span class="accordion-arrow" aria-hidden="true">&#9654;</span>
                                         </div>
-                                        <div class="category-panel hidden" id="cat-<%= cat.name %>-panel">
+                                        <div class="category-panel hidden" id="cat-<%= catSlug %>-panel">
                                             <div class="category-grid">
                                                 <div class="category-card">
                                                     <div class="options-row">
@@ -212,39 +131,39 @@
                                                         <div class="image-options-box">
                                                             <div class="image-options-title">Image Options</div>
                                                             <form class="bulk-delete-form"
-                                                                onsubmit="return handleBulkDelete(event, '<%= cat.name %>')">
-                                                                <button type="submit" id="bulkDeleteBtn-<%= cat.name %>"
+                                                                onsubmit="return handleBulkDelete(event, '<%= catSlug %>')">
+                                                                <button type="submit" id="bulkDeleteBtn-<%= catSlug %>"
                                                                     class="admin-action-btn btn btn-danger"
                                                                     disabled>Delete
                                                                     Selected</button>
-                                                                <button type="button" id="setThumbBtn-<%= cat.name %>"
+                                                                <button type="button" id="setThumbBtn-<%= catSlug %>"
                                                                     class="admin-action-btn set-thumb-btn btn btn-secondary"
                                                                     disabled
-                                                                    onclick="handleSetThumbnail('<%= cat.name %>')">
+                                                                    onclick="handleSetThumbnail('<%= catSlug %>')">
                                                                     Set as Thumbnail
                                                                 </button>
                                                             </form>
                                                             <!-- Move Images Form -->
                                                             <form class="move-images-form"
-                                                                onsubmit="return handleMoveImages(event, '<%= cat.name %>')">
+                                                                onsubmit="return handleMoveImages(event, '<%= catSlug %>')">
                                                                 <select name="toCategory" required>
                                                                     <option value="" disabled selected>Move selected
                                                                         to...</option>
                                                                     <% categories.forEach(otherCat=> { if (otherCat.name
                                                                         !== cat.name) { %>
-                                                                        <option value="<%= otherCat.name %>">
+                                                                        <option value="<%= slugify(otherCat.name) %>">
                                                                             <%= otherCat.name.replace(/-/g, ' ' ) %>
                                                                         </option>
                                                                         <% } }) %>
                                                                 </select>
                                                                 <button type="submit"
                                                                     class="admin-action-btn btn btn-primary"
-                                                                    id="moveImagesBtn-<%= cat.name %>"
+                                                                    id="moveImagesBtn-<%= catSlug %>"
                                                                     disabled>Move</button>
                                                             </form>
                                                         </div>
                                                     </div>
-                                                    <div class="image-grid" data-cat="<%= cat.name %>">
+                                                    <div class="image-grid" data-cat="<%= catSlug %>">
                                                         <% (cat.images || []).forEach((img, i)=> { %>
                                                             <div class="img-item bulk-select-img-item" draggable="true"
                                                                 data-filename="<%= img.filename %>" tabindex="0"
@@ -272,7 +191,9 @@
                     <div id="saving-indicator" class="saving-indicator">Saving...</div>
         </div>
         <%- include('partials/dark-mode-toggle') %>
-            <script src="/js/admin-manage.js"></script>
+        <!-- Scripts at the very end of body -->
+        <script src="/js/admin-manage.js"></script>
+        <script src="/js/Sortable.min.js"></script>
 </body>
 
 </html>

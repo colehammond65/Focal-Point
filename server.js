@@ -99,23 +99,29 @@ app.set('views', path.join(__dirname, 'views'));
 // Serve static files from /public (moved after dynamic routes to avoid overriding)
 
 // Redirect to /setup if admin account doesn't exist and not already on /setup/static assets or public API endpoints
-app.use((req, res, next) => {
-  if (
-    !adminExists() &&
-    req.path !== '/setup' &&
-    req.path !== '/setup/' &&
-    !req.path.startsWith('/public') &&
-    !req.path.startsWith('/styles') &&
-    !req.path.startsWith('/images') &&
-    !req.path.startsWith('/favicon') &&
-    !req.path.startsWith('/branding') &&
-    !req.path.startsWith('/manifest') &&
-    !req.path.startsWith('/api') && // Ensure public API endpoints are not blocked
-    req.method === 'GET'
-  ) {
-    return res.redirect('/setup');
+app.use(async (req, res, next) => {
+  try {
+    const exists = await adminExists();
+    if (
+      !exists &&
+      req.path !== '/setup' &&
+      req.path !== '/setup/' &&
+      !req.path.startsWith('/public') &&
+      !req.path.startsWith('/styles') &&
+      !req.path.startsWith('/images') &&
+      !req.path.startsWith('/favicon') &&
+      !req.path.startsWith('/branding') &&
+      !req.path.startsWith('/manifest') &&
+      !req.path.startsWith('/api') && // Ensure public API endpoints are not blocked
+      req.method === 'GET'
+    ) {
+      return res.redirect('/setup');
+    }
+    next();
+  } catch (err) {
+    console.error('Error in adminExists redirect middleware:', err);
+    res.status(500).send('Internal Server Error');
   }
-  next();
 });
 
 // Inject settings with fallbacks into res.locals for all views
@@ -170,6 +176,19 @@ app.get('/uploads/:clientId/:filename', (req, res) => {
   const clientId = req.params.clientId;
   const filename = req.params.filename;
   const filePath = path.join(__dirname, 'data', 'client-uploads', clientId, filename);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Image not found');
+  }
+});
+
+// Serve About image from /data by filename
+app.get('/about-image/:filename', (req, res) => {
+  const filename = req.params.filename;
+  // Only allow safe filenames
+  if (!/^[\w.-]+$/.test(filename)) return res.status(400).send('Invalid filename');
+  const filePath = path.join(__dirname, 'data', filename);
   if (fs.existsSync(filePath)) {
     res.sendFile(filePath);
   } else {

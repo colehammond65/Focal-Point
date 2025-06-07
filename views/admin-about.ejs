@@ -63,7 +63,7 @@
                                     <span id="aboutImageFileName" class="file-name-label"></span>
                                 </div>
                                 <% if (about.image_path) { %>
-                                    <img src="<%= about.image_path %>" alt="Current Photo" class="about-photo"
+                                    <img src="/about-image/<%= about.image_path %>" alt="Current Photo" class="about-photo"
                                         style="margin-bottom:1em;">
                                     <input type="hidden" name="currentImage" value="<%= about.image_path %>">
                                     <button type="submit" formaction="/admin/about/delete-image" formmethod="POST"

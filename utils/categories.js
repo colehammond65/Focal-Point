@@ -48,7 +48,9 @@ async function createCategory(name) {
     await ready;
     const db = getDb();
     name = validator.trim(name);
-    name = validator.escape(name).toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 50);
+    name = validator.escape(name);
+    // Convert spaces to hyphens, allow a-z, 0-9, underscores, hyphens, max 50 chars
+    name = name.replace(/\s+/g, '-').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 50);
     if (!(await isSafeCategory(name))) throw new Error('Invalid category name');
     const maxPos = (await db.prepare('SELECT MAX(position) as max FROM categories').get()).max || 0;
     await db.prepare('INSERT INTO categories (name, position) VALUES (?, ?)').run(name, maxPos + 1);

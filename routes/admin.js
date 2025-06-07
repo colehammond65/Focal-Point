@@ -16,7 +16,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const validator = require('validator');
 const _ = require('lodash');
-const FileType = require('file-type');
+const { fileTypeFromFile } = require('file-type');
 const {
     getCategoriesWithImages,
     adminExists,
@@ -102,7 +102,7 @@ fs.mkdirSync(brandingDir, { recursive: true });
 
 // Helper to validate uploaded file is a real image
 async function isRealImage(filePath) {
-    const type = await FileType.fromFile(filePath);
+    const type = await fileTypeFromFile(filePath);
     if (!type) return false;
     return ['image/png', 'image/jpeg', 'image/gif'].includes(type.mime);
 }
@@ -142,7 +142,7 @@ router.get('/setup', async (req, res) => {
         return res.redirect('/admin/login');
     }
     const settings = await getSettingsWithDefaults();
-    res.render('setup', { error: null, settings, showAdminNav: req.session && req.session.loggedIn });
+    res.render('setup', { error: null, settings, showAdminNav: req.session && req.session.loggedIn, req });
 });
 
 router.post('/setup', async (req, res) => {
@@ -151,7 +151,7 @@ router.post('/setup', async (req, res) => {
     }
     const { username, password } = req.body;
     if (!username || !password || username.length < 3 || password.length < 8) {
-        return res.render('setup', { error: 'Username and password are required. Username must be at least 3 characters and password at least 8 characters.' });
+        return res.render('setup', { error: 'Username and password are required. Username must be at least 3 characters and password at least 8 characters.', req });
     }
     await createAdmin(username, password);
     res.redirect('/admin/login');
@@ -181,7 +181,7 @@ const settingsUpload = multer({
 router.post('/settings', requireLogin, settingsUpload.fields([
     { name: 'favicon', maxCount: 1 },
     { name: 'headerImage', maxCount: 1 }
-]), (req, res) => {
+]), async (req, res) => {
     // Sanitize and validate input
     let siteTitle = typeof req.body.siteTitle === 'string' ? validator.trim(req.body.siteTitle) : '';
     siteTitle = validator.escape(siteTitle).slice(0, 60);
@@ -218,22 +218,38 @@ router.post('/settings', requireLogin, settingsUpload.fields([
         headerImage = validator.escape(req.body.headerImage);
     }
 
-    setSetting('siteTitle', siteTitle);
-    setSetting('headerType', headerType);
-    setSetting('headerTitle', headerTitle);
-    setSetting('accentColor', accentColor);
-    setSetting('favicon', favicon);
-    setSetting('headerImage', headerImage);
+    await setSetting('siteTitle', siteTitle);
+    await setSetting('headerType', headerType);
+    await setSetting('headerTitle', headerTitle);
+    await setSetting('accentColor', accentColor);
+    await setSetting('favicon', favicon);
+    await setSetting('headerImage', headerImage);
+    console.log('[admin/settings] Settings updated:', { siteTitle, headerType, headerTitle, accentColor, favicon, headerImage });
 
     // Ensure all settings keys are present after update
-    const settings = getAllSettings() || {};
-    if (!('siteTitle' in settings)) setSetting('siteTitle', 'Focal Point');
-    if (!('headerTitle' in settings)) setSetting('headerTitle', 'Focal Point');
-    if (!('favicon' in settings)) setSetting('favicon', '');
-    if (!('accentColor' in settings)) setSetting('accentColor', '#2ecc71');
-    if (!('headerType' in settings)) setSetting('headerType', 'text');
-    if (!('headerImage' in settings)) setSetting('headerImage', '');
+    const settings = await getAllSettings() || {};
+    if (!('siteTitle' in settings)) await setSetting('siteTitle', 'Focal Point');
+    if (!('headerTitle' in settings)) await setSetting('headerTitle', 'Focal Point');
+    if (!('favicon' in settings)) await setSetting('favicon', '');
+    if (!('accentColor' in settings)) await setSetting('accentColor', '#2ecc71');
+    if (!('headerType' in settings)) await setSetting('headerType', 'text');
+    if (!('headerImage' in settings)) await setSetting('headerImage', '');
     res.redirect('/admin/settings?msg=Settings updated!');
+});
+
+// Admin settings page (GET)
+router.get('/settings', requireLogin, async (req, res) => {
+    const settings = await getSettingsWithDefaults();
+    const backups = await backupUtils.listBackups();
+    res.render('admin-settings', {
+        req,
+        settings,
+        serverBackups: backups,
+        backupLimit: backupUtils.BACKUP_LIMIT_BYTES,
+        showAdminNav: req.session && req.session.loggedIn,
+        loggedIn: req.session && req.session.loggedIn,
+        msg: req.query.msg || null
+    });
 });
 
 // Remove header image
@@ -252,12 +268,12 @@ router.post('/settings/remove-header-image', requireLogin, async (req, res) => {
                 // Handle unlink error if needed
             }
         });
-    });
-        });
+    }
+});
 
 // Move the following route definitions outside of the `/settings/remove-header-image` handler
 router.get('/manage', requireLogin, async (req, res) => {
-    const categories = getCategoriesWithImages();
+    const categories = await getCategoriesWithImages();
     const settings = await getSettingsWithDefaults();
     res.render('admin-manage', {
         categories,
@@ -487,7 +503,7 @@ router.post('/clients/create', requireLogin, async (req, res) => {
     }
     try {
         const expiryDate = customExpiry ? new Date(customExpiry) : null;
-        const result = createClient(clientName, shootTitle, password, expiryDate);
+        const result = await createClient(clientName, shootTitle, password, expiryDate);
         res.redirect(`/admin/clients/${result.id}/upload?created=true&code=${result.accessCode}`);
     } catch (err) {
         console.error('Error creating client:', err);
@@ -522,22 +538,23 @@ const clientUpload = multer({
     limits: { fileSize: 50 * 1024 * 1024 }
 });
 
-router.get('/clients/:clientId/upload', requireLogin, (req, res) => {
+router.get('/clients/:clientId/upload', requireLogin, async (req, res) => {
     try {
         const clientId = req.params.clientId;
         const clientData = getClientById(clientId);
         if (!clientData) {
             return res.status(404).send('Client not found');
         }
-        const images = getClientImages(clientId);
-        const settings = getSettingsWithDefaults();
+        const images = await getClientImages(clientId);
+        const settings = await getSettingsWithDefaults();
         res.render('admin-client-upload', {
             clientData,
             images,
             settings,
             req,
             showAdminNav: true,
-            loggedIn: true
+            loggedIn: true,
+            _: _ // Pass lodash to template
         });
     } catch (error) {
         console.error('Error in route:', error);
@@ -595,7 +612,7 @@ router.post('/upload', requireLogin, adminLimiter, upload.array('images', 20), a
         }
         const destDir = path.join(__dirname, '../data/images', category);
         fs.mkdirSync(destDir, { recursive: true });
-        const catInfo = getCategoryIdAndMaxPosition(category);
+        const catInfo = await getCategoryIdAndMaxPosition(category);
         let maxPos = catInfo ? catInfo.maxPos : 0;
         for (const file of req.files) {
             const isImage = await isRealImage(file.path);
@@ -606,7 +623,7 @@ router.post('/upload', requireLogin, adminLimiter, upload.array('images', 20), a
             const tmpPath = file.path;
             const destPath = path.join(destDir, file.filename);
             fs.renameSync(tmpPath, destPath);
-            addImage(category, file.filename, ++maxPos, '');
+            await addImage(category, file.filename, ++maxPos, '');
         }
         return res.redirect('/admin/manage?msg=Upload successful!');
     } catch (err) {
@@ -648,21 +665,16 @@ router.post('/clients/:id/toggle', requireLogin, (req, res) => {
 // Create category -- RATE LIMITED
 router.post('/create-category', requireLogin, adminLimiter, async (req, res) => {
     let newCategory = req.body.newCategory || '';
-    newCategory = newCategory
-        .toLowerCase()
-        .replace(/[\s_]+/g, '-')
-        .replace(/[^a-z0-9-]/g, '')
-        .replace(/-+/g, '-')
-        .replace(/^-+|-+$/g, '');
-
-    if (!isSafeCategory(newCategory) || !newCategory) {
-        return res.redirect('/admin/manage?msg=Invalid category name!');
+    try {
+        // Let createCategory handle normalization and validation
+        await createCategory(newCategory);
+        // Invalidate cache so new category appears immediately
+        const { invalidateCategoryCache } = require('../utils/categoryCache');
+        invalidateCategoryCache();
+        return res.redirect('/admin/manage?msg=Category created!');
+    } catch (err) {
+        return res.redirect('/admin/manage?msg=' + encodeURIComponent(err.message || 'Failed to create category'));
     }
-    if (!categoryExists(newCategory)) {
-        createCategory(newCategory);
-        // Optionally invalidate cache if you use one
-    }
-    return res.redirect('/admin/manage?msg=Category created!');
 });
 
 // Delete category -- RATE LIMITED
@@ -926,7 +938,7 @@ router.post('/backup/bulk-action', requireLogin, async (req, res) => {
         return res.redirect('/admin/settings?msg=No backups selected');
     }
     if (action === 'delete') {
-        const deleted = backupUtils.bulkDeleteBackups(filenames);
+        const deleted = await backupUtils.bulkDeleteBackups(filenames);
         return res.redirect(`/admin/settings?msg=Deleted ${deleted} backup(s)`);
     } else if (action === 'download') {
         try {

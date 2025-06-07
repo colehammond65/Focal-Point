@@ -18,7 +18,13 @@ async function getSetting(key) {
 async function setSetting(key, value) {
     await ready;
     const db = getDb();
-    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+    try {
+        db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value);
+        console.log(`[setSetting] Saved: ${key} = ${value}`);
+    } catch (err) {
+        console.error(`[setSetting] Error saving ${key}:`, err);
+        throw err;
+    }
 }
 async function getAllSettings() {
     await ready;
