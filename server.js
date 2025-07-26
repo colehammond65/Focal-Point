@@ -150,16 +150,22 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Set a more permissive CSP for inline scripts for development (customize for production)
+// Set Content Security Policy - more restrictive in production
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy',
-    [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data:" // allow data: for previews
-    ].join('; ')
-  );
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cspDirectives = [
+    "default-src 'self'",
+    isProduction ? "script-src 'self'" : "script-src 'self' 'unsafe-inline'",
+    isProduction ? "style-src 'self'" : "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:", // allow data: for previews
+    "connect-src 'self'",
+    "font-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'"
+  ];
+  
+  res.setHeader('Content-Security-Policy', cspDirectives.join('; '));
   next();
 });
 
