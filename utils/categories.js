@@ -26,7 +26,7 @@ async function getCategoriesWithPreviews() {
         FROM categories c
         ORDER BY c.position ASC
     `;
-    const cats = await db.prepare(query).all();
+    const cats = db.prepare(query).all();
     return cats.map(cat => ({
         name: cat.name,
         preview: cat.preview
@@ -42,7 +42,7 @@ function isSafeCategory(category) {
 async function categoryExists(name) {
     await ready;
     const db = getDb();
-    return !!(await db.prepare('SELECT 1 FROM categories WHERE name = ?').get(name));
+    return !!db.prepare('SELECT 1 FROM categories WHERE name = ?').get(name);
 }
 async function createCategory(name) {
     await ready;

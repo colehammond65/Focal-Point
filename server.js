@@ -35,6 +35,7 @@ const {
   toggleClientStatus,
   incrementDownloadCount,
   createZipArchive,
+  cleanupExpiredClients,
   CLIENT_UPLOADS_DIR
 } = require('./utils/clients');
 
@@ -125,15 +126,28 @@ app.use(async (req, res, next) => {
 });
 
 // Inject settings with fallbacks into res.locals for all views
-app.use((req, res, next) => {
-  let settings = getAllSettings() || {};
-  settings.siteTitle = settings.siteTitle || 'Focal Point';
-  settings.headerTitle = settings.headerTitle || 'Focal Point';
-  settings.favicon = typeof settings.favicon === 'string' ? settings.favicon : '';
-  settings.accentColor = settings.accentColor || '#2ecc71';
-  settings.headerType = settings.headerType || 'text';
-  res.locals.settings = settings;
-  next();
+app.use(async (req, res, next) => {
+  try {
+    let settings = await getAllSettings() || {};
+    settings.siteTitle = settings.siteTitle || 'Focal Point';
+    settings.headerTitle = settings.headerTitle || 'Focal Point';
+    settings.favicon = typeof settings.favicon === 'string' ? settings.favicon : '';
+    settings.accentColor = settings.accentColor || '#2ecc71';
+    settings.headerType = settings.headerType || 'text';
+    res.locals.settings = settings;
+    next();
+  } catch (err) {
+    console.error('Error loading settings:', err);
+    // Provide fallback settings if database is not ready
+    res.locals.settings = {
+      siteTitle: 'Focal Point',
+      headerTitle: 'Focal Point',
+      favicon: '',
+      accentColor: '#2ecc71',
+      headerType: 'text'
+    };
+    next();
+  }
 });
 
 // Set a more permissive CSP for inline scripts for development (customize for production)
@@ -201,6 +215,17 @@ app.get('/images/:category/:filename', async (req, res) => {
   const { category, filename } = req.params;
   const width = parseInt(req.query.w, 10);
   const height = parseInt(req.query.h, 10);
+  
+  // Validate filename to prevent directory traversal
+  if (!/^[\w.-]+$/.test(filename) || !/^[\w-]+$/.test(category)) {
+    return res.status(400).send('Invalid filename or category');
+  }
+  
+  // Validate image dimensions
+  if ((width && (width < 1 || width > 2000)) || (height && (height < 1 || height > 2000))) {
+    return res.status(400).send('Invalid image dimensions');
+  }
+  
   const origPath = path.join(__dirname, 'data/images', category, filename);
   if (!fs.existsSync(origPath)) return res.status(404).send('Image not found');
 
@@ -220,6 +245,7 @@ app.get('/images/:category/:filename', async (req, res) => {
       await transformer.toFile(cachePath);
       return res.sendFile(cachePath);
     } catch (err) {
+      logger.error('Error processing image:', err);
       return res.status(500).send('Error processing image');
     }
   } else {
@@ -232,6 +258,17 @@ app.get('/client-images/:clientId/:filename', async (req, res) => {
   const { clientId, filename } = req.params;
   const width = parseInt(req.query.w, 10);
   const height = parseInt(req.query.h, 10);
+  
+  // Validate parameters to prevent directory traversal
+  if (!/^[\w.-]+$/.test(filename) || !/^[\w-]+$/.test(clientId)) {
+    return res.status(400).send('Invalid filename or client ID');
+  }
+  
+  // Validate image dimensions
+  if ((width && (width < 1 || width > 2000)) || (height && (height < 1 || height > 2000))) {
+    return res.status(400).send('Invalid image dimensions');
+  }
+  
   const origPath = path.join(__dirname, 'data/client-uploads', clientId, filename);
   if (!fs.existsSync(origPath)) return res.status(404).send('Image not found');
 
@@ -249,6 +286,7 @@ app.get('/client-images/:clientId/:filename', async (req, res) => {
       await transformer.toFile(cachePath);
       return res.sendFile(cachePath);
     } catch (err) {
+      logger.error('Error processing client image:', err);
       return res.status(500).send('Error processing image');
     }
   } else {
@@ -323,16 +361,34 @@ const settingsUpload = multer({
 
 // Clean up tmp folder: delete files older than 1 hour
 function cleanTmpFolder() {
+  // Skip cleanup in test environment to avoid interference
+  if (process.env.NODE_ENV === 'test') return;
+  
   const tmpDir = path.join(__dirname, 'public/images/tmp');
   const cutoff = Date.now() - 60 * 60 * 1000; // 1 hour ago
+  
   fs.readdir(tmpDir, (err, files) => {
-    if (err) return;
+    if (err) {
+      logger.error('Error reading tmp directory:', err);
+      return;
+    }
+    
     files.forEach(file => {
       const filePath = path.join(tmpDir, file);
       fs.stat(filePath, (err, stats) => {
-        if (err) return;
+        if (err) {
+          logger.error('Error checking file stats:', err);
+          return;
+        }
+        
         if (stats.isFile() && stats.mtimeMs < cutoff) {
-          fs.unlink(filePath, () => { });
+          fs.unlink(filePath, (err) => {
+            if (err) {
+              logger.error('Error deleting tmp file:', err);
+            } else {
+              logger.info('Cleaned up tmp file:', file);
+            }
+          });
         }
       });
     });
@@ -342,6 +398,22 @@ function cleanTmpFolder() {
 // Run cleanup every hour
 const cleanupInterval = setInterval(cleanTmpFolder, 60 * 60 * 1000);
 cleanupInterval.unref(); // Prevents Jest from hanging due to open handles
+
+// Run expired client cleanup every 6 hours (only in production/development)
+if (process.env.NODE_ENV !== 'test') {
+  const clientCleanupInterval = setInterval(async () => {
+    try {
+      const deleted = await cleanupExpiredClients();
+      if (deleted > 0) {
+        logger.info(`Cleaned up ${deleted} expired clients`);
+      }
+    } catch (err) {
+      logger.error('Error cleaning up expired clients:', err);
+    }
+  }, 6 * 60 * 60 * 1000); // 6 hours
+  clientCleanupInterval.unref();
+}
+
 // Also run at startup
 cleanTmpFolder();
 

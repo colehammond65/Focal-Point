@@ -38,6 +38,7 @@
     "express-session": "^1.18.1",
     "file-type": "^20.5.0",
     "helmet": "^8.1.0",
+    "lodash": "^4.17.21",
     "marked": "^15.0.12",
     "multer": "^2.0.0",
     "sharp": "^0.34.2",
