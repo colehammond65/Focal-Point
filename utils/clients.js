@@ -1,32 +1,35 @@
-// Utility functions for managing client galleries and images.
-// Includes functions for client CRUD, image zipping, download tracking, and cleanup of expired clients.
-//
-// Exports:
-//   - generateAccessCode: Generates a random access code for clients.
-//   - createClient: Creates a new client with hashed password and expiry.
-//   - verifyClient: Verifies client credentials and updates last access time.
-//   - getClientImages: Retrieves all images for a client.
-//   - addClientImage: Adds a new image record for a client.
-//   - deleteClientImage: Deletes a client's image from both filesystem and database.
-//   - getAllClients: Retrieves all clients with image count and total size.
-//   - getClientById: Retrieves a single client by ID.
-//   - deleteClient: Deletes a client and all associated images.
-//   - toggleClientStatus: Toggles the active status of a client.
-//   - incrementDownloadCount: Increments download count for a client and optionally an image.
-//   - createZipArchive: Creates a zip archive of all client images.
-//   - cleanupExpiredClients: Cleans up expired clients.
-//   - CLIENT_UPLOADS_DIR: Directory path for client uploads.
+/**
+ * @fileoverview Client management utilities for the Focal Point application.
+ * 
+ * This module provides comprehensive functionality for managing client galleries
+ * and photo delivery. It handles client authentication, image management, 
+ * download tracking, and secure gallery access for photographers to deliver
+ * photos to their clients.
+ * 
+ * Features:
+ * - Client creation with secure password hashing
+ * - Private gallery access with session management
+ * - Image upload and management for client galleries
+ * - ZIP archive creation for bulk downloads
+ * - Download tracking and analytics
+ * - Automatic cleanup of expired client access
+ * 
+ * @author Cole Hammond
+ * @version 1.0.0
+ */
 
 // Database and utility imports
-const { getDb, ready } = require('../db'); // Use getDb and ready
-const fsSync = require('fs'); // File system module (synchronous)
-const fsAsync = require('fs').promises; // File system module (promise-based)
-const path = require('path'); // Path utilities
-const archiver = require('archiver'); // For zipping files (npm install archiver)
-const bcrypt = require('bcryptjs'); // For password hashing
+const { getDb, ready } = require('../db');
+const fsSync = require('fs');
+const fsAsync = require('fs').promises;
+const path = require('path');
+const archiver = require('archiver');
+const bcrypt = require('bcryptjs');
 
-// Ensure client uploads directory exists
+/** @constant {string} Directory path for storing client-specific uploaded images */
 const CLIENT_UPLOADS_DIR = path.join(__dirname, '..', 'data', 'client-uploads');
+
+// Ensure client uploads directory exists on module load
 (async () => {
     try {
         await fsAsync.mkdir(CLIENT_UPLOADS_DIR, { recursive: true });
@@ -35,7 +38,15 @@ const CLIENT_UPLOADS_DIR = path.join(__dirname, '..', 'data', 'client-uploads');
     }
 })();
 
-// Generate a random 6-character access code for clients
+/**
+ * Generates a random access code for client authentication.
+ * 
+ * @function generateAccessCode
+ * @returns {string} A 6-8 character alphanumeric access code
+ * @example
+ * const code = generateAccessCode();
+ * // Returns something like: "AB7X2K"
+ */
 function generateAccessCode() {
     // Generate a simple 6-8 character access code
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

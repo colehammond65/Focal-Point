@@ -1,12 +1,36 @@
-// server.js
-// Main Express server setup for the Focal Point application.
-// Loads environment variables, configures middleware, sets up routes, and initializes the app.
+/**
+ * server.js
+ * Main Express server setup for the Focal Point photography gallery application.
+ * 
+ * This file is the entry point for the application and handles:
+ * - Environment configuration and validation
+ * - Express middleware setup (security, rate limiting, sessions)
+ * - Route configuration for admin, client, and public areas
+ * - Static file serving and uploads handling
+ * - Database initialization and migrations
+ * - Server startup and error handling
+ * 
+ * The application serves three main areas:
+ * 1. Public gallery (/): Main photo gallery for visitors
+ * 2. Admin panel (/admin): Management interface for photographers
+ * 3. Client area (/client): Private galleries for client photo delivery
+ * 
+ * @author Cole Hammond
+ * @version 1.0.0
+ */
+
+// Load environment variables from .env file
 require('dotenv').config();
 
+/**
+ * Validate required environment variables
+ * SESSION_SECRET is critical for secure session management
+ */
 if (!process.env.SESSION_SECRET) {
   throw new Error('SESSION_SECRET is not set in your environment variables (.env file)');
 }
 
+// Core Express and security middleware imports
 const express = require('express');
 const helmet = require('helmet');
 const multer = require('multer');
@@ -17,12 +41,16 @@ const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
 const rateLimit = require('express-rate-limit');
 const sharp = require('sharp');
+
+// Database and utility imports
 const db = require('./db');
 const bcrypt = require('bcryptjs');
 const backupUtils = require('./utils/backup');
 const Database = require('better-sqlite3');
 const marked = require('marked');
 const logger = require('./utils/logger');
+
+// Client management utilities
 const {
   createClient,
   verifyClient,
@@ -38,6 +66,7 @@ const {
   CLIENT_UPLOADS_DIR
 } = require('./utils/clients');
 
+// Gallery and admin utilities
 const {
   getCategoriesWithPreviews,
   getCategoriesWithImages,
@@ -60,9 +89,13 @@ const {
   setSetting,
   getAllSettings
 } = require('./utils');
+
+// Route handlers
 const adminRoutes = require('./routes/admin');
 const clientRoutes = require('./routes/client');
 const mainRoutes = require('./routes/main');
+
+// Initialize Express application
 const app = express();
 
 app.use(helmet());
