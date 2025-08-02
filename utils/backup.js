@@ -1,20 +1,18 @@
-/**
- * @fileoverview Backup utility functions for the Focal Point application.
- * 
- * This module handles creating, listing, saving, restoring, and deleting backups 
- * of the database and images. It manages backup directory operations, size limits, 
- * and ZIP archive operations for data protection and recovery.
- * 
- * Features:
- * - Automated ZIP backup creation with database and images
- * - Backup size limit enforcement (500MB default)
- * - Cleanup of old backups when limits exceeded
- * - Bulk operations for multiple backup management
- * - Complete restoration from backup archives
- * 
- * @author Cole Hammond
- * @version 1.0.0
- */
+// utils/backup.js
+// Utility functions for creating, listing, saving, restoring, and deleting backups of the database and images.
+// Handles backup directory management, backup size limits, and ZIP archive operations.
+//
+// Exports:
+//   - ensureBackupDir: Ensures the backup directory exists.
+//   - listBackups: Lists all backup ZIP files with metadata.
+//   - totalBackupSize: Returns the total size of all backups.
+//   - cleanupBackupsForLimit: Deletes oldest backups to maintain size limit.
+//   - saveBackup: Saves a backup buffer to disk, enforcing size limits.
+//   - createBackup: Creates a ZIP backup of the database and images.
+//   - deleteBackup: Deletes a specific backup file.
+//   - bulkDeleteBackups: Deletes multiple backups.
+//   - bulkDownloadBackups: Zips and downloads multiple backups.
+//   - restoreBackup: Restores a backup from a ZIP file.
 
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -22,20 +20,10 @@ const path = require('path');
 const archiver = require('archiver');
 const unzipper = require('unzipper');
 
-/** @constant {string} Directory path for storing backup files */
 const BACKUP_DIR = path.join(__dirname, '..', 'data', 'backups');
+const BACKUP_LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
 
-/** @constant {number} Maximum total size of all backups in bytes (500MB) */
-const BACKUP_LIMIT_BYTES = 500 * 1024 * 1024;
-
-/**
- * Ensures the backup directory exists, creating it if necessary.
- * 
- * @async
- * @function ensureBackupDir
- * @returns {Promise<void>} Resolves when directory exists or is created
- * @throws {Error} If directory creation fails due to permissions or disk space
- */
+// Ensures the backup directory exists
 async function ensureBackupDir() {
     try {
         await fs.mkdir(BACKUP_DIR, { recursive: true });

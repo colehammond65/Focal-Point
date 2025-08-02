@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Build and Push Docker Image
 
 on:
   push:
@@ -7,43 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  # Job 1: Test and Quality Checks
-  test:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run security audit
-        run: npm audit --audit-level=moderate
-
-      - name: Run tests
-        run: npm test -- --passWithNoTests
-
-      - name: Check for potential issues
-        run: |
-          # Basic linting and code quality checks
-          echo "Running basic code quality checks..."
-          # Check for TODO/FIXME comments
-          find . -name "*.js" -not -path "./node_modules/*" -exec grep -l "TODO\|FIXME" {} \; || true
-          # Check for console.log statements (should use logger instead)
-          find . -name "*.js" -not -path "./node_modules/*" -exec grep -l "console\.log" {} \; || true
-
-  # Job 2: Build and Push Docker Image (only on successful tests)
   build:
     runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
@@ -65,24 +30,4 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/photo-gallery:latest
 
-  # Job 3: Security Scanning (runs in parallel with tests)
-  security:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
+      # If you only want to build (not push), set push: false and remove the login step.

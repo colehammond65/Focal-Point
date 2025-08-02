@@ -61,14 +61,6 @@ npm run dev
 
 ---
 
-## 📖 Documentation
-
-- **[API Documentation](docs/API.md)** - Complete API reference for developers
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment and maintenance
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
-
----
-
 ## 📋 Features & Usage
 
 - **Admin Panel**: `/admin` for managing images, categories, About page, site settings, and client galleries

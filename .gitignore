@@ -136,16 +136,3 @@ data/
 uploads/
 .env.test
 temp/
-
-# Test artifacts and coverage
-coverage/
-*.lcov
-.nyc_output/
-jest-coverage/
-
-# Development artifacts
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
