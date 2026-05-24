@@ -57,4 +57,16 @@ describe('security route regressions', () => {
     expect(response.status).toBe(200);
     expect(response.text).toContain('Invalid access code or password');
   });
+
+  test('about page strips raw scriptable html from markdown', async () => {
+    const { getDb } = require('../db');
+    await ready;
+    const db = getDb();
+    db.prepare('INSERT OR REPLACE INTO about (id, markdown, image_path) VALUES (1, ?, NULL)')
+      .run('<img src=x onerror="alert(1)"><script>alert(2)</script>');
+
+    const response = await request(app).get('/about').expect(200);
+    expect(response.text).not.toContain('onerror');
+    expect(response.text).not.toContain('<script>alert(2)</script>');
+  });
 });

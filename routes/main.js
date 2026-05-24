@@ -103,10 +103,20 @@ router.get('/manifest.json', async (req, res) => {
 router.get('/about', async (req, res) => {
     const { db, ready } = require('../db');
     const marked = require('marked');
+    const sanitizeHtml = require('sanitize-html');
     const settings = await getSettingsWithDefaults();
     await ready;
     const about = db.prepare('SELECT * FROM about LIMIT 1').get();
-    let aboutHtml = about && about.markdown ? marked.parse(about.markdown) : '';
+    let aboutHtml = about && about.markdown ? sanitizeHtml(marked.parse(about.markdown), {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'strong', 'em', 'del', 'sup', 'sub']),
+        allowedAttributes: {
+            a: ['href', 'name', 'target', 'rel'],
+            img: ['src', 'alt', 'title', 'width', 'height'],
+            td: ['colspan', 'rowspan'],
+            th: ['colspan', 'rowspan']
+        },
+        allowedSchemes: ['http', 'https', 'mailto', 'data']
+    }) : '';
     let image = about && about.image_path ? about.image_path : null;
     // No additional processing for the image is required here.
     res.render('about', {
