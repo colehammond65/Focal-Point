@@ -16,7 +16,6 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const validator = require('validator');
 const _ = require('lodash');
-const { fileTypeFromFile } = require('file-type');
 const {
     getCategoriesWithImages,
     adminExists,
@@ -103,6 +102,7 @@ fs.mkdirSync(brandingDir, { recursive: true });
 
 // Helper to validate uploaded file is a real image
 async function isRealImage(filePath) {
+    const { fileTypeFromFile } = await import('file-type');
     const type = await fileTypeFromFile(filePath);
     if (!type) return false;
     return ['image/png', 'image/jpeg', 'image/gif'].includes(type.mime);

@@ -5,7 +5,6 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const validator = require('validator');
-const FileType = require('file-type');
 const {
     verifyClient,
     getActiveClientById,
@@ -36,7 +35,8 @@ async function requireClientLogin(req, res, next) {
 
 // Helper to validate uploaded file is a real image
 async function isRealImage(filePath) {
-    const type = await FileType.fromFile(filePath);
+    const { fileTypeFromFile } = await import('file-type');
+    const type = await fileTypeFromFile(filePath);
     if (!type) return false;
     return ['image/png', 'image/jpeg', 'image/gif'].includes(type.mime);
 }
