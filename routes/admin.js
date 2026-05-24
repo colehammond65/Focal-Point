@@ -97,7 +97,7 @@ const adminLimiter = rateLimit({
     legacyHeaders: false,
 });
 const uploadsDir = path.join(__dirname, '../public/uploads');
-const brandingDir = path.join(__dirname, '../data');
+const brandingDir = path.join(__dirname, '../data/branding');
 fs.mkdirSync(brandingDir, { recursive: true });
 
 // Helper to validate uploaded file is a real image
