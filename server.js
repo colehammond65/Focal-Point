@@ -156,31 +156,25 @@ app.use('/images', express.static(path.join(__dirname, 'data/images'), {
     res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
   }
 }));
-// Serve static client images from /data/client-uploads at /client-images URL with cache headers
-app.use('/client-images', express.static(path.join(__dirname, 'data/client-uploads'), {
-  maxAge: '30d',
-  setHeaders: (res) => {
-    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
-  }
-}));
-// Serve the /data directory as /branding with cache headers
-app.use('/branding', express.static(path.join(__dirname, 'data'), {
-  maxAge: '30d',
-  setHeaders: (res) => {
-    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
-  }
-}));
 
-// Serve client-uploaded images at /uploads/:clientId/:filename
-app.get('/uploads/:clientId/:filename', (req, res) => {
-  const clientId = req.params.clientId;
-  const filename = req.params.filename;
-  const filePath = path.join(__dirname, 'data', 'client-uploads', clientId, filename);
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).send('Image not found');
-  }
+
+const BRANDING_DIR = path.join(__dirname, 'data', 'branding');
+
+function isSafePublicFilename(filename) {
+  return typeof filename === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(filename);
+}
+
+function sendFileWithinRoot(res, root, filename) {
+  if (!isSafePublicFilename(filename)) return res.status(400).send('Invalid filename');
+  const resolvedRoot = path.resolve(root);
+  const resolvedPath = path.resolve(resolvedRoot, filename);
+  if (!resolvedPath.startsWith(resolvedRoot + path.sep)) return res.status(400).send('Invalid filename');
+  if (!fs.existsSync(resolvedPath)) return res.status(404).send('File not found');
+  return res.sendFile(resolvedPath);
+}
+
+app.get('/branding/:filename', (req, res) => {
+  return sendFileWithinRoot(res, BRANDING_DIR, req.params.filename);
 });
 
 // Serve About image from /data by filename
