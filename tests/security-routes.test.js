@@ -7,11 +7,15 @@ const request = require('supertest');
 
 const app = require('../server');
 const { ready, getDb } = require('../db');
+const { adminExists, createAdmin } = require('../utils');
 
 describe('security route regressions', () => {
   beforeAll(async () => {
     await ready;
     await new Promise(r => setTimeout(r, 200));
+    if (!(await adminExists())) {
+      await createAdmin('testadmin', 'testpassword123');
+    }
     fs.mkdirSync(path.join(__dirname, '..', 'data', 'client-uploads', '1'), { recursive: true });
     fs.writeFileSync(path.join(__dirname, '..', 'data', 'client-uploads', '1', 'private.jpg'), 'not-real-jpg');
     fs.mkdirSync(path.join(__dirname, '..', 'data', 'backups'), { recursive: true });
@@ -34,7 +38,7 @@ describe('security route regressions', () => {
   });
 
   test('does not expose client uploads without client session', async () => {
-    await request(app).get('/client-images/1/private.jpg').expect(302);
+    await request(app).get('/client-images/1/private.jpg').expect(404);
     await request(app).get('/uploads/1/private.jpg').expect(404);
     await request(app).get('/branding/client-uploads/1/private.jpg').expect(404);
   });
