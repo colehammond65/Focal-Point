@@ -226,6 +226,15 @@ async function cleanupExpiredClients() {
     return expiredClients.length;
 }
 
+async function getActiveClientById(clientId) {
+    await ready;
+    const db = getDb();
+    return db.prepare(`
+        SELECT * FROM clients
+        WHERE id = ? AND is_active = 1 AND datetime(expires_at) > datetime('now')
+    `).get(clientId);
+}
+
 module.exports = {
     createClient,
     verifyClient, // <-- this now takes (accessCode, password)
@@ -234,6 +243,7 @@ module.exports = {
     deleteClientImage,
     getAllClients,
     getClientById,
+    getActiveClientById,
     deleteClient,
     toggleClientStatus,
     incrementDownloadCount,

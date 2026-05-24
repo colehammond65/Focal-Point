@@ -43,4 +43,14 @@ describe('security route regressions', () => {
     await request(app).get('/branding/..%2F..%2Fgallery.db').expect(400);
     await request(app).get('/branding/..%2F..%2Fdata%2Fgallery.db').expect(400);
   });
+
+  test('rejects invalid client login credentials', async () => {
+    const response = await request(app)
+      .post('/client/login')
+      .type('form')
+      .send({ accessCode: 'BADCODE', password: 'wrong-password' });
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('Invalid access code or password');
+  });
 });

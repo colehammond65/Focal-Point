@@ -8,6 +8,7 @@ const validator = require('validator');
 const FileType = require('file-type');
 const {
     verifyClient,
+    getActiveClientById,
     getClientImages,
     incrementDownloadCount,
     createZipArchive,
@@ -17,12 +18,20 @@ const { getAllSettings } = require('../utils');
 
 // Middleware to protect client routes
 // Ensures the user is logged in as a client
-function requireClientLogin(req, res, next) {
-    if (req.session && req.session.clientLoggedIn) {
-        next();
-    } else {
-        res.redirect('/client/login');
+async function requireClientLogin(req, res, next) {
+    if (!req.session || !req.session.clientLoggedIn || !req.session.clientId) {
+        return res.redirect('/client/login');
     }
+
+    const client = await getActiveClientById(req.session.clientId);
+    if (!client) {
+        req.session.destroy(() => res.redirect('/client/login'));
+        return;
+    }
+
+    req.session.clientName = client.client_name;
+    req.session.shootTitle = client.shoot_title;
+    next();
 }
 
 // Helper to validate uploaded file is a real image
@@ -58,7 +67,7 @@ router.post('/login', async (req, res) => {
             loggedIn: false
         });
     }
-    const client = verifyClient(accessCode, password);
+    const client = await verifyClient(accessCode, password);
 
     if (client) {
         req.session.clientLoggedIn = true;
