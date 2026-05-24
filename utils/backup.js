@@ -35,7 +35,11 @@ async function copyDir(src, dest) {
         if (entry.isDirectory()) {
             await copyDir(srcPath, destPath);
         } else {
-            await fs.promises.copyFile(srcPath, destPath);
+            try {
+                await fs.promises.copyFile(srcPath, destPath);
+            } catch (err) {
+                console.error('Failed to copy file:', srcPath, err.message);
+            }
         }
     }
 }
