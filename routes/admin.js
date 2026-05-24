@@ -724,17 +724,16 @@ router.post('/rename-category', requireLogin, adminLimiter, async (req, res) => 
 // Reorder images -- RATE LIMITED
 router.post('/reorder-images', requireLogin, adminLimiter, async (req, res) => {
     const { category, order } = req.body;
-    if (!isSafeCategory(category)) return res.redirect('/admin/manage?msg=Invalid category!');
+    if (!isSafeCategory(category)) return res.status(400).json({ error: 'Invalid category' });
     let orderArr;
     try {
         orderArr = JSON.parse(order);
         if (!Array.isArray(orderArr)) throw new Error();
     } catch {
-        return res.redirect('/admin/manage?msg=Invalid order data!');
+        return res.status(400).json({ error: 'Invalid order data' });
     }
     await saveImageOrder(category, orderArr);
-    // Optionally invalidate cache if you use one
-    return res.redirect('/admin/manage?msg=Order saved!');
+    return res.json({ success: true });
 });
 
 // Reorder categories -- RATE LIMITED

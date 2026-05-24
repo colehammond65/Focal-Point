@@ -74,7 +74,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ category: catName, order: JSON.stringify(order) })
                 })
-                    .then(res => res.ok ? res.json() : Promise.reject())
+                    .then(res => {
+                        if (res.ok) return res.json();
+                        return res.json().then(err => Promise.reject(err));
+                    })
                     .then(() => {
                         const indicator = document.getElementById('saving-indicator');
                         if (indicator) {
@@ -83,10 +86,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             setTimeout(() => { indicator.style.opacity = 0; }, 1200);
                         }
                     })
-                    .catch(() => {
+                    .catch(err => {
+                        const msg = err && err.error ? err.error : 'Failed to save order!';
                         const indicator = document.getElementById('saving-indicator');
                         if (indicator) {
-                            indicator.textContent = 'Failed to save order!';
+                            indicator.textContent = msg;
                             indicator.style.opacity = 1;
                             setTimeout(() => { indicator.style.opacity = 0; }, 2000);
                         }
@@ -292,21 +296,15 @@ function handleSetThumbnail(catName) {
     var selected = document.querySelectorAll('.category-accordion[data-cat="' + catName + '"] .img-item.selected');
     if (selected.length !== 1) return;
     var filename = selected[0].dataset.filename;
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/admin/set-thumbnail';
-    var catInput = document.createElement('input');
-    catInput.type = 'hidden';
-    catInput.name = 'category';
-    catInput.value = catName;
-    form.appendChild(catInput);
-    var fileInput = document.createElement('input');
-    fileInput.type = 'hidden';
-    fileInput.name = 'filename';
-    fileInput.value = filename;
-    form.appendChild(fileInput);
-    document.body.appendChild(form);
-    form.submit();
+
+    fetch('/admin/set-thumbnail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: catName, filename })
+    })
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(() => showToast('Thumbnail updated'))
+        .catch(() => showToast('Failed to update thumbnail', 4000));
 }
 
 // --- Toast ---
