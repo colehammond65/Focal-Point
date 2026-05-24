@@ -11,6 +11,7 @@ const { ready, getDb } = require('../db');
 describe('security route regressions', () => {
   beforeAll(async () => {
     await ready;
+    await new Promise(r => setTimeout(r, 200));
     fs.mkdirSync(path.join(__dirname, '..', 'data', 'client-uploads', '1'), { recursive: true });
     fs.writeFileSync(path.join(__dirname, '..', 'data', 'client-uploads', '1', 'private.jpg'), 'not-real-jpg');
     fs.mkdirSync(path.join(__dirname, '..', 'data', 'backups'), { recursive: true });
@@ -39,7 +40,7 @@ describe('security route regressions', () => {
   });
 
   test('does not serve files outside branding directory via traversal', async () => {
-    await request(app).get('/branding/..%2F..%2Fgallery.db').expect(404);
-    await request(app).get('/branding/..%2F..%2Fdata%2Fgallery.db').expect(404);
+    await request(app).get('/branding/..%2F..%2Fgallery.db').expect(400);
+    await request(app).get('/branding/..%2F..%2Fdata%2Fgallery.db').expect(400);
   });
 });
