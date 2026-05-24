@@ -115,7 +115,7 @@ router.get('/about', async (req, res) => {
             td: ['colspan', 'rowspan'],
             th: ['colspan', 'rowspan']
         },
-        allowedSchemes: ['http', 'https', 'mailto', 'data']
+        allowedSchemes: ['http', 'https', 'mailto']
     }) : '';
     let image = about && about.image_path ? about.image_path : null;
     // No additional processing for the image is required here.
