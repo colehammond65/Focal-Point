@@ -5,9 +5,9 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const validator = require('validator');
-const FileType = require('file-type');
 const {
     verifyClient,
+    getActiveClientById,
     getClientImages,
     incrementDownloadCount,
     createZipArchive,
@@ -17,17 +17,26 @@ const { getAllSettings } = require('../utils');
 
 // Middleware to protect client routes
 // Ensures the user is logged in as a client
-function requireClientLogin(req, res, next) {
-    if (req.session && req.session.clientLoggedIn) {
-        next();
-    } else {
-        res.redirect('/client/login');
+async function requireClientLogin(req, res, next) {
+    if (!req.session || !req.session.clientLoggedIn || !req.session.clientId) {
+        return res.redirect('/client/login');
     }
+
+    const client = await getActiveClientById(req.session.clientId);
+    if (!client) {
+        req.session.destroy(() => res.redirect('/client/login'));
+        return;
+    }
+
+    req.session.clientName = client.client_name;
+    req.session.shootTitle = client.shoot_title;
+    next();
 }
 
 // Helper to validate uploaded file is a real image
 async function isRealImage(filePath) {
-    const type = await FileType.fromFile(filePath);
+    const { fileTypeFromFile } = await import('file-type');
+    const type = await fileTypeFromFile(filePath);
     if (!type) return false;
     return ['image/png', 'image/jpeg', 'image/gif'].includes(type.mime);
 }
@@ -58,7 +67,7 @@ router.post('/login', async (req, res) => {
             loggedIn: false
         });
     }
-    const client = verifyClient(accessCode, password);
+    const client = await verifyClient(accessCode, password);
 
     if (client) {
         req.session.clientLoggedIn = true;
@@ -79,14 +88,27 @@ router.post('/login', async (req, res) => {
 
 // Secure client image serving
 // Serves images securely to logged-in clients
-router.get('/images/:filename', requireClientLogin, (req, res) => {
-    const filename = req.params.filename;
-    if (!/^[\w.-]+$/.test(filename)) return res.status(400).send('Invalid filename');
-    const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
+router.get('/images/:filename', requireClientLogin, async (req, res) => {
+  const filename = req.params.filename;
+  if (!/^[\w.-]+$/.test(filename)) return res.status(400).send('Invalid filename');
 
-    fs.promises.access(filePath, fs.constants.F_OK)
-        .then(() => res.sendFile(filePath))
-        .catch(() => res.status(404).send('Image not found'));
+  const width = Number.parseInt(req.query.w, 10);
+  const height = Number.parseInt(req.query.h, 10);
+  const clientDir = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString());
+  const filePath = path.resolve(clientDir, filename);
+  if (!filePath.startsWith(path.resolve(clientDir) + path.sep)) return res.status(400).send('Invalid filename');
+
+  try {
+    await fs.promises.access(filePath, fs.constants.F_OK);
+    if (width || height) {
+      const sharp = require('sharp');
+      res.type(path.extname(filename).slice(1) || 'jpeg');
+      return sharp(filePath).resize(width || null, height || null, { fit: 'inside' }).pipe(res);
+    }
+    return res.sendFile(filePath);
+  } catch {
+    return res.status(404).send('Image not found');
+  }
 });
 
 // Download single image
@@ -103,9 +125,9 @@ router.get('/download/:filename', requireClientLogin, (req, res) => {
 
 // Download all images as ZIP
 // Allows clients to download all their images as a ZIP archive
-router.get('/download-all', requireClientLogin, (req, res) => {
+router.get('/download-all', requireClientLogin, async (req, res) => {
     try {
-        const { archive, zipName } = createZipArchive(req.session.clientId);
+        const { archive, zipName } = await createZipArchive(req.session.clientId);
         archive.on('error', err => {
             console.error('Error creating zip:', err);
             res.status(500).send('Error creating download');
@@ -132,12 +154,13 @@ router.post('/logout', (req, res) => {
 
 // Client gallery (shows their images)
 // Displays the gallery of images for the logged-in client
-router.get('/gallery', requireClientLogin, (req, res) => {
+router.get('/gallery', requireClientLogin, async (req, res) => {
     const clientId = req.session.clientId;
-    const images = getClientImages(clientId);
-    const settings = getAllSettings();
+    const images = await getClientImages(clientId);
+    const settings = await getAllSettings();
     res.render('client-gallery', {
         images,
+        clientId,
         clientName: req.session.clientName,
         shootTitle: req.session.shootTitle,
         settings,

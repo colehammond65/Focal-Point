@@ -16,11 +16,11 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const validator = require('validator');
 const _ = require('lodash');
-const { fileTypeFromFile } = require('file-type');
 const {
     getCategoriesWithImages,
     adminExists,
     createAdmin,
+    createFirstAdmin,
     getAdmin,
     verifyAdmin,
     getAllSettings,
@@ -97,11 +97,12 @@ const adminLimiter = rateLimit({
     legacyHeaders: false,
 });
 const uploadsDir = path.join(__dirname, '../public/uploads');
-const brandingDir = path.join(__dirname, '../data');
+const brandingDir = path.join(__dirname, '../data/branding');
 fs.mkdirSync(brandingDir, { recursive: true });
 
 // Helper to validate uploaded file is a real image
 async function isRealImage(filePath) {
+    const { fileTypeFromFile } = await import('file-type');
     const type = await fileTypeFromFile(filePath);
     if (!type) return false;
     return ['image/png', 'image/jpeg', 'image/gif'].includes(type.mime);
@@ -153,7 +154,11 @@ router.post('/setup', async (req, res) => {
     if (!username || !password || username.length < 3 || password.length < 8) {
         return res.render('setup', { error: 'Username and password are required. Username must be at least 3 characters and password at least 8 characters.', req });
     }
-    await createAdmin(username, password);
+    try {
+        await createFirstAdmin(username, password);
+    } catch (err) {
+        return res.redirect('/admin/login');
+    }
     res.redirect('/admin/login');
 });
 
@@ -254,21 +259,17 @@ router.get('/settings', requireLogin, async (req, res) => {
 
 // Remove header image
 router.post('/settings/remove-header-image', requireLogin, async (req, res) => {
-    const currentHeaderImage = getSetting('headerImage');
-    if (currentHeaderImage) {
+    const currentHeaderImage = await getSetting('headerImage');
+    if (currentHeaderImage && /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(currentHeaderImage)) {
         const filePath = path.join(brandingDir, currentHeaderImage);
         try {
-            await fs.promises.access(filePath);
-            fs.unlinkSync(filePath);
-        } catch (err) {
-            // Ignore error if file does not exist
+            await fs.promises.unlink(filePath);
+} catch (err) {
+            console.error('Failed to remove header image file:', err.message);
         }
-        fs.unlink(filePath, (unlinkErr) => {
-            if (unlinkErr) {
-                // Handle unlink error if needed
-            }
-        });
     }
+    await setSetting('headerImage', '');
+    res.redirect('/admin/settings?msg=Header image removed');
 });
 
 // Move the following route definitions outside of the `/settings/remove-header-image` handler
@@ -681,10 +682,10 @@ router.post('/create-category', requireLogin, adminLimiter, async (req, res) => 
 router.post('/delete-category', requireLogin, adminLimiter, async (req, res) => {
     const category = req.body.category;
     if (!isSafeCategory(category)) return res.redirect('/admin/manage?msg=Invalid category!');
-    if (categoryExists(category)) {
-        deleteCategory(category);
+    if (await categoryExists(category)) {
+        await deleteCategory(category);
         // Remove folder from filesystem
-        const catDir = path.join(__dirname, '../public/images', category);
+        const catDir = path.join(__dirname, '../data/images', category);
         if (fs.existsSync(catDir)) fs.rmSync(catDir, { recursive: true, force: true });
         // Optionally invalidate cache if you use one
         return res.redirect('/admin/manage?msg=Category deleted!');
@@ -699,10 +700,10 @@ router.post('/rename-category', requireLogin, adminLimiter, async (req, res) => 
     if (!isSafeCategory(oldName) || !isSafeCategory(newName)) {
         return res.redirect('/admin/manage?msg=Invalid category name!');
     }
-    if (!categoryExists(oldName)) {
+    if (!(await categoryExists(oldName))) {
         return res.redirect('/admin/manage?msg=Original category not found!');
     }
-    if (categoryExists(newName)) {
+    if (await categoryExists(newName)) {
         return res.redirect('/admin/manage?msg=Category name already exists!');
     }
     // Update category name in DB
@@ -711,8 +712,8 @@ router.post('/rename-category', requireLogin, adminLimiter, async (req, res) => 
     const db = getDb();
     db.prepare('UPDATE categories SET name = ? WHERE name = ?').run(newName, oldName);
     // Rename folder on disk if exists
-    const oldDir = path.join(__dirname, '../public/images', oldName);
-    const newDir = path.join(__dirname, '../public/images', newName);
+    const oldDir = path.join(__dirname, '../data/images', oldName);
+    const newDir = path.join(__dirname, '../data/images', newName);
     if (fs.existsSync(oldDir)) {
         fs.renameSync(oldDir, newDir);
     }
@@ -723,17 +724,16 @@ router.post('/rename-category', requireLogin, adminLimiter, async (req, res) => 
 // Reorder images -- RATE LIMITED
 router.post('/reorder-images', requireLogin, adminLimiter, async (req, res) => {
     const { category, order } = req.body;
-    if (!isSafeCategory(category)) return res.redirect('/admin/manage?msg=Invalid category!');
+    if (!isSafeCategory(category)) return res.status(400).json({ error: 'Invalid category' });
     let orderArr;
     try {
         orderArr = JSON.parse(order);
         if (!Array.isArray(orderArr)) throw new Error();
     } catch {
-        return res.redirect('/admin/manage?msg=Invalid order data!');
+        return res.status(400).json({ error: 'Invalid order data' });
     }
-    saveImageOrder(category, orderArr);
-    // Optionally invalidate cache if you use one
-    return res.redirect('/admin/manage?msg=Order saved!');
+    await saveImageOrder(category, orderArr);
+    return res.json({ success: true });
 });
 
 // Reorder categories -- RATE LIMITED
@@ -756,20 +756,20 @@ router.post('/set-thumbnail', requireLogin, adminLimiter, async (req, res) => {
     if (!isSafeCategory(category) || !filename || filename.includes('/') || filename.includes('\\')) {
         return res.status(400).json({ error: 'Invalid request' });
     }
-    const filePath = path.join(__dirname, '../public/images', category, filename);
+    const filePath = path.join(__dirname, '../data/images', category, filename);
     if (!fs.existsSync(filePath)) {
         return res.status(400).json({ error: 'Image not found' });
     }
-    setCategoryThumbnail(category, filename);
+    await setCategoryThumbnail(category, filename);
     // Optionally invalidate cache if you use one
     return res.json({ success: true });
 });
 
 // Update alt text for an image -- RATE LIMITED
-router.post('/update-alt-text', requireLogin, adminLimiter, (req, res) => {
+router.post('/update-alt-text', requireLogin, adminLimiter, async (req, res) => {
     const { imageId, altText } = req.body;
     if (!imageId) return res.status(400).json({ error: 'Missing image ID' });
-    updateAltText(imageId, altText);
+    await updateAltText(imageId, altText);
     res.json({ success: true });
 });
 
@@ -784,26 +784,26 @@ router.post('/move-image', requireLogin, adminLimiter, async (req, res) => {
     ) {
         return res.status(400).json({ error: 'Invalid request' });
     }
-    if (!categoryExists(toCategory)) {
+    if (!(await categoryExists(toCategory))) {
         return res.status(400).json({ error: 'Destination category does not exist' });
     }
-    const destDir = path.join(__dirname, '../public/images', toCategory);
+    const destDir = path.join(__dirname, '../data/images', toCategory);
     fs.mkdirSync(destDir, { recursive: true });
     let maxPos = 0;
     try {
-        const result = getMaxImagePosition(toCategory);
+        const result = await getMaxImagePosition(toCategory);
         maxPos = typeof result === 'number' && result >= 0 ? result : 0;
     } catch (error) {
         console.error(`Error fetching max image position for category "${toCategory}":`, error);
     }
     let moved = 0;
     for (const filename of filenames) {
-        const srcPath = path.join(__dirname, '../public/images', fromCategory, filename);
+        const srcPath = path.join(__dirname, '../data/images', fromCategory, filename);
         const destPath = path.join(destDir, filename);
         if (!fs.existsSync(srcPath)) continue;
         fs.renameSync(srcPath, destPath);
-        deleteImage(fromCategory, filename);
-        addImage(toCategory, filename, ++maxPos, '');
+        await deleteImage(fromCategory, filename);
+        await addImage(toCategory, filename, ++maxPos, '');
         moved++;
     }
     // Optionally invalidate cache if you use one
@@ -820,7 +820,7 @@ router.post('/delete-image', requireLogin, adminLimiter, async (req, res) => {
         return res.status(400).json({ error: 'Invalid request' });
     }
     // Remove file from filesystem
-    const filePath = path.join(__dirname, '../public/images', category, filename);
+    const filePath = path.join(__dirname, '../data/images', category, filename);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     deleteImage(category, filename);
     // Optionally invalidate cache if you use one
@@ -834,7 +834,7 @@ router.post('/bulk-delete-images', requireLogin, adminLimiter, async (req, res) 
         return res.status(400).json({ error: 'Invalid request' });
     }
     for (const filename of filenames) {
-        const filePath = path.join(__dirname, '../public/images', category, filename);
+        const filePath = path.join(__dirname, '../data/images', category, filename);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         deleteImage(category, filename);
     }
@@ -959,10 +959,11 @@ router.post('/restore', requireLogin, backupUpload.single('backupFile'), async (
     if (!req.file) return res.redirect('/admin/settings?msg=No file uploaded');
     try {
         await backupUtils.restoreBackup(req.file.path);
-        fs.unlinkSync(req.file.path);
         res.redirect('/admin/settings?msg=Backup restored!');
     } catch (err) {
-        res.redirect('/admin/settings?msg=Failed to restore: ' + err.message);
+        res.redirect('/admin/settings?msg=Failed to restore: ' + encodeURIComponent(err.message));
+    } finally {
+        try { fs.unlinkSync(req.file.path); } catch { }
     }
 });
 

@@ -25,10 +25,11 @@
         <div id="toast-container" class="toast-container"></div>
         <script src="/js/toast.js"></script>
         <% if (typeof req !=='undefined' && req.query && req.query.msg) { %>
+            <div id="toast-data" data-msg="<%= req.query.msg %>" style="display:none;"></div>
             <script>
-                // Show toast if msg is present in query
                 document.addEventListener('DOMContentLoaded', function () {
-                    showToast("<%- JSON.stringify(req.query.msg) %>");
+                    var toastDiv = document.getElementById('toast-data');
+                    if (toastDiv && toastDiv.dataset.msg) showToast(toastDiv.dataset.msg);
                 });
             </script>
             <% } %>

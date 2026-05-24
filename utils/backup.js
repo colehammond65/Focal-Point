@@ -22,8 +22,28 @@ const unzipper = require('unzipper');
 
 const BACKUP_DIR = path.join(__dirname, '..', 'data', 'backups');
 const BACKUP_LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
+const clientUploadsDir = path.join(__dirname, '..', 'data', 'client-uploads');
+const brandingDir = path.join(__dirname, '..', 'data', 'branding');
 
 // Ensures the backup directory exists
+async function copyDir(src, dest) {
+    await fs.mkdir(dest, { recursive: true });
+    const entries = await fs.readdir(src, { withFileTypes: true });
+    for (const entry of entries) {
+        const srcPath = path.join(src, entry.name);
+        const destPath = path.join(dest, entry.name);
+        if (entry.isDirectory()) {
+            await copyDir(srcPath, destPath);
+        } else {
+            try {
+                await fs.promises.copyFile(srcPath, destPath);
+            } catch (err) {
+                console.error('Failed to copy file:', srcPath, err.message);
+            }
+        }
+    }
+}
+
 async function ensureBackupDir() {
     try {
         await fs.mkdir(BACKUP_DIR, { recursive: true });
@@ -104,6 +124,12 @@ async function createBackup() {
         archive.pipe(output);
         archive.file(dbPath, { name: 'gallery.db' });
         archive.directory(imagesDir, 'images'); // CHANGED from public/images
+        if (fsSync.existsSync(clientUploadsDir)) {
+            archive.directory(clientUploadsDir, 'client-uploads');
+        }
+        if (fsSync.existsSync(brandingDir)) {
+            archive.directory(brandingDir, 'branding');
+        }
         archive.finalize();
     });
 }
@@ -186,6 +212,16 @@ async function restoreBackup(backupPath) {
             try { await fs.access(imagesDest); imagesDestExists = true; } catch { }
             if (imagesDestExists) await fs.rm(imagesDest, { recursive: true, force: true });
             await fs.rename(imagesSrc, imagesDest);
+        }
+        const brandingBackupDir = path.join(extractDir, 'branding');
+        if (fsSync.existsSync(brandingBackupDir)) {
+            const brandingTarget = path.join(__dirname, '..', 'data', 'branding');
+            await copyDir(brandingBackupDir, brandingTarget);
+        }
+        const clientUploadsBackupDir = path.join(extractDir, 'client-uploads');
+        if (fsSync.existsSync(clientUploadsBackupDir)) {
+            const clientUploadsTarget = path.join(__dirname, '..', 'data', 'client-uploads');
+            await copyDir(clientUploadsBackupDir, clientUploadsTarget);
         }
     } finally {
         let extractDirExists = false;

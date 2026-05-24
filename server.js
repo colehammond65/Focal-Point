@@ -65,6 +65,10 @@ const clientRoutes = require('./routes/client');
 const mainRoutes = require('./routes/main');
 const app = express();
 
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.use(helmet());
 
 // Set trust proxy from environment variable (default: 0/false)
@@ -156,31 +160,25 @@ app.use('/images', express.static(path.join(__dirname, 'data/images'), {
     res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
   }
 }));
-// Serve static client images from /data/client-uploads at /client-images URL with cache headers
-app.use('/client-images', express.static(path.join(__dirname, 'data/client-uploads'), {
-  maxAge: '30d',
-  setHeaders: (res) => {
-    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
-  }
-}));
-// Serve the /data directory as /branding with cache headers
-app.use('/branding', express.static(path.join(__dirname, 'data'), {
-  maxAge: '30d',
-  setHeaders: (res) => {
-    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
-  }
-}));
 
-// Serve client-uploaded images at /uploads/:clientId/:filename
-app.get('/uploads/:clientId/:filename', (req, res) => {
-  const clientId = req.params.clientId;
-  const filename = req.params.filename;
-  const filePath = path.join(__dirname, 'data', 'client-uploads', clientId, filename);
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).send('Image not found');
-  }
+
+const BRANDING_DIR = path.join(__dirname, 'data', 'branding');
+
+function isSafePublicFilename(filename) {
+  return typeof filename === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(filename);
+}
+
+function sendFileWithinRoot(res, root, filename) {
+  if (!isSafePublicFilename(filename)) return res.status(400).send('Invalid filename');
+  const resolvedRoot = path.resolve(root);
+  const resolvedPath = path.resolve(resolvedRoot, filename);
+  if (!resolvedPath.startsWith(resolvedRoot + path.sep)) return res.status(400).send('Invalid filename');
+  if (!fs.existsSync(resolvedPath)) return res.status(404).send('File not found');
+  return res.sendFile(resolvedPath);
+}
+
+app.get('/branding/:filename', (req, res) => {
+  return sendFileWithinRoot(res, BRANDING_DIR, req.params.filename);
 });
 
 // Serve About image from /data by filename
@@ -227,34 +225,7 @@ app.get('/images/:category/:filename', async (req, res) => {
   }
 });
 
-// Optimized client image serving with sharp (on-the-fly resizing)
-app.get('/client-images/:clientId/:filename', async (req, res) => {
-  const { clientId, filename } = req.params;
-  const width = parseInt(req.query.w, 10);
-  const height = parseInt(req.query.h, 10);
-  const origPath = path.join(__dirname, 'data/client-uploads', clientId, filename);
-  if (!fs.existsSync(origPath)) return res.status(404).send('Image not found');
 
-  if (width || height) {
-    try {
-      const cacheDir = path.join(__dirname, 'public/images/tmp', 'client', clientId);
-      fs.mkdirSync(cacheDir, { recursive: true });
-      const cacheName = `${path.parse(filename).name}_${width || ''}x${height || ''}${path.extname(filename)}`;
-      const cachePath = path.join(cacheDir, cacheName);
-      if (fs.existsSync(cachePath)) {
-        return res.sendFile(cachePath);
-      }
-      let transformer = sharp(origPath);
-      if (width || height) transformer = transformer.resize(width || null, height || null, { fit: 'inside' });
-      await transformer.toFile(cachePath);
-      return res.sendFile(cachePath);
-    } catch (err) {
-      return res.status(500).send('Error processing image');
-    }
-  } else {
-    return res.sendFile(origPath);
-  }
-});
 
 // Parse URL-encoded bodies (for login form, etc.)
 app.use(express.urlencoded({ extended: true }));

@@ -11,7 +11,8 @@ const {
     getOrderedImages,
     getCategoriesWithPreviews,
     verifyAdmin,
-    createAdmin
+    createAdmin,
+    createFirstAdmin
 } = require('../utils');
 const rateLimit = require('express-rate-limit');
 
@@ -103,10 +104,20 @@ router.get('/manifest.json', async (req, res) => {
 router.get('/about', async (req, res) => {
     const { db, ready } = require('../db');
     const marked = require('marked');
+    const sanitizeHtml = require('sanitize-html');
     const settings = await getSettingsWithDefaults();
     await ready;
     const about = db.prepare('SELECT * FROM about LIMIT 1').get();
-    let aboutHtml = about && about.markdown ? marked.parse(about.markdown) : '';
+    let aboutHtml = about && about.markdown ? sanitizeHtml(marked.parse(about.markdown), {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr', 'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'a', 'strong', 'em', 'del', 'sup', 'sub']),
+        allowedAttributes: {
+            a: ['href', 'name', 'target', 'rel'],
+            img: ['src', 'alt', 'title', 'width', 'height'],
+            td: ['colspan', 'rowspan'],
+            th: ['colspan', 'rowspan']
+        },
+        allowedSchemes: ['http', 'https', 'mailto']
+    }) : '';
     let image = about && about.image_path ? about.image_path : null;
     // No additional processing for the image is required here.
     res.render('about', {
@@ -175,7 +186,11 @@ router.post('/setup', async (req, res) => {
         // Redirect with error in query for toast
         return res.redirect('/setup?msg=' + encodeURIComponent('Username and password are required. Username must be at least 3 characters and password at least 8 characters.'));
     }
-    await createAdmin(username, password);
+    try {
+        await createFirstAdmin(username, password);
+    } catch (err) {
+        return res.redirect('/admin/login');
+    }
     res.redirect('/admin/login');
 });
 

@@ -187,26 +187,26 @@ function incrementDownloadCount(clientId, imageId = null) {
 }
 
 // Create a zip archive of all client images
-function createZipArchive(clientId) {
-    const db = getDb();
+async function createZipArchive(clientId) {
+    await ready;
     const client = getClientById(clientId);
-    const images = getClientImages(clientId);
-    const clientDir = path.join(CLIENT_UPLOADS_DIR, clientId.toString());
+    if (!client) throw new Error('Client not found');
 
+    const images = await getClientImages(clientId);
+    const clientDir = path.join(CLIENT_UPLOADS_DIR, clientId.toString());
     const archive = archiver('zip', { zlib: { level: 9 } });
-    const zipName = `${client.client_name.replace(/[^a-zA-Z0-9]/g, '_')}_${client.shoot_title ? client.shoot_title.replace(/[^a-zA-Z0-9]/g, '_') : 'Photos'}.zip`;
+    const clientName = client.client_name.replace(/[^a-zA-Z0-9]/g, '_');
+    const shootTitle = client.shoot_title ? client.shoot_title.replace(/[^a-zA-Z0-9]/g, '_') : 'Photos';
+    const zipName = `${clientName}_${shootTitle}.zip`;
 
     images.forEach(image => {
         const filePath = path.join(clientDir, image.filename);
-        if (fs.existsSync(filePath)) {
-            archive.file(filePath, {
-                name: image.original_filename || image.filename
-            });
+        if (fsSync.existsSync(filePath)) {
+            archive.file(filePath, { name: image.original_filename || image.filename });
         }
     });
 
     archive.finalize();
-
     return { archive, zipName };
 }
 
@@ -226,6 +226,15 @@ async function cleanupExpiredClients() {
     return expiredClients.length;
 }
 
+async function getActiveClientById(clientId) {
+    await ready;
+    const db = getDb();
+    return db.prepare(`
+        SELECT * FROM clients
+        WHERE id = ? AND is_active = 1 AND expires_at > datetime('now')
+    `).get(clientId);
+}
+
 module.exports = {
     createClient,
     verifyClient, // <-- this now takes (accessCode, password)
@@ -234,6 +243,7 @@ module.exports = {
     deleteClientImage,
     getAllClients,
     getClientById,
+    getActiveClientById,
     deleteClient,
     toggleClientStatus,
     incrementDownloadCount,
