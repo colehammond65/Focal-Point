@@ -259,21 +259,15 @@ router.get('/settings', requireLogin, async (req, res) => {
 
 // Remove header image
 router.post('/settings/remove-header-image', requireLogin, async (req, res) => {
-    const currentHeaderImage = getSetting('headerImage');
-    if (currentHeaderImage) {
+    const currentHeaderImage = await getSetting('headerImage');
+    if (currentHeaderImage && /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(currentHeaderImage)) {
         const filePath = path.join(brandingDir, currentHeaderImage);
         try {
-            await fs.promises.access(filePath);
-            fs.unlinkSync(filePath);
-        } catch (err) {
-            // Ignore error if file does not exist
-        }
-        fs.unlink(filePath, (unlinkErr) => {
-            if (unlinkErr) {
-                // Handle unlink error if needed
-            }
-        });
+            await fs.promises.unlink(filePath);
+        } catch { }
     }
+    await setSetting('headerImage', '');
+    res.redirect('/admin/settings?msg=Header image removed');
 });
 
 // Move the following route definitions outside of the `/settings/remove-header-image` handler
@@ -964,10 +958,11 @@ router.post('/restore', requireLogin, backupUpload.single('backupFile'), async (
     if (!req.file) return res.redirect('/admin/settings?msg=No file uploaded');
     try {
         await backupUtils.restoreBackup(req.file.path);
-        fs.unlinkSync(req.file.path);
         res.redirect('/admin/settings?msg=Backup restored!');
     } catch (err) {
-        res.redirect('/admin/settings?msg=Failed to restore: ' + err.message);
+        res.redirect('/admin/settings?msg=Failed to restore: ' + encodeURIComponent(err.message));
+    } finally {
+        try { fs.unlinkSync(req.file.path); } catch { }
     }
 });
 
