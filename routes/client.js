@@ -125,9 +125,9 @@ router.get('/download/:filename', requireClientLogin, (req, res) => {
 
 // Download all images as ZIP
 // Allows clients to download all their images as a ZIP archive
-router.get('/download-all', requireClientLogin, (req, res) => {
+router.get('/download-all', requireClientLogin, async (req, res) => {
     try {
-        const { archive, zipName } = createZipArchive(req.session.clientId);
+        const { archive, zipName } = await createZipArchive(req.session.clientId);
         archive.on('error', err => {
             console.error('Error creating zip:', err);
             res.status(500).send('Error creating download');
@@ -154,12 +154,13 @@ router.post('/logout', (req, res) => {
 
 // Client gallery (shows their images)
 // Displays the gallery of images for the logged-in client
-router.get('/gallery', requireClientLogin, (req, res) => {
+router.get('/gallery', requireClientLogin, async (req, res) => {
     const clientId = req.session.clientId;
-    const images = getClientImages(clientId);
-    const settings = getAllSettings();
+    const images = await getClientImages(clientId);
+    const settings = await getAllSettings();
     res.render('client-gallery', {
         images,
+        clientId,
         clientName: req.session.clientName,
         shootTitle: req.session.shootTitle,
         settings,

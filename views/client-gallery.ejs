@@ -61,19 +61,6 @@
                         </div>
                     </div>
 
-                    <div class="upload-section" style="margin-bottom:2em;">
-                        <form action="/client/upload" method="POST" enctype="multipart/form-data"
-                            class="client-upload-form">
-                            <label for="clientUploadInput" class="btn btn-primary" tabindex="0"
-                                style="cursor:pointer;">Select Photo(s)</label>
-                            <input type="file" id="clientUploadInput" name="images" multiple
-                                accept="image/png,image/jpeg,image/gif" style="display:none;"
-                                onchange="validateClientImages(this)">
-                            <div id="clientUploadPreview" class="preview" style="margin-top:1em;"></div>
-                            <button type="submit" class="btn btn-success" style="margin-top:1em;">Upload</button>
-                        </form>
-                    </div>
-
                     <div class="gallery-container">
                         <% if (images && images.length> 0) { %>
                             <div class="gallery-grid">

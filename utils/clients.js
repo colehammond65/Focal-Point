@@ -187,26 +187,26 @@ function incrementDownloadCount(clientId, imageId = null) {
 }
 
 // Create a zip archive of all client images
-function createZipArchive(clientId) {
-    const db = getDb();
+async function createZipArchive(clientId) {
+    await ready;
     const client = getClientById(clientId);
-    const images = getClientImages(clientId);
-    const clientDir = path.join(CLIENT_UPLOADS_DIR, clientId.toString());
+    if (!client) throw new Error('Client not found');
 
+    const images = await getClientImages(clientId);
+    const clientDir = path.join(CLIENT_UPLOADS_DIR, clientId.toString());
     const archive = archiver('zip', { zlib: { level: 9 } });
-    const zipName = `${client.client_name.replace(/[^a-zA-Z0-9]/g, '_')}_${client.shoot_title ? client.shoot_title.replace(/[^a-zA-Z0-9]/g, '_') : 'Photos'}.zip`;
+    const clientName = client.client_name.replace(/[^a-zA-Z0-9]/g, '_');
+    const shootTitle = client.shoot_title ? client.shoot_title.replace(/[^a-zA-Z0-9]/g, '_') : 'Photos';
+    const zipName = `${clientName}_${shootTitle}.zip`;
 
     images.forEach(image => {
         const filePath = path.join(clientDir, image.filename);
-        if (fs.existsSync(filePath)) {
-            archive.file(filePath, {
-                name: image.original_filename || image.filename
-            });
+        if (fsSync.existsSync(filePath)) {
+            archive.file(filePath, { name: image.original_filename || image.filename });
         }
     });
 
     archive.finalize();
-
     return { archive, zipName };
 }
 
