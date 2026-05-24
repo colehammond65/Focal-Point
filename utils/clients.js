@@ -231,7 +231,7 @@ async function getActiveClientById(clientId) {
     const db = getDb();
     return db.prepare(`
         SELECT * FROM clients
-        WHERE id = ? AND is_active = 1 AND datetime(expires_at) > datetime('now')
+        WHERE id = ? AND is_active = 1 AND expires_at > datetime('now')
     `).get(clientId);
 }
 
