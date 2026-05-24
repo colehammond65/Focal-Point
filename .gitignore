@@ -134,5 +134,6 @@ dist
 images/
 data/
 uploads/
+.worktrees/
 .env.test
 temp/
