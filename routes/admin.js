@@ -21,6 +21,7 @@ const {
     getCategoriesWithImages,
     adminExists,
     createAdmin,
+    createFirstAdmin,
     getAdmin,
     verifyAdmin,
     getAllSettings,
@@ -153,7 +154,11 @@ router.post('/setup', async (req, res) => {
     if (!username || !password || username.length < 3 || password.length < 8) {
         return res.render('setup', { error: 'Username and password are required. Username must be at least 3 characters and password at least 8 characters.', req });
     }
-    await createAdmin(username, password);
+    try {
+        await createFirstAdmin(username, password);
+    } catch (err) {
+        return res.redirect('/admin/login');
+    }
     res.redirect('/admin/login');
 });
 

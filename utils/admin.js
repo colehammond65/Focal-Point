@@ -10,6 +10,14 @@ async function adminExists() {
     const db = getDb();
     return !!db.prepare('SELECT 1 FROM admin LIMIT 1').get();
 }
+// Creates first admin only if no admin exists (guards race condition)
+async function createFirstAdmin(username, password) {
+    await ready;
+    const db = getDb();
+    const existing = db.prepare('SELECT 1 FROM admin LIMIT 1').get();
+    if (existing) throw new Error('Admin already exists');
+    await createAdmin(username, password);
+}
 // Creates a new admin user with hashed password
 async function createAdmin(username, password) {
     await ready;
@@ -47,6 +55,7 @@ async function verifyAdmin(username, password) {
 module.exports = {
     adminExists,
     createAdmin,
+    createFirstAdmin,
     getAdmin,
     verifyAdmin
 };
