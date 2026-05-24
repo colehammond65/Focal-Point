@@ -65,6 +65,10 @@ const clientRoutes = require('./routes/client');
 const mainRoutes = require('./routes/main');
 const app = express();
 
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.use(helmet());
 
 // Set trust proxy from environment variable (default: 0/false)
