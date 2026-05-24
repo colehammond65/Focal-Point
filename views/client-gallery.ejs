@@ -79,7 +79,7 @@
                             <div class="gallery-grid">
                                 <% images.forEach((image, idx)=> { %>
                                     <img class="gallery-thumb-img"
-                                        src="/client-images/<%= clientId %>/<%= image.filename %>?w=300"
+                                        src="/client/images/<%= image.filename %>?w=300"
                                         alt="<%= image.original_filename || ('Photo ' + (idx + 1)) %>" loading="lazy" />
                                     <% }); %>
                             </div>

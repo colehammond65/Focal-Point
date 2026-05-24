@@ -79,14 +79,27 @@ router.post('/login', async (req, res) => {
 
 // Secure client image serving
 // Serves images securely to logged-in clients
-router.get('/images/:filename', requireClientLogin, (req, res) => {
-    const filename = req.params.filename;
-    if (!/^[\w.-]+$/.test(filename)) return res.status(400).send('Invalid filename');
-    const filePath = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString(), filename);
+router.get('/images/:filename', requireClientLogin, async (req, res) => {
+  const filename = req.params.filename;
+  if (!/^[\w.-]+$/.test(filename)) return res.status(400).send('Invalid filename');
 
-    fs.promises.access(filePath, fs.constants.F_OK)
-        .then(() => res.sendFile(filePath))
-        .catch(() => res.status(404).send('Image not found'));
+  const width = Number.parseInt(req.query.w, 10);
+  const height = Number.parseInt(req.query.h, 10);
+  const clientDir = path.join(CLIENT_UPLOADS_DIR, req.session.clientId.toString());
+  const filePath = path.resolve(clientDir, filename);
+  if (!filePath.startsWith(path.resolve(clientDir) + path.sep)) return res.status(400).send('Invalid filename');
+
+  try {
+    await fs.promises.access(filePath, fs.constants.F_OK);
+    if (width || height) {
+      const sharp = require('sharp');
+      res.type(path.extname(filename).slice(1) || 'jpeg');
+      return sharp(filePath).resize(width || null, height || null, { fit: 'inside' }).pipe(res);
+    }
+    return res.sendFile(filePath);
+  } catch {
+    return res.status(404).send('Image not found');
+  }
 });
 
 // Download single image

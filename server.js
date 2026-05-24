@@ -221,34 +221,7 @@ app.get('/images/:category/:filename', async (req, res) => {
   }
 });
 
-// Optimized client image serving with sharp (on-the-fly resizing)
-app.get('/client-images/:clientId/:filename', async (req, res) => {
-  const { clientId, filename } = req.params;
-  const width = parseInt(req.query.w, 10);
-  const height = parseInt(req.query.h, 10);
-  const origPath = path.join(__dirname, 'data/client-uploads', clientId, filename);
-  if (!fs.existsSync(origPath)) return res.status(404).send('Image not found');
 
-  if (width || height) {
-    try {
-      const cacheDir = path.join(__dirname, 'public/images/tmp', 'client', clientId);
-      fs.mkdirSync(cacheDir, { recursive: true });
-      const cacheName = `${path.parse(filename).name}_${width || ''}x${height || ''}${path.extname(filename)}`;
-      const cachePath = path.join(cacheDir, cacheName);
-      if (fs.existsSync(cachePath)) {
-        return res.sendFile(cachePath);
-      }
-      let transformer = sharp(origPath);
-      if (width || height) transformer = transformer.resize(width || null, height || null, { fit: 'inside' });
-      await transformer.toFile(cachePath);
-      return res.sendFile(cachePath);
-    } catch (err) {
-      return res.status(500).send('Error processing image');
-    }
-  } else {
-    return res.sendFile(origPath);
-  }
-});
 
 // Parse URL-encoded bodies (for login form, etc.)
 app.use(express.urlencoded({ extended: true }));
