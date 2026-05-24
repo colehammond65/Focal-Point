@@ -686,10 +686,10 @@ router.post('/create-category', requireLogin, adminLimiter, async (req, res) => 
 router.post('/delete-category', requireLogin, adminLimiter, async (req, res) => {
     const category = req.body.category;
     if (!isSafeCategory(category)) return res.redirect('/admin/manage?msg=Invalid category!');
-    if (categoryExists(category)) {
-        deleteCategory(category);
+    if (await categoryExists(category)) {
+        await deleteCategory(category);
         // Remove folder from filesystem
-        const catDir = path.join(__dirname, '../public/images', category);
+        const catDir = path.join(__dirname, '../data/images', category);
         if (fs.existsSync(catDir)) fs.rmSync(catDir, { recursive: true, force: true });
         // Optionally invalidate cache if you use one
         return res.redirect('/admin/manage?msg=Category deleted!');
@@ -704,10 +704,10 @@ router.post('/rename-category', requireLogin, adminLimiter, async (req, res) => 
     if (!isSafeCategory(oldName) || !isSafeCategory(newName)) {
         return res.redirect('/admin/manage?msg=Invalid category name!');
     }
-    if (!categoryExists(oldName)) {
+    if (!(await categoryExists(oldName))) {
         return res.redirect('/admin/manage?msg=Original category not found!');
     }
-    if (categoryExists(newName)) {
+    if (await categoryExists(newName)) {
         return res.redirect('/admin/manage?msg=Category name already exists!');
     }
     // Update category name in DB
@@ -716,8 +716,8 @@ router.post('/rename-category', requireLogin, adminLimiter, async (req, res) => 
     const db = getDb();
     db.prepare('UPDATE categories SET name = ? WHERE name = ?').run(newName, oldName);
     // Rename folder on disk if exists
-    const oldDir = path.join(__dirname, '../public/images', oldName);
-    const newDir = path.join(__dirname, '../public/images', newName);
+    const oldDir = path.join(__dirname, '../data/images', oldName);
+    const newDir = path.join(__dirname, '../data/images', newName);
     if (fs.existsSync(oldDir)) {
         fs.renameSync(oldDir, newDir);
     }
@@ -761,7 +761,7 @@ router.post('/set-thumbnail', requireLogin, adminLimiter, async (req, res) => {
     if (!isSafeCategory(category) || !filename || filename.includes('/') || filename.includes('\\')) {
         return res.status(400).json({ error: 'Invalid request' });
     }
-    const filePath = path.join(__dirname, '../public/images', category, filename);
+    const filePath = path.join(__dirname, '../data/images', category, filename);
     if (!fs.existsSync(filePath)) {
         return res.status(400).json({ error: 'Image not found' });
     }
@@ -789,26 +789,26 @@ router.post('/move-image', requireLogin, adminLimiter, async (req, res) => {
     ) {
         return res.status(400).json({ error: 'Invalid request' });
     }
-    if (!categoryExists(toCategory)) {
+    if (!(await categoryExists(toCategory))) {
         return res.status(400).json({ error: 'Destination category does not exist' });
     }
-    const destDir = path.join(__dirname, '../public/images', toCategory);
+    const destDir = path.join(__dirname, '../data/images', toCategory);
     fs.mkdirSync(destDir, { recursive: true });
     let maxPos = 0;
     try {
-        const result = getMaxImagePosition(toCategory);
+        const result = await getMaxImagePosition(toCategory);
         maxPos = typeof result === 'number' && result >= 0 ? result : 0;
     } catch (error) {
         console.error(`Error fetching max image position for category "${toCategory}":`, error);
     }
     let moved = 0;
     for (const filename of filenames) {
-        const srcPath = path.join(__dirname, '../public/images', fromCategory, filename);
+        const srcPath = path.join(__dirname, '../data/images', fromCategory, filename);
         const destPath = path.join(destDir, filename);
         if (!fs.existsSync(srcPath)) continue;
         fs.renameSync(srcPath, destPath);
-        deleteImage(fromCategory, filename);
-        addImage(toCategory, filename, ++maxPos, '');
+        await deleteImage(fromCategory, filename);
+        await addImage(toCategory, filename, ++maxPos, '');
         moved++;
     }
     // Optionally invalidate cache if you use one
@@ -825,7 +825,7 @@ router.post('/delete-image', requireLogin, adminLimiter, async (req, res) => {
         return res.status(400).json({ error: 'Invalid request' });
     }
     // Remove file from filesystem
-    const filePath = path.join(__dirname, '../public/images', category, filename);
+    const filePath = path.join(__dirname, '../data/images', category, filename);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     deleteImage(category, filename);
     // Optionally invalidate cache if you use one
@@ -839,7 +839,7 @@ router.post('/bulk-delete-images', requireLogin, adminLimiter, async (req, res) 
         return res.status(400).json({ error: 'Invalid request' });
     }
     for (const filename of filenames) {
-        const filePath = path.join(__dirname, '../public/images', category, filename);
+        const filePath = path.join(__dirname, '../data/images', category, filename);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         deleteImage(category, filename);
     }
