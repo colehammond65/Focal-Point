@@ -736,7 +736,7 @@ router.post('/reorder-images', requireLogin, adminLimiter, async (req, res) => {
     } catch {
         return res.redirect('/admin/manage?msg=Invalid order data!');
     }
-    saveImageOrder(category, orderArr);
+    await saveImageOrder(category, orderArr);
     // Optionally invalidate cache if you use one
     return res.redirect('/admin/manage?msg=Order saved!');
 });
@@ -765,16 +765,16 @@ router.post('/set-thumbnail', requireLogin, adminLimiter, async (req, res) => {
     if (!fs.existsSync(filePath)) {
         return res.status(400).json({ error: 'Image not found' });
     }
-    setCategoryThumbnail(category, filename);
+    await setCategoryThumbnail(category, filename);
     // Optionally invalidate cache if you use one
     return res.json({ success: true });
 });
 
 // Update alt text for an image -- RATE LIMITED
-router.post('/update-alt-text', requireLogin, adminLimiter, (req, res) => {
+router.post('/update-alt-text', requireLogin, adminLimiter, async (req, res) => {
     const { imageId, altText } = req.body;
     if (!imageId) return res.status(400).json({ error: 'Missing image ID' });
-    updateAltText(imageId, altText);
+    await updateAltText(imageId, altText);
     res.json({ success: true });
 });
 
