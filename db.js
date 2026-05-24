@@ -7,12 +7,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 
 let db;
-let ready;
-
-// Use a plain object for exports
-const exportsObj = {};
-
-(async () => {
+const ready = (async () => {
   // Ensure data directory exists
   const dataDir = path.join(__dirname, 'data');
   try {
@@ -89,18 +84,15 @@ const exportsObj = {};
   });
 
   // Run all pending migrations on startup
-  ready = umzug.up();
-  await ready;
-  // No direct assignment to exportsObj.db/ready here
+  return umzug.up();
 })();
 
-// Export property getters for db and ready
+const exportsObj = {};
+
 Object.defineProperty(exportsObj, 'db', {
   get: () => db,
 });
-Object.defineProperty(exportsObj, 'ready', {
-  get: () => ready,
-});
+exportsObj.ready = ready;
 
 // Add a helper to safely get db after ready
 exportsObj.getDb = function getDb() {
