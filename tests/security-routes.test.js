@@ -13,6 +13,15 @@ describe('security route regressions', () => {
     await ready;
     fs.mkdirSync(path.join(__dirname, '..', 'data', 'client-uploads', '1'), { recursive: true });
     fs.writeFileSync(path.join(__dirname, '..', 'data', 'client-uploads', '1', 'private.jpg'), 'not-real-jpg');
+    fs.mkdirSync(path.join(__dirname, '..', 'data', 'backups'), { recursive: true });
+    fs.writeFileSync(path.join(__dirname, '..', 'data', 'backups', 'backup-test.zip'), 'zip');
+  });
+
+  afterAll(() => {
+    fs.rmSync(path.join(__dirname, '..', 'data', 'client-uploads', '1', 'private.jpg'), { force: true });
+    fs.rmSync(path.join(__dirname, '..', 'data', 'backups', 'backup-test.zip'), { force: true });
+    fs.rmSync(path.join(__dirname, '..', 'data', 'client-uploads', '1'), { force: true, recursive: true });
+    fs.rmSync(path.join(__dirname, '..', 'data', 'backups'), { force: true, recursive: true });
   });
 
   test('does not expose gallery database through branding route', async () => {
@@ -20,9 +29,6 @@ describe('security route regressions', () => {
   });
 
   test('does not expose backups through branding route', async () => {
-    fs.mkdirSync(path.join(__dirname, '..', 'data', 'backups'), { recursive: true });
-    fs.writeFileSync(path.join(__dirname, '..', 'data', 'backups', 'backup-test.zip'), 'zip');
-
     await request(app).get('/branding/backups/backup-test.zip').expect(404);
   });
 
@@ -30,5 +36,10 @@ describe('security route regressions', () => {
     await request(app).get('/client-images/1/private.jpg').expect(302);
     await request(app).get('/uploads/1/private.jpg').expect(404);
     await request(app).get('/branding/client-uploads/1/private.jpg').expect(404);
+  });
+
+  test('does not serve files outside branding directory via traversal', async () => {
+    await request(app).get('/branding/..%2F..%2Fgallery.db').expect(404);
+    await request(app).get('/branding/..%2F..%2Fdata%2Fgallery.db').expect(404);
   });
 });
