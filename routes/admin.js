@@ -264,7 +264,9 @@ router.post('/settings/remove-header-image', requireLogin, async (req, res) => {
         const filePath = path.join(brandingDir, currentHeaderImage);
         try {
             await fs.promises.unlink(filePath);
-        } catch { }
+} catch (err) {
+            console.error('Failed to remove header image file:', err.message);
+        }
     }
     await setSetting('headerImage', '');
     res.redirect('/admin/settings?msg=Header image removed');
