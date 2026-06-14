@@ -63,6 +63,7 @@ const {
 const adminRoutes = require('./routes/admin');
 const clientRoutes = require('./routes/client');
 const mainRoutes = require('./routes/main');
+const imageUtils = require('./utils/imageUtils');
 const app = express();
 
 app.get('/healthz', (req, res) => {
@@ -363,6 +364,32 @@ app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: setCacheHeaders
 }));
 
+// Block uploads during metadata migration
+app.use(async (req, res, next) => {
+    if (req.method !== 'POST') return next();
+
+    const uploadPaths = [
+        { method: 'POST', path: '/admin/upload' },
+        { method: 'POST', pathPrefix: '/admin/clients/' },
+        { method: 'POST', path: '/admin/settings' },
+        { method: 'POST', path: '/admin/about/image' }
+    ];
+
+    const isUploadRequest = uploadPaths.some(uploadPath => {
+        if (uploadPath.path && req.path === uploadPath.path) return true;
+        if (uploadPath.pathPrefix && req.path.startsWith(uploadPath.pathPrefix)) return true;
+        return false;
+    });
+
+    if (isUploadRequest) {
+        const running = await getSetting('metadataMigrationRunning');
+        if (running === 'true') {
+            return res.status(503).send('Server is processing images, please try again in a few minutes.');
+        }
+    }
+    next();
+});
+
 // Use client routes
 app.use('/client', clientRoutes);
 
@@ -386,11 +413,62 @@ app.use((err, req, res, next) => {
   }
 });
 
+async function runMetadataMigrationIfNeeded() {
+    try {
+        const completed = await getSetting('metadataMigrationComplete');
+        if (completed === 'true') {
+            console.log('[migration] Metadata already stripped, skipping');
+            return;
+        }
+
+        const running = await getSetting('metadataMigrationRunning');
+        if (running === 'true') {
+            console.log('[migration] Migration already in progress, waiting...');
+            return;
+        }
+
+        console.log('[migration] Starting background metadata migration...');
+        await setSetting('metadataMigrationRunning', 'true');
+
+        setImmediate(async () => {
+            try {
+                console.log('[migration] Creating backup...');
+                const backupPath = await imageUtils.backupImages();
+                console.log(`[migration] Backup created: ${backupPath}`);
+
+                const galleryDir = path.join(__dirname, 'data/images');
+                if (fs.existsSync(galleryDir)) {
+                    console.log('[migration] Processing gallery images...');
+                    const galleryResult = await imageUtils.migrateDirectory(galleryDir);
+                    console.log(`[migration] Gallery: ${galleryResult.processed}/${galleryResult.total} processed, ${galleryResult.errors} errors`);
+                }
+
+                const clientDir = path.join(__dirname, 'data/client-uploads');
+                if (fs.existsSync(clientDir)) {
+                    console.log('[migration] Processing client images...');
+                    const clientResult = await imageUtils.migrateDirectory(clientDir);
+                    console.log(`[migration] Clients: ${clientResult.processed}/${clientResult.total} processed, ${clientResult.errors} errors`);
+                }
+
+                await setSetting('metadataMigrationComplete', 'true');
+                await setSetting('metadataMigrationRunning', 'false');
+                console.log('[migration] Complete!');
+            } catch (err) {
+                console.error('[migration] Fatal error:', err);
+                await setSetting('metadataMigrationRunning', 'false');
+            }
+        });
+    } catch (err) {
+        console.error('[migration] Error checking migration status:', err);
+    }
+}
+
 // Only start the server if this file is run directly, not when required for tests
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     console.log(`Server is running at http://localhost:${PORT}`);
+    await runMetadataMigrationIfNeeded();
   });
 }
 

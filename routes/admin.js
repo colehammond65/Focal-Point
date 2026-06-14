@@ -16,8 +16,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const validator = require('validator');
 const _ = require('lodash');
-const {
-    getCategoriesWithImages,
+const { getCategoriesWithImages,
     adminExists,
     createAdmin,
     createFirstAdmin,
@@ -39,6 +38,7 @@ const {
     addImage,
     getMaxImagePosition
 } = require('../utils');
+const { stripMetadataInPlace } = require('../utils/imageUtils');
 const {
     getAllClients,
     getClientById,
@@ -211,14 +211,22 @@ router.post('/settings', requireLogin, settingsUpload.fields([
     // Handle file uploads
     let favicon = '';
     if (req.files && req.files.favicon && req.files.favicon[0]) {
-        favicon = req.files.favicon[0].filename;
+        const file = req.files.favicon[0];
+        const destPath = path.join(brandingDir, file.filename);
+        await sharp(file.path).withMetadata(false).toFile(destPath);
+        fs.unlinkSync(file.path);
+        favicon = file.filename;
     } else if (typeof req.body.favicon === 'string') {
         favicon = validator.escape(req.body.favicon);
     }
 
     let headerImage = '';
     if (req.files && req.files.headerImage && req.files.headerImage[0]) {
-        headerImage = req.files.headerImage[0].filename;
+        const file = req.files.headerImage[0];
+        const destPath = path.join(brandingDir, file.filename);
+        await sharp(file.path).withMetadata(false).toFile(destPath);
+        fs.unlinkSync(file.path);
+        headerImage = file.filename;
     } else if (typeof req.body.headerImage === 'string') {
         headerImage = validator.escape(req.body.headerImage);
     }
@@ -572,6 +580,7 @@ router.post('/clients/:clientId/upload', requireLogin, clientUpload.array('image
                 fs.unlinkSync(file.path);
                 return res.status(400).send('Invalid file type uploaded.');
             }
+            await stripMetadataInPlace(file.path);
             addClientImage(clientId, file.filename, file.originalname, file.size);
         }
     }
@@ -623,7 +632,8 @@ router.post('/upload', requireLogin, adminLimiter, upload.array('images', 20), a
             }
             const tmpPath = file.path;
             const destPath = path.join(destDir, file.filename);
-            fs.renameSync(tmpPath, destPath);
+            await sharp(tmpPath).withMetadata(false).toFile(destPath);
+            fs.unlinkSync(tmpPath);
             await addImage(category, file.filename, ++maxPos, '');
         }
         return res.redirect('/admin/manage?msg=Upload successful!');
@@ -867,6 +877,7 @@ const aboutUpload = multer({ dest: path.join(__dirname, '../data/') });
 router.post('/about/image', requireLogin, aboutUpload.single('image'), async (req, res) => {
     let imagePath = req.body.currentImage;
     if (req.file) {
+        await stripMetadataInPlace(req.file.path);
         imagePath = req.file.filename;
     }
     const about = await getAbout();
